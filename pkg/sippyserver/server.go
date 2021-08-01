@@ -9,6 +9,7 @@ import (
 
 	"github.com/openshift/sippy/pkg/html/generichtml"
 
+	rice "github.com/GeertJohan/go.rice"
 	"github.com/openshift/sippy/pkg/api"
 	sippyprocessingv1 "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
 	"github.com/openshift/sippy/pkg/buganalysis"
@@ -28,6 +29,7 @@ func NewServer(
 	syntheticTestManager testgridconversion.SyntheticTestManager,
 	variantManager testidentification.VariantManager,
 	bugCache buganalysis.BugCache,
+	box *rice.Box,
 ) *Server {
 
 	server := &Server{
@@ -43,6 +45,7 @@ func NewServer(
 			DisplayDataConfig:           displayDataOptions,
 		},
 		currTestReports: map[string]StandardReport{},
+		sippyNG: box,
 	}
 
 	return server
@@ -57,6 +60,7 @@ type Server struct {
 	bugCache                  buganalysis.BugCache
 	testReportGeneratorConfig TestReportGeneratorConfig
 	currTestReports           map[string]StandardReport
+	sippyNG *rice.Box
 }
 
 type TestGridDashboardCoordinates struct {
@@ -163,6 +167,8 @@ func (s *Server) reportNames() []string {
 func (s *Server) printJSONReport(w http.ResponseWriter, req *http.Request) {
 	reportName := req.URL.Query().Get("release")
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	releaseReports := make(map[string][]sippyprocessingv1.TestReport)
 	if reportName == "all" {
 		// return all available json reports
@@ -363,6 +369,7 @@ func (s *Server) variantsReport(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Server) Serve() {
+	http.DefaultServeMux.Handle("/sippy-ng/", http.StripPrefix("/sippy-ng/", http.FileServer(s.sippyNG.HTTPBox())))
 	http.DefaultServeMux.HandleFunc("/", s.printHTMLReport)
 	http.DefaultServeMux.HandleFunc("/install", s.printInstallHTMLReport)
 	http.DefaultServeMux.HandleFunc("/upgrade", s.printUpgradeHTMLReport)

@@ -314,8 +314,86 @@ func formatJSONReport(report, prevReport sippyprocessingv1.TestReport, numDays, 
 		"canaryTestFailures":             canaryTestFailures(data.Current.ByTest),
 		"jobRunsWithFailureGroups":       failureGroupList(data.Current),
 		"testImpactingBugs":              data.Current.BugsByFailureCount,
+		"topLevelReleaseIndicators":      topLevelReleaseIndicators(data.Current, data.Prev),
 	}
 	return jsonObject
+}
+
+func topLevelReleaseIndicators(report sippyprocessingv1.TestReport, prev sippyprocessingv1.TestReport) interface{} {
+	type releaseIndicators struct {
+		Current  sippyv1.PassRate `json:"current_pass_rate"`
+		Previous sippyv1.PassRate `json:"previous_pass_rate"`
+	}
+
+	results := make(map[string]releaseIndicators)
+
+	// Infrastructure
+	res := report.TopLevelIndicators.Infrastructure.TestResultAcrossAllJobs
+	passPercent := res.PassPercentage
+	total := res.Successes + res.Failures + res.Flakes
+	currentPassRate := sippyv1.PassRate{
+		Percentage: passPercent,
+		Runs: total,
+	}
+
+	res = prev.TopLevelIndicators.Infrastructure.TestResultAcrossAllJobs
+	passPercent = res.PassPercentage
+	total = res.Successes + res.Failures + res.Flakes
+	previousPassRate := sippyv1.PassRate{
+		Percentage: passPercent,
+		Runs: total,
+	}
+
+	results["infrastructure"] = releaseIndicators{
+		Current: currentPassRate,
+		Previous: previousPassRate,
+	}
+
+	// Install
+	res = report.TopLevelIndicators.Install.TestResultAcrossAllJobs
+	passPercent = res.PassPercentage
+	total = res.Successes + res.Failures + res.Flakes
+	currentPassRate = sippyv1.PassRate{
+		Percentage: passPercent,
+		Runs: total,
+	}
+
+	res = prev.TopLevelIndicators.Install.TestResultAcrossAllJobs
+	passPercent = res.PassPercentage
+	total = res.Successes + res.Failures + res.Flakes
+	previousPassRate = sippyv1.PassRate{
+		Percentage: passPercent,
+		Runs: total,
+	}
+
+	results["install"] = releaseIndicators{
+		Current: currentPassRate,
+		Previous: previousPassRate,
+	}
+
+	// Upgrade
+	res = report.TopLevelIndicators.Upgrade.TestResultAcrossAllJobs
+	passPercent = res.PassPercentage
+	total = res.Successes + res.Failures + res.Flakes
+	currentPassRate = sippyv1.PassRate{
+		Percentage: passPercent,
+		Runs: total,
+	}
+
+	res = prev.TopLevelIndicators.Upgrade.TestResultAcrossAllJobs
+	passPercent = res.PassPercentage
+	total = res.Successes + res.Failures + res.Flakes
+	previousPassRate = sippyv1.PassRate{
+		Percentage: passPercent,
+		Runs: total,
+	}
+
+	results["upgrade"] = releaseIndicators{
+		Current: currentPassRate,
+		Previous: previousPassRate,
+	}
+
+	return &results
 }
 
 // PrintJSONReport prints json format of the reports

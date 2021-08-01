@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	rice "github.com/GeertJohan/go.rice"
+	"log"
 	"os"
 	"regexp"
 	"strings"
@@ -186,6 +188,11 @@ func (o *Options) Run() error {
 }
 
 func (o *Options) runServerMode() error {
+	box, err := rice.FindBox("./sippy-ng/build")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	server := sippyserver.NewServer(
 		o.toTestGridLoadingConfig(),
 		o.toRawJobResultsAnalysisConfig(),
@@ -195,6 +202,7 @@ func (o *Options) runServerMode() error {
 		o.getSyntheticTestManager(),
 		o.getVariantManager(),
 		o.getBugCache(),
+		box,
 	)
 	server.RefreshData() // force a data refresh once before serving.
 	server.Serve()
