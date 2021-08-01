@@ -1,6 +1,7 @@
 import { CssBaseline, FormControlLabel, FormGroup, ListSubheader, MuiThemeProvider, Switch as ControlSwitch } from '@material-ui/core';
 import AppBar from '@material-ui/core/AppBar';
 import Collapse from '@material-ui/core/Collapse';
+import { yellow } from '@material-ui/core/colors';
 import Divider from '@material-ui/core/Divider';
 import Drawer from '@material-ui/core/Drawer';
 import IconButton from '@material-ui/core/IconButton';
@@ -15,18 +16,18 @@ import { BugReport, ExpandLess, ExpandMore } from '@material-ui/icons';
 import AssessmentIcon from '@material-ui/icons/Assessment';
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import InfoIcon from '@material-ui/icons/Info';
 import MenuIcon from '@material-ui/icons/Menu';
-import SentimentVeryDissatisfiedIcon from '@material-ui/icons/SentimentVeryDissatisfied';
+import SearchIcon from '@material-ui/icons/Search';
 import SupervisedUserCircleIcon from '@material-ui/icons/SupervisedUserCircle';
+import Alert from '@material-ui/lab/Alert';
 import clsx from 'clsx';
 import React, { Fragment, useEffect } from 'react';
 import {
   BrowserRouter as Router, Link, Route, Switch
 } from "react-router-dom";
+import Cookies from 'universal-cookie';
 import ReleaseOverview from './ReleaseOverview';
-import Alert from '@material-ui/lab/Alert';
-import InfoIcon from '@material-ui/icons/Info';
-import SearchIcon from '@material-ui/icons/Search';
 import TestTable from './TestTable';
 
 const drawerWidth = 240;
@@ -95,6 +96,7 @@ const useStyles = makeStyles((theme) => ({
 const darkMode = {
   palette: {
     type: 'dark',
+    secondary: yellow, 
   },
 };
 
@@ -105,12 +107,13 @@ const lightMode = {
 };
 
 export default function App(props) {
+  const cookies = new Cookies();
   const classes = useStyles();
   const theme = useTheme();
 
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [isLoaded, setLoaded] = React.useState(false);
-  const [isThemeDark, setThemeDark] = React.useState(true);
+  const [isThemeDark, setThemeDark] = React.useState(false);
   const [open, setOpen] = React.useState({});
   const [releases, setReleases] = React.useState([]);
   const [fetchError, setFetchError] = React.useState("");
@@ -134,13 +137,23 @@ export default function App(props) {
     if (!isLoaded) {
       fetchReleases();
       setLoaded(true);
+
+      // Cookie to save user's theme preference
+      let darkMode = cookies.get("darkMode")
+      if (darkMode == 'false') {
+        setThemeDark(false)
+      } else {
+        setThemeDark(true)
+      }
     }
   });
 
   const handleDarkMode = (event) => {
     if (event.target.checked) {
+      cookies.set('darkMode', 'true', { path: '/' });
       setThemeDark(true)
     } else {
+      cookies.set('darkMode', 'false', { path: '/' });
       setThemeDark(false)
     }
   };
@@ -223,7 +236,7 @@ export default function App(props) {
                   </ListItem>
                   <Collapse in={open[index]} timeout="auto" unmountOnExit>
                     <List component="div" disablePadding>
-                      <ListItem component={Link} to={"/releases/" + release} button className={classes.nested}>
+                      <ListItem component={Link} to={"/release/" + release} button className={classes.nested}>
                         <ListItemIcon>
                           <InfoIcon />
                         </ListItemIcon>
@@ -257,8 +270,12 @@ export default function App(props) {
                 <ListItemIcon><AssessmentIcon /></ListItemIcon>
                 <ListItemText primary="TestGrid" />
               </ListItem>
-            </List>
 
+              <ListItem button key="SearchBugzilla">
+                <ListItemIcon><BugReport /></ListItemIcon>
+                <ListItemText primary="Search Bugzilla" />
+              </ListItem>
+            </List>
           </Drawer>
 
           <main
@@ -272,10 +289,10 @@ export default function App(props) {
               <Route path="/about">
                 <p>Hello, world!</p>
               </Route>
-              <Route path="/release/:release" render={(props) => <ReleaseOverview release={props.match.params.release} />} />
-              <Route path="/tests/:release" render={(props) => <TestTable release={props.match.params.release} />} />
+              <Route path="/release/:release" render={(props) => <ReleaseOverview key={props.match.params.release} release={props.match.params.release} />} />
+              <Route path="/tests/:release" render={(props) => <TestTable key={props.match.params.release} release={props.match.params.release} />} />
               <Route path="/">
-                {releases.length > 0 ? <ReleaseOverview release={releases[0]} /> : "Loading..."}
+                {releases.length > 0 ? <ReleaseOverview key={releases[0]} release={releases[0]} /> : "Loading..."}
               </Route>
             </Switch>
           </main>

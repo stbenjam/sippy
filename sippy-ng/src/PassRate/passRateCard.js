@@ -19,7 +19,7 @@ export default function PassRateCard(props) {
                 <Typography gutterBottom>{props.name}</Typography>
                 <Box component="h3">
                     {props.passRate.current_pass_rate.percentage.toFixed(0)}% ({props.passRate.current_pass_rate.runs} runs)&nbsp;
-                    <PassRateIcon current={props.passRate.current_pass_rate.percentage} previous={props.passRate.previous_pass_rate.percentage} />&nbsp;
+                    <PassRateIcon improvement={props.passRate.current_pass_rate.percentage - props.passRate.previous_pass_rate.percentage} />&nbsp;
                     {props.passRate.previous_pass_rate.percentage.toFixed(0)}% ({props.passRate.previous_pass_rate.runs} runs)
                 </Box>
             </CardContent>

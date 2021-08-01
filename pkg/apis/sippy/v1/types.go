@@ -70,3 +70,20 @@ type FailureGroup struct {
 	URL          string `json:"url"`
 	TestFailures int    `json:"testFailures"`
 }
+
+// Test contains the full accounting of a test's history.
+type Test struct {
+	ID                     int     `json:"id"`
+	Name                   string  `json:"name"`
+	CurrentSuccesses       int     `json:"current_successes"`
+	CurrentFailures        int     `json:"current_failures"`
+	CurrentFlakes          int     `json:"current_flakes"`
+	CurrentPassPercentage  float64 `json:"current_pass_percentage"`
+	CurrentRuns            int     `json:"current_runs"`
+	PreviousSuccesses      int     `json:"previous_successes"`
+	PreviousFailures       int     `json:"previous_failures"`
+	PreviousFlakes         int     `json:"previous_flakes"`
+	PreviousPassPercentage float64 `json:"previous_pass_percentage"`
+	PreviousRuns           int     `json:"previous_runs"`
+	NetImprovement         float64  `json:"net_improvement"`
+}

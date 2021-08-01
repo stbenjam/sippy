@@ -131,56 +131,8 @@ func summaryTopFailingTestsWithBug(topFailingTestsWithBug, prevTestResults []sip
 
 }
 
-type TestRow struct {
-	ID                     int     `json:"id"`
-	Name                   string  `json:"name"`
-	CurrentSuccesses       int     `json:"current_successes"`
-	CurrentFailures        int     `json:"current_failures"`
-	CurrentFlakes          int     `json:"current_flakes"`
-	CurrentPassPercentage  float64 `json:"current_pass_percentage"`
-	CurrentRuns            int     `json:"current_runs"`
-	PreviousSuccesses      int     `json:"previous_successes"`
-	PreviousFailures       int     `json:"previous_failures"`
-	PreviousFlakes         int     `json:"previous_flakes"`
-	PreviousPassPercentage float64 `json:"previous_pass_percentage"`
-	PreviousRuns           int     `json:"previous_runs"`
-	Link                   string  `json:"link"`
-	NetImprovement         float64  `json:"net_improvement"`
-}
 
-func summaryAllTests(current, previous []sippyprocessingv1.FailingTestResult) []TestRow {
-	var rows []TestRow
 
-	for idx, test := range current {
-		encodedTestName := url.QueryEscape(regexp.QuoteMeta(test.TestName))
-		testLink := fmt.Sprintf("%s%s", releasehtml.BugSearchURL, encodedTestName)
-		testPrev := util.FindFailedTestResult(test.TestName, previous)
-
-		var row TestRow
-		row = TestRow{
-			ID:                    idx,
-			Name:                  test.TestName,
-			CurrentSuccesses:      test.TestResultAcrossAllJobs.Successes,
-			CurrentFailures:       test.TestResultAcrossAllJobs.Failures,
-			CurrentFlakes:         test.TestResultAcrossAllJobs.Flakes,
-			CurrentPassPercentage: test.TestResultAcrossAllJobs.PassPercentage,
-			CurrentRuns:           test.TestResultAcrossAllJobs.Successes + test.TestResultAcrossAllJobs.Failures + test.TestResultAcrossAllJobs.Flakes,
-			Link:                  testLink,
-		}
-		if testPrev != nil {
-			row.PreviousSuccesses = testPrev.TestResultAcrossAllJobs.Successes
-			row.PreviousFlakes = testPrev.TestResultAcrossAllJobs.Flakes
-			row.PreviousFailures = testPrev.TestResultAcrossAllJobs.Failures
-			row.PreviousPassPercentage = testPrev.TestResultAcrossAllJobs.PassPercentage
-			row.PreviousRuns = testPrev.TestResultAcrossAllJobs.Successes + testPrev.TestResultAcrossAllJobs.Failures + testPrev.TestResultAcrossAllJobs.Flakes
-			row.NetImprovement = row.CurrentPassPercentage - row.PreviousPassPercentage
-		}
-
-		rows = append(rows, row)
-	}
-
-	return rows
-}
 
 // top failing tests without a bug
 func summaryTopFailingTestsWithoutBug(topFailingTestsWithoutBug, prevTopFailingTestsWithoutBug []sippyprocessingv1.FailingTestResult) []sippyv1.FailingTestBug {
