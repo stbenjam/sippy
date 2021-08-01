@@ -45,7 +45,7 @@ func NewServer(
 			DisplayDataConfig:           displayDataOptions,
 		},
 		currTestReports: map[string]StandardReport{},
-		sippyNG: box,
+		sippyNG:         box,
 	}
 
 	return server
@@ -60,7 +60,7 @@ type Server struct {
 	bugCache                  buganalysis.BugCache
 	testReportGeneratorConfig TestReportGeneratorConfig
 	currTestReports           map[string]StandardReport
-	sippyNG *rice.Box
+	sippyNG                   *rice.Box
 }
 
 type TestGridDashboardCoordinates struct {
@@ -297,6 +297,39 @@ func (s *Server) detailed(w http.ResponseWriter, req *http.Request) {
 
 }
 
+func (s *Server) tests(w http.ResponseWriter, req *http.Request) {
+	release := req.URL.Query().Get("release")
+	if _, ok := s.currTestReports[release]; !ok {
+		generichtml.PrintStatusMessage(w, http.StatusNotFound, fmt.Sprintf("Release %q not found.", release))
+		return
+	}
+
+	currTests := s.currTestReports[release].CurrentPeriodReport.ByTest
+	prevTests := s.currTestReports[release].PreviousWeekReport.ByTest
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	api.PrintTestsReport(w, currTests, prevTests)
+}
+
+func (s *Server) releases(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	type jsonResponse struct {
+		Releases []string `json:"releases"`
+	}
+
+	response := jsonResponse{}
+	for _, release := range s.dashboardCoordinates {
+		response.Releases = append(response.Releases, release.ReportName)
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		generichtml.PrintStatusMessage(w, http.StatusInternalServerError, fmt.Sprintf("Could not find any releases: %s", err))
+	}
+}
+
 func (s *Server) jobs(w http.ResponseWriter, req *http.Request) {
 	reportName := req.URL.Query().Get("release")
 	jobFilterString := req.URL.Query().Get("jobFilter")
@@ -380,6 +413,8 @@ func (s *Server) Serve() {
 	http.DefaultServeMux.HandleFunc("/refresh", s.refresh)
 	http.DefaultServeMux.HandleFunc("/canary", s.printCanaryReport)
 	http.DefaultServeMux.HandleFunc("/api/jobs", s.jobs)
+	http.DefaultServeMux.HandleFunc("/api/releases", s.releases)
+	http.DefaultServeMux.HandleFunc("/api/tests", s.tests)
 	http.DefaultServeMux.HandleFunc("/jobs", s.jobsReport)
 	http.DefaultServeMux.HandleFunc("/variants", s.variantsReport)
 

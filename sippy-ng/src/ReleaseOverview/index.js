@@ -1,12 +1,14 @@
-import { makeStyles } from '@material-ui/core/styles';
-import React, { Component } from 'react';
-import Grid from '@material-ui/core/Grid';
 import { Container, Typography } from '@material-ui/core';
-import PassRateCard from '../PassRate/passRateCard';
+import Grid from '@material-ui/core/Grid';
+import { makeStyles } from '@material-ui/core/styles';
+import Alert from '@material-ui/lab/Alert';
+import React, { Component } from 'react';
 import PassRateByVariant from '../PassRate/passRateByVariant';
+import PassRateCard from '../PassRate/passRateCard';
 
 export default class ReleaseOverview extends Component {
     state = {
+        fetchError: "",
         isLoaded: false,
         indicators: {},
     }
@@ -29,16 +31,23 @@ export default class ReleaseOverview extends Component {
         super(props);
     }
 
-    fetchData = () => {
-        fetch('/json?release=4.9')
-            .then((response) => response.json())
+    fetchData = (props) => {
+        fetch(process.env.REACT_APP_API_URL + '/json?release=' + this.props.release)
+            .then((response) => {
+                if(response.status !== 200) {
+                    throw new Error("server returned " + response.status);
+                }
+                return response.json();
+            })
             .then(json => {
                 this.setState({
                     isLoaded: true,
                     indicators: json[this.props.release]["topLevelReleaseIndicators"],
                     passRateByVariant: json[this.props.release]["jobPassRateByVariant"],
                 })
-            })
+            }).catch(error => {
+                this.setState({fetchError: "Could not retrieve release " + this.props.release + ", " + error});
+            });
     }
 
     cardBackground = (percent) => {
@@ -52,12 +61,16 @@ export default class ReleaseOverview extends Component {
     }
 
     componentDidMount() {
-        this.fetchData();
+        this.fetchData(this.props);
     }
 
     render() {
-        if (this.state.isLoaded == false) {
-            return "<div></div>"
+        if (this.state.fetchError !== "") {
+            return <Alert severity="error">{this.state.fetchError}</Alert>;
+        }
+
+        if (this.state.isLoaded === false) {
+            return "Loading..."
         }
 
         return (

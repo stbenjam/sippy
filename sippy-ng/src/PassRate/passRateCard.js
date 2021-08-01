@@ -1,10 +1,6 @@
+import { Box, Card, CardContent, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import { Card, CardContent, Box, Typography } from '@material-ui/core';
-import React, { Fragment } from 'react';
-import ArrowUpwardRoundedIcon from '@material-ui/icons/ArrowUpwardRounded';
-import ArrowDownwardRoundedIcon from '@material-ui/icons/ArrowDownwardRounded';
-import SyncAltRoundedIcon from '@material-ui/icons/SyncAltRounded';
-import { green } from '@material-ui/core/colors';
+import React from 'react';
 import PassRateIcon from '../PassRate/passRateIcon';
 
 const useStyles = makeStyles({

@@ -1,35 +1,33 @@
-import React, { Fragment } from 'react';
-import { createTheme, makeStyles, useTheme } from '@material-ui/core/styles';
-import Collapse from '@material-ui/core/Collapse';
-import Drawer from '@material-ui/core/Drawer';
+import { CssBaseline, FormControlLabel, FormGroup, ListSubheader, MuiThemeProvider, Switch as ControlSwitch } from '@material-ui/core';
 import AppBar from '@material-ui/core/AppBar';
-import Toolbar from '@material-ui/core/Toolbar';
-import List from '@material-ui/core/List';
-import Typography from '@material-ui/core/Typography';
+import Collapse from '@material-ui/core/Collapse';
 import Divider from '@material-ui/core/Divider';
+import Drawer from '@material-ui/core/Drawer';
 import IconButton from '@material-ui/core/IconButton';
-import MenuIcon from '@material-ui/icons/Menu';
-import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
-import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
-import clsx from 'clsx';
+import { createTheme, makeStyles, useTheme } from '@material-ui/core/styles';
+import Toolbar from '@material-ui/core/Toolbar';
+import Typography from '@material-ui/core/Typography';
+import { BugReport, ExpandLess, ExpandMore } from '@material-ui/icons';
 import AssessmentIcon from '@material-ui/icons/Assessment';
-import ReleaseOverview from './ReleaseOverview';
-import { FormGroup, FormControlLabel, ThemeProvider, CssBaseline, MuiThemeProvider } from '@material-ui/core';
+import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
+import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import MenuIcon from '@material-ui/icons/Menu';
 import SentimentVeryDissatisfiedIcon from '@material-ui/icons/SentimentVeryDissatisfied';
 import SupervisedUserCircleIcon from '@material-ui/icons/SupervisedUserCircle';
-import { Switch as ControlSwitch } from '@material-ui/core';
-
+import clsx from 'clsx';
+import React, { Fragment, useEffect } from 'react';
 import {
-  HashRouter as Router,
-  Switch,
-  Route,
-  Link
+  BrowserRouter as Router, Link, Route, Switch
 } from "react-router-dom";
-import { Button, Container, ListSubheader } from '@material-ui/core';
-import { BugReport, ExpandLess, ExpandMore, StarBorder } from '@material-ui/icons';
+import ReleaseOverview from './ReleaseOverview';
+import Alert from '@material-ui/lab/Alert';
+import InfoIcon from '@material-ui/icons/Info';
+import SearchIcon from '@material-ui/icons/Search';
+import TestTable from './TestTable';
 
 const drawerWidth = 240;
 
@@ -111,8 +109,33 @@ export default function App(props) {
   const theme = useTheme();
 
   const [drawerOpen, setDrawerOpen] = React.useState(false);
-  const [open, setOpen] = React.useState({});
+  const [isLoaded, setLoaded] = React.useState(false);
   const [isThemeDark, setThemeDark] = React.useState(true);
+  const [open, setOpen] = React.useState({});
+  const [releases, setReleases] = React.useState([]);
+  const [fetchError, setFetchError] = React.useState("");
+
+  let fetchReleases = () => {
+    fetch(process.env.REACT_APP_API_URL + '/api/releases')
+      .then((response) => {
+        if (response.status !== 200) {
+          setFetchError("Could not retrieve releases, server returned " + response.status)
+        }
+        return response.json();
+      })
+      .then(json => {
+        setReleases(json.releases);
+      }).catch(error => {
+        setFetchError("Could not retrieve releases, " + error)
+      })
+  };
+
+  useEffect(() => {
+    if (!isLoaded) {
+      fetchReleases();
+      setLoaded(true);
+    }
+  });
 
   const handleDarkMode = (event) => {
     if (event.target.checked) {
@@ -134,8 +157,14 @@ export default function App(props) {
     setOpen((prevState => ({ ...prevState, [id]: !prevState[id] })));
   };
 
+  if (fetchError !== "") {
+    return (
+      <Alert severity="error">{fetchError}</Alert>
+    )
+  }
+
   return (
-    <MuiThemeProvider theme={isThemeDark ? createTheme(darkMode) : createTheme(lightMode) }>
+    <MuiThemeProvider theme={isThemeDark ? createTheme(darkMode) : createTheme(lightMode)}>
       <CssBaseline />
       <Router basename="/sippy-ng">
         <div className={classes.root}>
@@ -165,6 +194,7 @@ export default function App(props) {
             </Toolbar>
           </AppBar>
 
+
           <Drawer
             className={classes.drawer}
             variant="persistent"
@@ -185,7 +215,7 @@ export default function App(props) {
                 <ListSubheader component="div" id="releases">Releases</ListSubheader>
               }
             >
-              {['4.6', '4.7', '4.8', '4.9'].map((release, index) => (
+              {releases.map((release, index) => (
                 <Fragment>
                   <ListItem id={"release-" + index} button onClick={() => handleClick(index)}>
                     {open[index] ? <ExpandLess /> : <ExpandMore />}
@@ -193,29 +223,23 @@ export default function App(props) {
                   </ListItem>
                   <Collapse in={open[index]} timeout="auto" unmountOnExit>
                     <List component="div" disablePadding>
+                      <ListItem component={Link} to={"/releases/" + release} button className={classes.nested}>
+                        <ListItemIcon>
+                          <InfoIcon />
+                        </ListItemIcon>
+                        <ListItemText primary="Overview" />
+                      </ListItem>
                       <ListItem button className={classes.nested}>
                         <ListItemIcon>
                           <SupervisedUserCircleIcon />
                         </ListItemIcon>
-                        <ListItemText primary="Curated TRT Tests" />
+                        <ListItemText primary="Jobs" />
                       </ListItem>
-                      <ListItem button className={classes.nested}>
+                      <ListItem component={Link} to={"/tests/" + release} button className={classes.nested}>
                         <ListItemIcon>
-                          <SentimentVeryDissatisfiedIcon />
+                          <SearchIcon />
                         </ListItemIcon>
-                        <ListItemText primary="Jobs by most reduced pass rate" />
-                      </ListItem>
-                      <ListItem button className={classes.nested}>
-                        <ListItemIcon>
-                          <BugReport />
-                        </ListItemIcon>
-                        <ListItemText primary="Failing tests without a bug" />
-                      </ListItem>
-                      <ListItem button className={classes.nested}>
-                        <ListItemIcon>
-                          <BugReport />
-                        </ListItemIcon>
-                        <ListItemText primary="Failing tests with a bug" />
+                        <ListItemText primary="Tests" />
                       </ListItem>
                     </List>
                   </Collapse>
@@ -248,11 +272,10 @@ export default function App(props) {
               <Route path="/about">
                 <p>Hello, world!</p>
               </Route>
-              <Route path="/release/:id">
-                <ReleaseOverview />
-              </Route>
+              <Route path="/release/:release" render={(props) => <ReleaseOverview release={props.match.params.release} />} />
+              <Route path="/tests/:release" render={(props) => <TestTable release={props.match.params.release} />} />
               <Route path="/">
-                <ReleaseOverview release="4.9" />
+                {releases.length > 0 ? <ReleaseOverview release={releases[0]} /> : "Loading..."}
               </Route>
             </Switch>
           </main>
