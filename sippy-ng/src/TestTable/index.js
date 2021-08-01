@@ -153,12 +153,6 @@ const styles = {
 const columns = [
     { field: 'name', headerName: 'Name', flex: 5 },
     {
-        field: 'current_runs',
-        headerName: 'Current Runs',
-        type: 'number',
-        flex: 1,
-    },
-    {
         field: 'current_pass_percentage',
         headerName: 'Last 7 Days',
         type: 'number',
@@ -173,7 +167,8 @@ const columns = [
     },
     {
         field: 'net_improvement',
-        headerName: 'Improving',
+        headerName: 'Improvement',
+        type: 'number',
         flex: 0.2,
         renderCell: (params) => {
             return <PassRateIcon improvement={params.value} />

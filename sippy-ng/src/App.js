@@ -24,11 +24,14 @@ import Alert from '@material-ui/lab/Alert';
 import clsx from 'clsx';
 import React, { Fragment, useEffect } from 'react';
 import {
-  BrowserRouter as Router, Link, Route, Switch
+  HashRouter as Router, Link, Route, Switch
 } from "react-router-dom";
 import Cookies from 'universal-cookie';
+import BugzillaSearch from './BugzillaSearch';
 import ReleaseOverview from './ReleaseOverview';
 import TestTable from './TestTable';
+import NewReleasesIcon from '@material-ui/icons/NewReleases';
+import HomeIcon from '@material-ui/icons/Home';
 
 const drawerWidth = 240;
 
@@ -96,7 +99,7 @@ const useStyles = makeStyles((theme) => ({
 const darkMode = {
   palette: {
     type: 'dark',
-    secondary: yellow, 
+    secondary: yellow,
   },
 };
 
@@ -117,6 +120,7 @@ export default function App(props) {
   const [open, setOpen] = React.useState({});
   const [releases, setReleases] = React.useState([]);
   const [fetchError, setFetchError] = React.useState("");
+  const [bugzillaOpen, setBugzillaOpen] = React.useState(false);
 
   let fetchReleases = () => {
     fetch(process.env.REACT_APP_API_URL + '/api/releases')
@@ -165,6 +169,14 @@ export default function App(props) {
   const handleDrawerClose = () => {
     setDrawerOpen(false);
   };
+
+  const handleBugzillaOpen = () => {
+    setBugzillaOpen(true);
+  }
+
+  const handleBugzillaClose = () => {
+    setBugzillaOpen(false);
+  }
 
   function handleClick(id) {
     setOpen((prevState => ({ ...prevState, [id]: !prevState[id] })));
@@ -223,6 +235,13 @@ export default function App(props) {
               </IconButton>
             </div>
             <Divider />
+            <List>
+              <ListItem button component={Link} to="/" key="Home">
+                <ListItemIcon><HomeIcon /></ListItemIcon>
+                <ListItemText primary="Home" />
+              </ListItem>
+            </List>
+            <Divider />
             <List
               subheader={
                 <ListSubheader component="div" id="releases">Releases</ListSubheader>
@@ -271,12 +290,20 @@ export default function App(props) {
                 <ListItemText primary="TestGrid" />
               </ListItem>
 
-              <ListItem button key="SearchBugzilla">
+              <ListItem button component="a" href="https://amd64.ocp.releases.ci.openshift.org/" target="_blank" key="ReleaseController">
+                <ListItemIcon><NewReleasesIcon /></ListItemIcon>
+                <ListItemText primary="Release Controller" />
+              </ListItem>
+
+              <ListItem button onClick={handleBugzillaOpen} key="SearchBugzilla">
                 <ListItemIcon><BugReport /></ListItemIcon>
                 <ListItemText primary="Search Bugzilla" />
               </ListItem>
+
             </List>
           </Drawer>
+
+          <BugzillaSearch open={handleBugzillaOpen} close={handleBugzillaClose} isOpen={bugzillaOpen} />
 
           <main
             className={clsx(classes.content, {
