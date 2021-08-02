@@ -98,6 +98,10 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+const globalCss = {
+
+}
+
 const darkMode = {
   palette: {
     type: 'dark',

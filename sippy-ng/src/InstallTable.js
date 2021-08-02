@@ -14,11 +14,14 @@ import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import React, { Fragment, useEffect } from 'react';
 import PassRateIcon from './PassRate/passRateIcon';
+import { Tooltip, Typography } from '@material-ui/core';
+import HelpOutlineIcon from '@material-ui/icons/HelpOutline';
 
 const useRowStyles = makeStyles({
     root: {
         '& > *': {
-            borderBottom: 'unset',
+            borderColor: "black",
+            borderStyle: "solid",
             color: 'black',
         },
     },
@@ -40,14 +43,29 @@ const styles = {
     }
 };
 
+function PassRateCompare(props) {
+    const { previous, current } = props;
+    const theme = useTheme();
+
+
+    return (
+        <Fragment>
+            {current.toFixed(2)}%
+            <PassRateIcon improvement={current - previous} />
+            {previous.toFixed(2)}%
+        </Fragment>
+    );
+
+}
+
 function Cell(props) {
     const { result } = props;
     const theme = useTheme();
 
-    let cellBackground = (improvement) => {
-        if (improvement >= -2) {
+    let cellBackground = (current) => {
+        if (current >= 92) {
             return theme.palette.success.light;
-        } else if (improvement > -5) {
+        } else if (current > 60) {
             return theme.palette.warning.light;
         } else {
             return theme.palette.error.light;
@@ -55,15 +73,21 @@ function Cell(props) {
     }
 
     if (result == undefined) {
-        return <TableCell style={{backgroundColor: theme.palette.warning.light}}>No data</TableCell>
+        return (
+            <Tooltip title="No data">
+                <TableCell style={{ textAlign: "center", backgroundColor: theme.palette.warning.light }}>
+                    <HelpOutlineIcon style={{color: theme.palette.text.disabled}}/>
+                </TableCell>
+            </Tooltip>
+        );
     }
 
     return (
-        <TableCell style={{backgroundColor: cellBackground(result.net_improvement)}}>
-            {result.current_pass_percentage.toFixed(2)}&nbsp;
-            <PassRateIcon improvement={result.net_improvement} />
-            {result.previous_pass_percentage.toFixed(2)}&nbsp;
-        </TableCell>
+        <Tooltip title={<PassRateCompare current={result.current_pass_percentage} previous={result.previous_pass_percentage} />}>
+            <TableCell width="8%" style={{ textAlign: "center", backgroundColor: cellBackground(result.current_pass_percentage) }}>
+                <PassRateIcon improvement={result.current_pass_percentage - result.previous_pass_percentage} />
+            </TableCell>
+        </Tooltip>
     );
 }
 
@@ -74,7 +98,7 @@ function Row(props) {
     return (
         <Fragment>
             <TableRow className={classes.root}>
-                <TableCell>{testName}</TableCell>
+                <TableCell width="30%">{testName}</TableCell>
                 {
                     columnNames.map((column) =>
                         <Cell result={results[column]}></Cell>
@@ -146,22 +170,27 @@ export default function InstallTable(props) {
     };
 
     return (
-        <TableContainer component={Paper} style={{overflowX: 'auto', width: "2000px"}}>
-            <Table aria-label="collapsible table">
-                <TableHead>
-                    <TableRow>
-                        <TableCell />
-                        {data.column_names.map((column) =>
-                            <TableCell>{column}</TableCell>
-                        )}
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {Object.keys(data.tests).map((test) => (
-                        <Row key={test} testName={test} columnNames={data.column_names} results={data.tests[test]} release={props.release} />
-                    ))}
-                </TableBody>
-            </Table>
-        </TableContainer>
+        <Fragment>
+            <Typography variant="h4">
+                Upgrade rates by Operator
+            </Typography>
+            <TableContainer component={Paper} style={{ overflowX: 'auto' }}>
+                <Table aria-label="collapsible table">
+                    <TableHead>
+                        <TableRow>
+                            <TableCell />
+                            {data.column_names.map((column) =>
+                                <TableCell>{column}</TableCell>
+                            )}
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {Object.keys(data.tests).map((test) => (
+                            <Row key={test} testName={test} columnNames={data.column_names} results={data.tests[test]} release={props.release} />
+                        ))}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+        </Fragment>
     );
 }

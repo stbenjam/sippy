@@ -3,6 +3,7 @@ import Grid from '@material-ui/core/Grid';
 import { createTheme, makeStyles, useTheme } from '@material-ui/core/styles';
 import Alert from '@material-ui/lab/Alert';
 import React, { Component, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import PassRateByVariant from '../PassRate/passRateByVariant';
 import PassRateCard from '../PassRate/passRateCard';
 
@@ -89,7 +90,7 @@ export default function ReleaseOverview(props) {
                         <PassRateCard backgroundColor={cardBackground(indicators.install.current_pass_rate.percentage)} name="Install" passRate={indicators.install} />
                     </Grid>
                     <Grid item xs={4}>
-                        <PassRateCard backgroundColor={cardBackground(indicators.upgrade.current_pass_rate.percentage)} name="Upgrade" passRate={indicators.upgrade} />
+                        <PassRateCard backgroundColor={cardBackground(indicators.upgrade.current_pass_rate.percentage)} name="Upgrade" link={"/upgrade/" + props.release} passRate={indicators.upgrade} />
                     </Grid>
 
                     <Grid item xs={12}>
