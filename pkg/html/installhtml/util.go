@@ -1,7 +1,9 @@
 package installhtml
 
 import (
+	"encoding/json"
 	"fmt"
+	v1 "github.com/openshift/sippy/pkg/apis/sippy/v1"
 
 	"github.com/openshift/sippy/pkg/testgridanalysis/testidentification"
 
@@ -21,6 +23,23 @@ var individualInstallUpgradeColor = generichtml.ColorizationCriteria{
 type currPrevTestResult struct {
 	curr sippyprocessingv1.TestResult
 	prev *sippyprocessingv1.TestResult
+}
+
+func (r currPrevTestResult) toTest(name string) v1.Test {
+	return v1.Test{
+		Name:                  name,
+		CurrentPassPercentage: r.curr.PassPercentage,
+		CurrentSuccesses:      r.curr.Successes,
+		CurrentFailures:       r.curr.Failures,
+		CurrentFlakes:         r.curr.Flakes,
+		CurrentRuns:           r.curr.Successes + r.curr.Failures + r.curr.Flakes,
+
+		PreviousPassPercentage: r.prev.PassPercentage,
+		PreviousFlakes:         r.curr.Flakes,
+		PreviousFailures:       r.curr.Failures,
+		PreviousSuccesses:      r.curr.Successes,
+		PreviousRuns:           r.prev.Successes + r.prev.Failures + r.prev.Flakes,
+	}
 }
 
 func (c *currPrevFailedTestResult) toCurrPrevTestResult() *currPrevTestResult {
@@ -165,6 +184,51 @@ func (a testsByVariant) getTableHTML(
 	s += "</table>"
 
 	return s
+}
+
+//nolint:goconst
+func (a testsByVariant) getTableJSON(
+	title string,
+	description string,
+	aggregationNames []string, // these are the columns
+	testNameToDisplayName func(string) string,
+) string {
+	summary := map[string]interface{}{
+		"title":       title,
+		"description": description,
+		"column_names": aggregationNames,
+	}
+	tests := make(map[string]map[string]v1.Test)
+
+	// now the overall install results by variant
+	if len(a.aggregationToOverallTestResult) > 0 {
+		results := make(map[string]v1.Test, 0)
+		for _, variantName := range aggregationNames {
+			data := a.aggregationToOverallTestResult[variantName].toTest(variantName)
+			results[variantName] = data
+		}
+		tests["Overall"] = results
+	}
+
+	for _, testName := range sets.StringKeySet(a.testNameToVariantToTestResult).List() {
+		testDisplayName := testNameToDisplayName(testName)
+		variantResults := a.testNameToVariantToTestResult[testName]
+		results := make(map[string]v1.Test, 0)
+		for _, variantName := range aggregationNames {
+			if data, ok := variantResults[variantName]; ok {
+				results[variantName] = data.toTest(variantName)
+			}
+		}
+		tests[testDisplayName] = results
+	}
+
+	summary["tests"] = tests
+	result, err := json.Marshal(summary)
+	if err != nil {
+		panic(err)
+	}
+
+	return string(result)
 }
 
 func getOperatorFromTest(testName string) string {
