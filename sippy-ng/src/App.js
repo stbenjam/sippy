@@ -34,6 +34,7 @@ import NewReleasesIcon from '@material-ui/icons/NewReleases';
 import HomeIcon from '@material-ui/icons/Home';
 import JobTable from './JobTable';
 import InstallTable from './InstallTable';
+import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
 
 const drawerWidth = 240;
 
@@ -268,6 +269,12 @@ export default function App(props) {
                           <InfoIcon />
                         </ListItemIcon>
                         <ListItemText primary="Overview" />
+                      </ListItem>
+                      <ListItem key={"release-upgrade-" + index} component={Link} to={"/upgrade/" + release} button className={classes.nested}>
+                        <ListItemIcon>
+                          <ArrowUpwardIcon />
+                        </ListItemIcon>
+                        <ListItemText primary="Upgrade" />
                       </ListItem>
                       <ListItem key={"release-jobs-" + index} component={Link} to={"/jobs/" + release} button className={classes.nested}>
                         <ListItemIcon>

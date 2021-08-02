@@ -11,5 +11,5 @@ while [ true ]; do
   echo "Done fetching data, refreshing server"
   curl localhost:8080/refresh
   echo "Done refreshing data, sleeping"
-  sleep 3600  # 1 hour
+  sleep infinity # FIXME - just for my sandbox
 done

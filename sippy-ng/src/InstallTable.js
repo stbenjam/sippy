@@ -172,7 +172,7 @@ export default function InstallTable(props) {
     return (
         <Fragment>
             <Typography variant="h4">
-                Upgrade rates by Operator
+                Upgrade rates by operator for {props.release}
             </Typography>
             <TableContainer component={Paper} style={{ overflowX: 'auto' }}>
                 <Table aria-label="collapsible table">
