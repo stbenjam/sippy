@@ -1,5 +1,3 @@
-import { makeStyles } from '@material-ui/core';
-import { green } from '@material-ui/core/colors';
 import ArrowDownwardRoundedIcon from '@material-ui/icons/ArrowDownwardRounded';
 import ArrowUpwardRoundedIcon from '@material-ui/icons/ArrowUpwardRounded';
 import SyncAltRoundedIcon from '@material-ui/icons/SyncAltRounded';

@@ -1,13 +1,13 @@
 import { Box, Button, Container, Menu, MenuItem, Tooltip, Typography } from '@material-ui/core';
 import IconButton from '@material-ui/core/IconButton';
-import { createMuiTheme, withTheme } from '@material-ui/core/styles';
+import { createMuiTheme } from '@material-ui/core/styles';
 import TextField from '@material-ui/core/TextField';
 import {
     DataGrid,
     GridToolbarDensitySelector,
     GridToolbarFilterButton
 } from '@material-ui/data-grid';
-import { Bookmark, BugReport, Search } from '@material-ui/icons';
+import { Bookmark, Search } from '@material-ui/icons';
 import ClearIcon from '@material-ui/icons/Clear';
 import SearchIcon from '@material-ui/icons/Search';
 import Alert from '@material-ui/lab/Alert';
@@ -99,7 +99,7 @@ function QuickSearchToolbar(props) {
             <div>
                 <GridToolbarFilterButton />
                 <GridToolbarDensitySelector />
-                <ReportMenu requestReport={props.requestReport}/>
+                <ReportMenu requestReport={props.requestReport} />
             </div>
             <TextField
                 variant="standard"
@@ -194,37 +194,11 @@ const columns = [
         renderCell: (params) => {
             return (
                 <Box>
-                    <Button target="_blank" startIcon={<Search />} href={"https://search.ci.openshift.org/?search=" + encodeURIComponent(params.row.name) +"&maxAge=336h&context=1&type=bug%2Bjunit&name=&excludeName=&maxMatches=5&maxBytes=20971520&groupBy=job" } />
+                    <Button target="_blank" startIcon={<Search />} href={"https://search.ci.openshift.org/?search=" + encodeURIComponent(params.row.name) + "&maxAge=336h&context=1&type=bug%2Bjunit&name=&excludeName=&maxMatches=5&maxBytes=20971520&groupBy=job"} />
                 </Box>
             );
         },
     },
-];
-
-const testActions = [
-    {
-        icon: <span className="glyphicon glyphicon-remove" />,
-        callback: () => {
-            alert("Deleting");
-        }
-    },
-    {
-        icon: "glyphicon glyphicon-link",
-        actions: [
-            {
-                text: "Option 1",
-                callback: () => {
-                    alert("Option 1 clicked");
-                }
-            },
-            {
-                text: "Option 2",
-                callback: () => {
-                    alert("Option 2 clicked");
-                }
-            }
-        ]
-    }
 ];
 
 class TestTable extends Component {
@@ -235,11 +209,6 @@ class TestTable extends Component {
         rows: [],
         searchText: "",
         currentReport: "",
-    }
-
-
-    constructor(props) {
-        super(props);
     }
 
     fetchData = (props) => {
@@ -277,10 +246,10 @@ class TestTable extends Component {
     };
 
     requestReport = (report) => {
-        this.setState({currentReport: report});
+        this.setState({ currentReport: report });
         let filteredRows = this.state.tests.slice();
 
-        switch(report) {
+        switch (report) {
             case "all":
                 break;
             case "> 10 runs":
@@ -310,12 +279,14 @@ class TestTable extends Component {
                     return new RegExp(trt.join("|")).test(row.name);
                 })
                 break;
+            default:
+                break;
         }
-        this.setState({rows: filteredRows})
+        this.setState({ rows: filteredRows })
     };
 
     render() {
-        const { classes, theme } = this.props;
+        const { classes } = this.props;
 
         if (this.state.fetchError !== "") {
             return <Alert severity="error">{this.state.fetchError}</Alert>;
@@ -358,4 +329,4 @@ class TestTable extends Component {
     }
 }
 
-export default withStyles(styles, { withTheme: true})(TestTable);
+export default withStyles(styles)(TestTable);

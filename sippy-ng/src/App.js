@@ -144,7 +144,7 @@ export default function App(props) {
 
       // Cookie to save user's theme preference
       let darkMode = cookies.get("darkMode")
-      if (darkMode == 'false') {
+      if (darkMode === 'false') {
         setThemeDark(false)
       } else {
         setThemeDark(true)

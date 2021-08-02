@@ -27,10 +27,6 @@ export default class ReleaseOverview extends Component {
         },
     }));
 
-    constructor(props) {
-        super(props);
-    }
-
     fetchData = (props) => {
         fetch(process.env.REACT_APP_API_URL + '/json?release=' + this.props.release)
             .then((response) => {

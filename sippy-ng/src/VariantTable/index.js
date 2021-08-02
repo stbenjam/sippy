@@ -1,20 +1,20 @@
-import { Box, Button, Container, Menu, MenuItem, Tooltip, Typography } from '@material-ui/core';
+import { Box, Button, Container, Tooltip } from '@material-ui/core';
 import IconButton from '@material-ui/core/IconButton';
-import { createMuiTheme, withTheme } from '@material-ui/core/styles';
+import { createMuiTheme } from '@material-ui/core/styles';
 import TextField from '@material-ui/core/TextField';
 import {
     DataGrid,
     GridToolbarDensitySelector,
     GridToolbarFilterButton
 } from '@material-ui/data-grid';
-import { Bookmark, BugReport, Search } from '@material-ui/icons';
+import { Search } from '@material-ui/icons';
 import ClearIcon from '@material-ui/icons/Clear';
 import SearchIcon from '@material-ui/icons/Search';
 import Alert from '@material-ui/lab/Alert';
 import { makeStyles, withStyles } from '@material-ui/styles';
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
-import React, { Component, Fragment } from 'react';
+import React, { Component } from 'react';
 import PassRateIcon from '../PassRate/passRateIcon';
 
 
@@ -167,11 +167,6 @@ class VariantTable extends Component {
         currentReport: "",
     }
 
-
-    constructor(props) {
-        super(props);
-    }
-
     fetchData = (props) => {
         fetch(process.env.REACT_APP_API_URL + '/api/variants?release=' + this.props.release + "&variant=" + this.props.variant)
             .then((response) => {
@@ -207,7 +202,7 @@ class VariantTable extends Component {
     };
 
     render() {
-        const { classes, theme } = this.props;
+        const { classes } = this.props;
 
         if (this.state.fetchError !== "") {
             return <Alert severity="error">{this.state.fetchError}</Alert>;
@@ -217,7 +212,7 @@ class VariantTable extends Component {
             return "Loading..."
         }
 
-        if (this.state.rows.length == 0) {
+        if (this.state.rows.length === 0) {
             return <p>No jobs.</p>;
         }
 
