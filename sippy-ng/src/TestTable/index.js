@@ -1,6 +1,6 @@
 import { Box, Button, Container, Menu, MenuItem, Tooltip, Typography } from '@material-ui/core';
 import IconButton from '@material-ui/core/IconButton';
-import { createMuiTheme } from '@material-ui/core/styles';
+import { createTheme } from '@material-ui/core/styles';
 import TextField from '@material-ui/core/TextField';
 import {
     DataGrid,
@@ -22,7 +22,7 @@ function escapeRegExp(value) {
     return value.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
 };
 
-const defaultTheme = createMuiTheme();
+const defaultTheme = createTheme();
 const useStyles = makeStyles(
     (theme) => ({
         root: {

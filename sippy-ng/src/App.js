@@ -249,25 +249,25 @@ export default function App(props) {
             >
               {releases.map((release, index) => (
                 <Fragment>
-                  <ListItem id={"release-" + index} button onClick={() => handleClick(index)}>
+                  <ListItem key={"release-" + index} button onClick={() => handleClick(index)}>
                     {open[index] ? <ExpandLess /> : <ExpandMore />}
                     <ListItemText primary={release} />
                   </ListItem>
                   <Collapse in={open[index]} timeout="auto" unmountOnExit>
                     <List component="div" disablePadding>
-                      <ListItem component={Link} to={"/release/" + release} button className={classes.nested}>
+                      <ListItem key={"release-overview-" + index} component={Link} to={"/release/" + release} button className={classes.nested}>
                         <ListItemIcon>
                           <InfoIcon />
                         </ListItemIcon>
                         <ListItemText primary="Overview" />
                       </ListItem>
-                      <ListItem button className={classes.nested}>
+                      <ListItem key={"release-jobs-" + index} button className={classes.nested}>
                         <ListItemIcon>
                           <SupervisedUserCircleIcon />
                         </ListItemIcon>
                         <ListItemText primary="Jobs" />
                       </ListItem>
-                      <ListItem component={Link} to={"/tests/" + release} button className={classes.nested}>
+                      <ListItem key={"release-tests-" + index} component={Link} to={"/tests/" + release} button className={classes.nested}>
                         <ListItemIcon>
                           <SearchIcon />
                         </ListItemIcon>
