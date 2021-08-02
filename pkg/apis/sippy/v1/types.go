@@ -85,5 +85,19 @@ type Test struct {
 	PreviousFlakes         int     `json:"previous_flakes"`
 	PreviousPassPercentage float64 `json:"previous_pass_percentage"`
 	PreviousRuns           int     `json:"previous_runs"`
-	NetImprovement         float64  `json:"net_improvement"`
+	NetImprovement         float64 `json:"net_improvement"`
+}
+
+// Job contains the full accounting of a job's history.
+type Job struct {
+	ID                             int     `json:"id"`
+	Name                           string  `json:"name"`
+	CurrentPassPercentage          float64 `json:"current_pass_percentage"`
+	CurrentProjectedPassPercentage float64 `json:"current_projected_pass_percentage"`
+	CurrentRuns                     int     `json:"current_runs"`
+
+	PreviousPassPercentage          float64 `json:"previous_pass_percentage"`
+	PreviousProjectedPassPercentage float64 `json:"previous_projected_pass_percentage"`
+	PreviousRuns                    int     `json:"previous_runs"`
+	NetImprovement                  float64 `json:"net_improvement"`
 }

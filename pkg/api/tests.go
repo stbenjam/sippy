@@ -42,6 +42,8 @@ func generateTests(current, previous []v1.FailingTestResult) []v1sippy.Test {
 }
 
 func PrintTestsReport(w http.ResponseWriter, current []v1.FailingTestResult, previous []v1.FailingTestResult) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	response := generateTests(current, previous)
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {

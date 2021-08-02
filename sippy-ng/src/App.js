@@ -24,7 +24,7 @@ import Alert from '@material-ui/lab/Alert';
 import clsx from 'clsx';
 import React, { Fragment, useEffect } from 'react';
 import {
-  HashRouter as Router, Link, Route, Switch
+  BrowserRouter as Router, Link, Route, Switch
 } from "react-router-dom";
 import Cookies from 'universal-cookie';
 import BugzillaSearch from './BugzillaSearch';

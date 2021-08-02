@@ -17,7 +17,7 @@ export default function BugzillaSearch(props) {
 
     let handleBugzillaQuery = (f) => {
         window.open('https://bugzilla.redhat.com/buglist.cgi?query_format=specific&order=Importance&no_redirect=1&bug_status=__open__&product=OpenShift+Container+Platform&content=' + encodeURIComponent(query));
-        //props.close()
+        props.close()
     };
 
     return (

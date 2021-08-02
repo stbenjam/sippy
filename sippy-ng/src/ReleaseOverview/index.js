@@ -95,7 +95,7 @@ export default class ReleaseOverview extends Component {
                             <Typography variant="h5">Job Pass Rate By Variant</Typography>
                         </Grid>
                         <Grid item xs={12}>
-                            <PassRateByVariant rows={this.state.passRateByVariant} />
+                            <PassRateByVariant rows={this.state.passRateByVariant} release={this.props.release} />
                         </Grid>
                     </Grid>
                 </Container>

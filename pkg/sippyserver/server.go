@@ -3,21 +3,21 @@ package sippyserver
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"regexp"
-	"strconv"
-
-	"github.com/openshift/sippy/pkg/html/generichtml"
-
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/openshift/sippy/pkg/api"
 	sippyprocessingv1 "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
 	"github.com/openshift/sippy/pkg/buganalysis"
+	"github.com/openshift/sippy/pkg/html/generichtml"
 	"github.com/openshift/sippy/pkg/html/releasehtml"
 	"github.com/openshift/sippy/pkg/testgridanalysis/testgridconversion"
 	"github.com/openshift/sippy/pkg/testgridanalysis/testgridhelpers"
 	"github.com/openshift/sippy/pkg/testgridanalysis/testidentification"
 	"k8s.io/klog"
+	"net/http"
+	"os"
+	"regexp"
+	"strconv"
+	"strings"
 )
 
 func NewServer(
@@ -307,8 +307,7 @@ func (s *Server) tests(w http.ResponseWriter, req *http.Request) {
 	currTests := s.currTestReports[release].CurrentPeriodReport.ByTest
 	prevTests := s.currTestReports[release].PreviousWeekReport.ByTest
 
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	api.PrintTestsReport(w, currTests, prevTests)
 }
 
@@ -360,19 +359,19 @@ func (s *Server) jobsReport(w http.ResponseWriter, req *http.Request) {
 	releasehtml.PrintJobsReport(w, reportName)
 }
 
-func (s *Server) variantsReport(w http.ResponseWriter, req *http.Request) {
+func (s *Server) variantsReport(w http.ResponseWriter, req *http.Request) (*sippyprocessingv1.VariantResults, *sippyprocessingv1.VariantResults) {
 	release := req.URL.Query().Get("release")
 	variant := req.URL.Query().Get("variant")
 	reports := s.currTestReports
 
 	if variant == "" || release == "" {
 		generichtml.PrintStatusMessage(w, http.StatusBadRequest, "Please specify a variant and release.")
-		return
+		return nil, nil
 	}
 
 	if _, ok := reports[release]; !ok {
 		generichtml.PrintStatusMessage(w, http.StatusNotFound, fmt.Sprintf("Release %q not found.", release))
-		return
+		return nil, nil
 	}
 
 	var currentWeek *sippyprocessingv1.VariantResults
@@ -393,16 +392,55 @@ func (s *Server) variantsReport(w http.ResponseWriter, req *http.Request) {
 
 	if currentWeek == nil {
 		generichtml.PrintStatusMessage(w, http.StatusNotFound, fmt.Sprintf("Variant %q not found.", variant))
+		return nil, nil
+	}
+
+
+	return currentWeek, previousWeek
+}
+
+func (s *Server) htmlVariantsReport(w http.ResponseWriter, req *http.Request) {
+	release := req.URL.Query().Get("release")
+	variant := req.URL.Query().Get("variant")
+
+	current, previous := s.variantsReport(w, req)
+	if current == nil {
+		return
+	}
+	timestamp := s.currTestReports[release].CurrentPeriodReport.Timestamp
+	releasehtml.PrintVariantsReport(w, release, variant, current, previous, timestamp)
+}
+
+func (s *Server) jsonVariantsReport(w http.ResponseWriter, req *http.Request) {
+	variant := req.URL.Query().Get("variant")
+
+	current, previous := s.variantsReport(w, req)
+	if current == nil {
 		return
 	}
 
-	timestamp := reports[release].CurrentPeriodReport.Timestamp
-
-	releasehtml.PrintVariantsReport(w, release, variant, currentWeek, previousWeek, timestamp)
+	api.PrintVariantsReport(w, variant, current.JobResults, previous.JobResults)
 }
 
 func (s *Server) Serve() {
-	http.DefaultServeMux.Handle("/sippy-ng/", http.StripPrefix("/sippy-ng/", http.FileServer(s.sippyNG.HTTPBox())))
+
+	// Handle serving React version of frontend with support for browser router, i.e. anything not found
+	// goes to index.html
+	http.DefaultServeMux.HandleFunc("/sippy-ng/", func(w http.ResponseWriter, r *http.Request) {
+		fs := s.sippyNG.HTTPBox()
+		if r.URL.Path != "/sippy-ng/" {
+			fullPath := strings.TrimPrefix(r.URL.Path, "/sippy-ng/")
+			if _, err := fs.Open(fullPath); err != nil {
+				if !os.IsNotExist(err) {
+					panic(err)
+				}
+				r.URL.Path = "/sippy-ng/"
+			}
+		}
+
+		http.StripPrefix("/sippy-ng/", http.FileServer(fs)).ServeHTTP(w, r)
+	})
+
 	http.DefaultServeMux.HandleFunc("/", s.printHTMLReport)
 	http.DefaultServeMux.HandleFunc("/install", s.printInstallHTMLReport)
 	http.DefaultServeMux.HandleFunc("/upgrade", s.printUpgradeHTMLReport)
@@ -416,7 +454,8 @@ func (s *Server) Serve() {
 	http.DefaultServeMux.HandleFunc("/api/releases", s.releases)
 	http.DefaultServeMux.HandleFunc("/api/tests", s.tests)
 	http.DefaultServeMux.HandleFunc("/jobs", s.jobsReport)
-	http.DefaultServeMux.HandleFunc("/variants", s.variantsReport)
+	http.DefaultServeMux.HandleFunc("/api/variants", s.jsonVariantsReport)
+	http.DefaultServeMux.HandleFunc("/variants", s.htmlVariantsReport)
 
 	http.DefaultServeMux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	klog.Infof("Serving reports on %s ", s.listenAddr)

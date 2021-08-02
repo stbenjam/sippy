@@ -12,6 +12,7 @@ import KeyboardArrowDownIcon from '@material-ui/icons/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@material-ui/icons/KeyboardArrowUp';
 import PropTypes from 'prop-types';
 import React from 'react';
+import VariantTable from '../VariantTable';
 import PassRateIcon from './passRateIcon';
 
 const useRowStyles = makeStyles({
@@ -45,6 +46,7 @@ function Row(props) {
             <TableRow>
                 <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
                     <Collapse in={open} timeout="auto" unmountOnExit>
+                        <VariantTable release={props.release} variant={row.platform} />
                     </Collapse>
                 </TableCell>
             </TableRow>
@@ -83,7 +85,7 @@ export default function PassRateByVariant(props) {
                 </TableHead>
                 <TableBody>
                     {props.rows.map((row) => (
-                        <Row key={row.platform} row={row} />
+                        <Row key={row.platform} row={row} release={props.release} />
                     ))}
                 </TableBody>
             </Table>
