@@ -15,8 +15,7 @@ import { makeStyles, withStyles } from '@material-ui/styles';
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import React, { Component, Fragment } from 'react';
-import PassRateIcon from '../PassRate/passRateIcon';
-
+import PassRateIcon from './PassRate/passRateIcon';
 
 function escapeRegExp(value) {
     return value.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
@@ -48,104 +47,18 @@ const useStyles = makeStyles(
     { defaultTheme },
 );
 
-
-function ReportMenu(props) {
-    const [anchorEl, setAnchorEl] = React.useState(null);
-    const [selectedReport, setSelectedReport] = React.useState();
-
-    const handleClick = (event) => {
-        setAnchorEl(event.currentTarget);
-    };
-
-    const handleClose = () => {
-        setAnchorEl(null);
-    };
-
-    const selectReport = (name) => {
-        props.requestReport(name);
-        setSelectedReport(name);
-        handleClose();
-    };
-
-    return (
-        <Fragment>
-            <Button aria-controls="reports-menu" aria-haspopup="true" onClick={handleClick} startIcon={<Bookmark />} color="primary">Reports</Button>
-            <Button color="secondary">
-                {selectedReport}
-            </Button>
-            <Menu
-                id="reports-menu"
-                anchorEl={anchorEl}
-                keepMounted
-                open={Boolean(anchorEl)}
-                onClose={handleClose}
-            >
-
-                <MenuItem onClick={() => selectReport("all")}>All tests</MenuItem>
-                <MenuItem onClick={() => selectReport("trt")}>Curated TRT tests</MenuItem>
-                <MenuItem onClick={() => selectReport("improved")}>Most improved pass rate</MenuItem>
-                <MenuItem onClick={() => selectReport("reduced")}>Most reduced pass rate</MenuItem>
-                <MenuItem onClick={() => selectReport("> 10 runs")}>More than 10 runs</MenuItem>
-            </Menu>
-        </Fragment>
-    );
-}
-
-function TestSearchToolbar(props) {
-    const classes = useStyles();
-
-    return (
-        <div className={classes.root}>
-            <div>
-                <GridToolbarFilterButton />
-                <GridToolbarDensitySelector />
-                <ReportMenu requestReport={props.requestReport} />
-            </div>
-            <TextField
-                variant="standard"
-                value={props.value}
-                onChange={props.onChange}
-                placeholder="Search…"
-                className={classes.textField}
-                InputProps={{
-                    startAdornment: <SearchIcon fontSize="small" />,
-                    endAdornment: (
-                        <IconButton
-                            title="Clear"
-                            aria-label="Clear"
-                            size="small"
-                            style={{ visibility: props.value ? 'visible' : 'hidden' }}
-                            onClick={props.clearSearch}
-                        >
-                            <ClearIcon fontSize="small" />
-                        </IconButton>
-                    ),
-                }}
-            />
-        </div>
-    );
-}
-
-
-TestSearchToolbar.propTypes = {
-    clearSearch: PropTypes.func.isRequired,
-    onChange: PropTypes.func.isRequired,
-    value: PropTypes.string.isRequired,
-};
-
-
 const styles = {
     good: {
-        backgroundColor: defaultTheme.palette.success.light,
-        color: defaultTheme.palette.success.contrastText, 
+        backgroundColor: "#c3e6cb",
+        color: "#000000"
     },
     ok: {
-        backgroundColor: defaultTheme.palette.warning.light, 
-        color: defaultTheme.palette.warning.contrastText, 
+        backgroundColor: "#ffeeba",
+        color: "#000000"
     },
     failing: {
-        backgroundColor: defaultTheme.palette.error.light,
-        color: defaultTheme.palette.warning.contrastText,  
+        backgroundColor: "#f5c6cb",
+        color: "#000000"
     }
 };
 
@@ -194,25 +107,107 @@ const columns = [
         renderCell: (params) => {
             return (
                 <Box>
-                    <Button target="_blank" startIcon={<Search />} href={"https://search.ci.openshift.org/?search=" + encodeURIComponent(params.row.name) + "&maxAge=336h&context=1&type=bug%2Bjunit&name=&excludeName=&maxMatches=5&maxBytes=20971520&groupBy=job"} />
+                    <Button target="_blank" startIcon={<Search />} href={"https://search.ci.openshift.org/?search=" + encodeURIComponent(params.row.name) +"&maxAge=336h&context=1&type=bug%2Bjunit&name=&excludeName=&maxMatches=5&maxBytes=20971520&groupBy=job" } />
                 </Box>
             );
         },
     },
 ];
 
-class TestTable extends Component {
+function JobSearchToolbar(props) {
+    const classes = useStyles();
+
+    return (
+        <div className={classes.root}>
+            <div>
+                <GridToolbarFilterButton />
+                <GridToolbarDensitySelector />
+                <ReportMenu requestReport={props.requestReport} />
+            </div>
+            <TextField
+                variant="standard"
+                value={props.value}
+                onChange={props.onChange}
+                placeholder="Search…"
+                className={classes.textField}
+                InputProps={{
+                    startAdornment: <SearchIcon fontSize="small" />,
+                    endAdornment: (
+                        <IconButton
+                            title="Clear"
+                            aria-label="Clear"
+                            size="small"
+                            style={{ visibility: props.value ? 'visible' : 'hidden' }}
+                            onClick={props.clearSearch}
+                        >
+                            <ClearIcon fontSize="small" />
+                        </IconButton>
+                    ),
+                }}
+            />
+        </div>
+    );
+}
+
+JobSearchToolbar.propTypes = {
+    clearSearch: PropTypes.func.isRequired,
+    onChange: PropTypes.func.isRequired,
+    value: PropTypes.string.isRequired,
+};
+
+function ReportMenu(props) {
+    const [anchorEl, setAnchorEl] = React.useState(null);
+    const [selectedReport, setSelectedReport] = React.useState();
+
+    const handleClick = (event) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    const handleClose = () => {
+        setAnchorEl(null);
+    };
+
+    const selectReport = (name) => {
+        props.requestReport(name);
+        setSelectedReport(name);
+        handleClose();
+    };
+
+    return (
+        <Fragment>
+            <Button aria-controls="reports-menu" aria-haspopup="true" onClick={handleClick} startIcon={<Bookmark />} color="primary">Reports</Button>
+            <Button color="secondary">
+                {selectedReport}
+            </Button>
+            <Menu
+                id="reports-menu"
+                anchorEl={anchorEl}
+                keepMounted
+                open={Boolean(anchorEl)}
+                onClose={handleClose}
+            >
+
+                <MenuItem onClick={() => selectReport("all")}>All jobs</MenuItem>
+                <MenuItem onClick={() => selectReport("improved")}>Most improved pass rate</MenuItem>
+                <MenuItem onClick={() => selectReport("reduced")}>Most reduced pass rate</MenuItem>
+                <MenuItem onClick={() => selectReport("> 10 runs")}>More than 10 runs</MenuItem>
+            </Menu>
+        </Fragment>
+    );
+}
+
+class JobTable extends Component {
     state = {
         fetchError: "",
         isLoaded: false,
-        tests: [],
+        jobs: [],
         rows: [],
         searchText: "",
         currentReport: "",
     }
 
     fetchData = (props) => {
-        fetch(process.env.REACT_APP_API_URL + '/api/tests?release=' + this.props.release)
+        fetch(process.env.REACT_APP_API_URL + '/api/jobs2?release=' + this.props.release)
             .then((response) => {
                 if (response.status !== 200) {
                     throw new Error("server returned " + response.status);
@@ -222,11 +217,11 @@ class TestTable extends Component {
             .then(json => {
                 this.setState({
                     isLoaded: true,
-                    tests: json,
+                    jobs: json,
                     rows: json,
                 })
             }).catch(error => {
-                this.setState({ fetchError: "Could not retrieve tests " + this.props.release + ", " + error });
+                this.setState({ fetchError: "Could not retrieve jobs " + this.props.release + ", " + error });
             });
     }
 
@@ -237,7 +232,7 @@ class TestTable extends Component {
     requestSearch = (searchValue) => {
         this.setState({ searchText: searchValue });
         const searchRegex = new RegExp(escapeRegExp(searchValue), 'i');
-        const filteredRows = this.state.tests.filter((row) => {
+        const filteredRows = this.state.jobs.filter((row) => {
             return Object.keys(row).some((field) => {
                 return searchRegex.test(row[field].toString());
             });
@@ -247,13 +242,13 @@ class TestTable extends Component {
 
     requestReport = (report) => {
         this.setState({ currentReport: report });
-        let filteredRows = this.state.tests.slice();
+        let filteredRows = this.state.jobs.slice();
 
         switch (report) {
             case "all":
                 break;
             case "> 10 runs":
-                filteredRows = this.state.tests.filter((row) => {
+                filteredRows = this.state.jobs.filter((row) => {
                     return row.current_runs > 10;
                 });
                 break;
@@ -265,18 +260,6 @@ class TestTable extends Component {
             case "improved":
                 filteredRows.sort((first, second) => {
                     return second.net_improvement - first.net_improvement;
-                })
-                break;
-            case "trt":
-                filteredRows = this.state.tests.filter((row) => {
-                    let trt = [
-                        "Kubernetes APIs remain available",
-                        "OAuth APIs remain available",
-                        "OpenShift APIs remain available",
-                        "Cluster frontend ingress remain available",
-                    ]
-
-                    return new RegExp(trt.join("|")).test(row.name);
                 })
                 break;
             default:
@@ -296,13 +279,17 @@ class TestTable extends Component {
             return "Loading..."
         }
 
+        if (this.state.jobs.length === 0) {
+            return <p>No jobs.</p>;
+        }
+
         return (
             <Container size="xl">
                 <Typography variant="h4">
-                    Test Results for {this.props.release}
+                    Job Results for {this.props.release}
                 </Typography>
                 <DataGrid
-                    components={{ Toolbar: TestSearchToolbar }}
+                    components={{ Toolbar: JobSearchToolbar }}
                     rows={this.state.rows}
                     columns={columns}
                     autoHeight={true}
@@ -329,4 +316,4 @@ class TestTable extends Component {
     }
 }
 
-export default withStyles(styles)(TestTable);
+export default withStyles(styles, { withTheme: true})(JobTable);

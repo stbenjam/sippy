@@ -1,19 +1,14 @@
 import { Container, Typography } from '@material-ui/core';
 import Grid from '@material-ui/core/Grid';
-import { makeStyles } from '@material-ui/core/styles';
+import { createTheme, makeStyles, useTheme } from '@material-ui/core/styles';
 import Alert from '@material-ui/lab/Alert';
-import React, { Component } from 'react';
+import React, { Component, useEffect } from 'react';
 import PassRateByVariant from '../PassRate/passRateByVariant';
 import PassRateCard from '../PassRate/passRateCard';
 
-export default class ReleaseOverview extends Component {
-    state = {
-        fetchError: "",
-        isLoaded: false,
-        indicators: {},
-    }
-
-    classes = makeStyles((theme) => ({
+const defaultTheme = createTheme();
+const useStyles = makeStyles(
+    (theme) => ({
         root: {
             flexGrow: 1,
         },
@@ -25,77 +20,86 @@ export default class ReleaseOverview extends Component {
         title: {
             textAlign: "center",
         },
-    }));
+    }),
+    { defaultTheme },
+);
 
-    fetchData = (props) => {
-        fetch(process.env.REACT_APP_API_URL + '/json?release=' + this.props.release)
+export default function ReleaseOverview(props) {
+    const classes = useStyles();
+    const theme = useTheme();
+
+    const [fetchError, setFetchError] = React.useState("")
+    const [isLoaded, setLoaded] = React.useState(false)
+    const [indicators, setIndicators] = React.useState({})
+    const [passRateByVariant, setPassRateByVariant] = React.useState([])
+
+    let fetchData = () => {
+        fetch(process.env.REACT_APP_API_URL + '/json?release=' + props.release)
             .then((response) => {
-                if(response.status !== 200) {
+                if (response.status !== 200) {
                     throw new Error("server returned " + response.status);
                 }
                 return response.json();
             })
             .then(json => {
-                this.setState({
-                    isLoaded: true,
-                    indicators: json[this.props.release]["topLevelReleaseIndicators"],
-                    passRateByVariant: json[this.props.release]["jobPassRateByVariant"],
-                })
+                setIndicators(json[props.release].topLevelReleaseIndicators)
+                setPassRateByVariant(json[props.release].jobPassRateByVariant)
+                setLoaded(true)
             }).catch(error => {
-                this.setState({fetchError: "Could not retrieve release " + this.props.release + ", " + error});
+                setFetchError("Could not retrieve release " + props.release + ", " + error);
             });
     }
 
-    cardBackground = (percent) => {
+    let cardBackground = (percent) => {
         if (percent > 90) {
-            return "#c3e6cb";
+            return theme.palette.success.light; 
         } else if (percent > 60) {
-            return "#ffeeba";
+            return theme.palette.warning.light;
         } else {
-            return "#f5c6cb";
+            return theme.palette.error.light; 
         }
     }
 
-    componentDidMount() {
-        this.fetchData(this.props);
+    useEffect(() => {
+        if (!isLoaded) {
+            fetchData();
+        }
+    }, []);
+
+    if (fetchError !== "") {
+        return <Alert severity="error">{fetchError}</Alert>;
     }
 
-    render() {
-        if (this.state.fetchError !== "") {
-            return <Alert severity="error">{this.state.fetchError}</Alert>;
-        }
+    if (!isLoaded) {
+        return "Loading..."
+    }
 
-        if (this.state.isLoaded === false) {
-            return "Loading..."
-        }
-
-        return (
-            <div className="{this.classes.root}" style={{ padding: 20 }}>
-                <Container maxWidth="lg">
-                    <Typography variant="h4" gutterBottom className={this.classes.title}>CI Release {this.props.release} Health Summary</Typography>
-                    <Grid container spacing={3} xs={12}>
-                        <Grid item xs={12}>
-                            <Typography variant="h5">Top Level Release Indicators</Typography>
-                        </Grid>
-                        <Grid item xs={4}>
-                            <PassRateCard backgroundColor={this.cardBackground(this.state.indicators.infrastructure.current_pass_rate.percentage)} name="Infrastructure" passRate={this.state.indicators.infrastructure} />
-                        </Grid>
-                        <Grid item xs={4}>
-                            <PassRateCard backgroundColor={this.cardBackground(this.state.indicators.install.current_pass_rate.percentage)} name="Install" passRate={this.state.indicators.install} />
-                        </Grid>
-                        <Grid item xs={4}>
-                            <PassRateCard backgroundColor={this.cardBackground(this.state.indicators.upgrade.current_pass_rate.percentage)} name="Upgrade" passRate={this.state.indicators.upgrade} />
-                        </Grid>
-
-                        <Grid item xs={12}>
-                            <Typography variant="h5">Job Pass Rate By Variant</Typography>
-                        </Grid>
-                        <Grid item xs={12}>
-                            <PassRateByVariant rows={this.state.passRateByVariant} release={this.props.release} />
-                        </Grid>
+    return (
+        <div className="{classes.root}" style={{ padding: 20 }}>
+            <Container maxWidth="lg">
+                <Typography variant="h4" gutterBottom className={classes.title}>CI Release {props.release} Health Summary</Typography>
+                <Grid container spacing={3} xs={12}>
+                    <Grid item xs={12}>
+                        <Typography variant="h5">Top Level Release Indicators</Typography>
                     </Grid>
-                </Container>
-            </div>
-        );
-    }
+                    <Grid item xs={4}>
+                        <PassRateCard backgroundColor={cardBackground(indicators.infrastructure.current_pass_rate.percentage)} name="Infrastructure" passRate={indicators.infrastructure} />
+                    </Grid>
+                    <Grid item xs={4}>
+                        <PassRateCard backgroundColor={cardBackground(indicators.install.current_pass_rate.percentage)} name="Install" passRate={indicators.install} />
+                    </Grid>
+                    <Grid item xs={4}>
+                        <PassRateCard backgroundColor={cardBackground(indicators.upgrade.current_pass_rate.percentage)} name="Upgrade" passRate={indicators.upgrade} />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                        <Typography variant="h5">Job Pass Rate By Variant</Typography>
+                    </Grid>
+                    <Grid item xs={12}>
+                        <PassRateByVariant rows={passRateByVariant} release={props.release} />
+                    </Grid>
+                </Grid>
+            </Container>
+        </div>
+    );
 }

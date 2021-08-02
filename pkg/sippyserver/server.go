@@ -29,7 +29,8 @@ func NewServer(
 	syntheticTestManager testgridconversion.SyntheticTestManager,
 	variantManager testidentification.VariantManager,
 	bugCache buganalysis.BugCache,
-	box *rice.Box,
+	sippyNG *rice.Box,
+	static *rice.Box,
 ) *Server {
 
 	server := &Server{
@@ -45,7 +46,8 @@ func NewServer(
 			DisplayDataConfig:           displayDataOptions,
 		},
 		currTestReports: map[string]StandardReport{},
-		sippyNG:         box,
+		sippyNG:         sippyNG,
+		static:          static,
 	}
 
 	return server
@@ -61,6 +63,7 @@ type Server struct {
 	testReportGeneratorConfig TestReportGeneratorConfig
 	currTestReports           map[string]StandardReport
 	sippyNG                   *rice.Box
+	static                    *rice.Box
 }
 
 type TestGridDashboardCoordinates struct {
@@ -307,7 +310,6 @@ func (s *Server) tests(w http.ResponseWriter, req *http.Request) {
 	currTests := s.currTestReports[release].CurrentPeriodReport.ByTest
 	prevTests := s.currTestReports[release].PreviousWeekReport.ByTest
 
-
 	api.PrintTestsReport(w, currTests, prevTests)
 }
 
@@ -395,7 +397,6 @@ func (s *Server) variantsReport(w http.ResponseWriter, req *http.Request) (*sipp
 		return nil, nil
 	}
 
-
 	return currentWeek, previousWeek
 }
 
@@ -409,6 +410,21 @@ func (s *Server) htmlVariantsReport(w http.ResponseWriter, req *http.Request) {
 	}
 	timestamp := s.currTestReports[release].CurrentPeriodReport.Timestamp
 	releasehtml.PrintVariantsReport(w, release, variant, current, previous, timestamp)
+}
+
+func (s *Server) jsonJobsReport(w http.ResponseWriter, req *http.Request) {
+	release := req.URL.Query().Get("release")
+	reports := s.currTestReports
+
+	if release == "" {
+		generichtml.PrintStatusMessage(w, http.StatusBadRequest, "Please specify a release.")
+	}
+
+	if _, ok := reports[release]; !ok {
+		generichtml.PrintStatusMessage(w, http.StatusNotFound, fmt.Sprintf("Release %q not found.", release))
+	}
+
+	api.PrintJobs2Report(w, reports[release].CurrentPeriodReport.ByJob, reports[release].PreviousWeekReport.ByJob)
 }
 
 func (s *Server) jsonVariantsReport(w http.ResponseWriter, req *http.Request) {
@@ -441,6 +457,8 @@ func (s *Server) Serve() {
 		http.StripPrefix("/sippy-ng/", http.FileServer(fs)).ServeHTTP(w, r)
 	})
 
+	http.DefaultServeMux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(s.static.HTTPBox())))
+
 	http.DefaultServeMux.HandleFunc("/", s.printHTMLReport)
 	http.DefaultServeMux.HandleFunc("/install", s.printInstallHTMLReport)
 	http.DefaultServeMux.HandleFunc("/upgrade", s.printUpgradeHTMLReport)
@@ -450,14 +468,15 @@ func (s *Server) Serve() {
 	http.DefaultServeMux.HandleFunc("/detailed", s.detailed)
 	http.DefaultServeMux.HandleFunc("/refresh", s.refresh)
 	http.DefaultServeMux.HandleFunc("/canary", s.printCanaryReport)
+	http.DefaultServeMux.HandleFunc("/jobs", s.jobsReport)
+
+	http.DefaultServeMux.HandleFunc("/api/jobs2", s.jsonJobsReport) // Call this something else
 	http.DefaultServeMux.HandleFunc("/api/jobs", s.jobs)
 	http.DefaultServeMux.HandleFunc("/api/releases", s.releases)
 	http.DefaultServeMux.HandleFunc("/api/tests", s.tests)
-	http.DefaultServeMux.HandleFunc("/jobs", s.jobsReport)
 	http.DefaultServeMux.HandleFunc("/api/variants", s.jsonVariantsReport)
 	http.DefaultServeMux.HandleFunc("/variants", s.htmlVariantsReport)
 
-	http.DefaultServeMux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	klog.Infof("Serving reports on %s ", s.listenAddr)
 	if err := http.ListenAndServe(s.listenAddr, nil); err != nil {
 		klog.Exitf("Server exited: %v", err)

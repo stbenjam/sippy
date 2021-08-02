@@ -11,7 +11,7 @@ import (
 )
 
 func generateTests(current, previous []v1.FailingTestResult) []v1sippy.Test {
-	var rows []v1sippy.Test
+	rows := make([]v1sippy.Test, 0)
 
 	for idx, test := range current {
 		testPrev := util.FindFailedTestResult(test.TestName, previous)

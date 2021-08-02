@@ -1,7 +1,7 @@
 import Collapse from '@material-ui/core/Collapse';
 import IconButton from '@material-ui/core/IconButton';
 import Paper from '@material-ui/core/Paper';
-import { makeStyles } from '@material-ui/core/styles';
+import { createTheme, makeStyles, useTheme } from '@material-ui/core/styles';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
@@ -10,8 +10,9 @@ import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import KeyboardArrowDownIcon from '@material-ui/icons/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@material-ui/icons/KeyboardArrowUp';
+import clsx from 'clsx';
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { Fragment } from 'react';
 import VariantTable from '../VariantTable';
 import PassRateIcon from './passRateIcon';
 
@@ -19,9 +20,26 @@ const useRowStyles = makeStyles({
     root: {
         '& > *': {
             borderBottom: 'unset',
+            color: 'black',
         },
     },
 });
+
+const defaultTheme = createTheme();
+const styles = {
+    good: {
+        backgroundColor: defaultTheme.palette.success.light,
+        color: defaultTheme.palette.success.contrastText,
+    },
+    ok: {
+        backgroundColor: defaultTheme.palette.warning.light,
+        color: defaultTheme.palette.warning.contrastText,
+    },
+    failing: {
+        backgroundColor: defaultTheme.palette.error.light,
+        color: defaultTheme.palette.warning.contrastText,
+    }
+};
 
 function Row(props) {
     const { row } = props;
@@ -29,10 +47,10 @@ function Row(props) {
     const classes = useRowStyles();
 
     return (
-        <React.Fragment>
-            <TableRow className={classes.root}>
+        <Fragment>
+            <TableRow className={classes.root} style={{backgroundColor: props.bgColor}}>
                 <TableCell>
-                    <IconButton aria-label="expand row" size="small" onClick={() => setOpen(!open)}>
+                    <IconButton style={{color: "black"}} aria-label="expand row" size="small" onClick={() => setOpen(!open)}>
                         {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
                     </IconButton>
                 </TableCell>
@@ -50,7 +68,7 @@ function Row(props) {
                     </Collapse>
                 </TableCell>
             </TableRow>
-        </React.Fragment>
+        </Fragment>
     );
 }
 
@@ -70,7 +88,20 @@ Row.propTypes = {
     }).isRequired,
 };
 
+
 export default function PassRateByVariant(props) {
+    const theme = useTheme();
+
+    let rowBackground = (percent) => {
+        if (percent > 90) {
+            return theme.palette.success.light;
+        } else if (percent > 60) {
+            return theme.palette.warning.light;
+        } else {
+            return theme.palette.error.light;
+        }
+    }
+
     return (
         <TableContainer component={Paper}>
             <Table aria-label="collapsible table">
@@ -85,7 +116,7 @@ export default function PassRateByVariant(props) {
                 </TableHead>
                 <TableBody>
                     {props.rows.map((row) => (
-                        <Row key={row.platform} row={row} release={props.release} />
+                        <Row key={row.platform} bgColor={rowBackground(row.passRates.latest.percentage)} row={row} release={props.release} />
                     ))}
                 </TableBody>
             </Table>

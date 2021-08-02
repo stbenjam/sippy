@@ -188,7 +188,12 @@ func (o *Options) Run() error {
 }
 
 func (o *Options) runServerMode() error {
-	box, err := rice.FindBox("./sippy-ng/build")
+	sippyNG, err := rice.FindBox("./sippy-ng/build")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	static, err := rice.FindBox("./static")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -202,7 +207,8 @@ func (o *Options) runServerMode() error {
 		o.getSyntheticTestManager(),
 		o.getVariantManager(),
 		o.getBugCache(),
-		box,
+		sippyNG,
+		static,
 	)
 	server.RefreshData() // force a data refresh once before serving.
 	server.Serve()

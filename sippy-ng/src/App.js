@@ -32,6 +32,7 @@ import ReleaseOverview from './ReleaseOverview';
 import TestTable from './TestTable';
 import NewReleasesIcon from '@material-ui/icons/NewReleases';
 import HomeIcon from '@material-ui/icons/Home';
+import JobTable from './JobTable';
 
 const drawerWidth = 240;
 
@@ -144,7 +145,9 @@ export default function App(props) {
 
       // Cookie to save user's theme preference
       let darkMode = cookies.get("darkMode")
-      if (darkMode === 'false') {
+      console.log(darkMode)
+
+      if (darkMode === 'false' || darkMode == undefined) {
         setThemeDark(false)
       } else {
         setThemeDark(true)
@@ -261,7 +264,7 @@ export default function App(props) {
                         </ListItemIcon>
                         <ListItemText primary="Overview" />
                       </ListItem>
-                      <ListItem key={"release-jobs-" + index} button className={classes.nested}>
+                      <ListItem key={"release-jobs-" + index} component={Link} to={"/jobs/" + release} button className={classes.nested}>
                         <ListItemIcon>
                           <SupervisedUserCircleIcon />
                         </ListItemIcon>
@@ -295,15 +298,15 @@ export default function App(props) {
                 <ListItemText primary="Release Controller" />
               </ListItem>
 
-              <ListItem button onClick={handleBugzillaOpen} key="SearchBugzilla">
-                <ListItemIcon><BugReport /></ListItemIcon>
-                <ListItemText primary="Search Bugzilla" />
-              </ListItem>
+                <ListItem button onClick={handleBugzillaOpen} key="SearchBugzilla">
+                  <ListItemIcon><BugReport /></ListItemIcon>
+                  <ListItemText primary="Search Bugzilla" />
+                </ListItem>
+                <BugzillaSearch open={handleBugzillaOpen} close={handleBugzillaClose} isOpen={bugzillaOpen} />
 
             </List>
           </Drawer>
 
-          <BugzillaSearch open={handleBugzillaOpen} close={handleBugzillaClose} isOpen={bugzillaOpen} />
 
           <main
             className={clsx(classes.content, {
@@ -316,7 +319,9 @@ export default function App(props) {
               <Route path="/about">
                 <p>Hello, world!</p>
               </Route>
+
               <Route path="/release/:release" render={(props) => <ReleaseOverview key={props.match.params.release} release={props.match.params.release} />} />
+              <Route path="/jobs/:release" render={(props) => <JobTable key={props.match.params.release} release={props.match.params.release} />} />
               <Route path="/tests/:release" render={(props) => <TestTable key={props.match.params.release} release={props.match.params.release} />} />
               <Route path="/">
                 {releases.length > 0 ? <ReleaseOverview key={releases[0]} release={releases[0]} /> : "Loading..."}

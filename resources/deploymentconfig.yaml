@@ -25,7 +25,7 @@ spec:
         deploymentconfig: sippy
     spec:
       containers:
-      - image: docker.io/openshift/sippy
+      - image: quay.io/stbenjam/sippy
         imagePullPolicy: Always
         name: sippy
         ports:
@@ -37,7 +37,7 @@ spec:
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
         command:
-        - /go/src/sippy/sippy
+        - /bin/sippy
         args:
         - --local-data
         - /data
@@ -57,7 +57,7 @@ spec:
         volumeMounts:
         - mountPath: /data
           name: data
-      - image: docker.io/openshift/sippy
+      - image: quay.io/stbenjam/sippy
         imagePullPolicy: Always
         name: fetchdata
         ports:
@@ -69,7 +69,7 @@ spec:
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
         command:
-        - /go/src/sippy/scripts/fetchdata.sh
+        - /bin/fetchdata.sh
         volumeMounts:
         - mountPath: /data
           name: data
@@ -83,15 +83,3 @@ spec:
         persistentVolumeClaim:
           claimName: sippy
   test: false
-  triggers:
-  - type: ConfigChange
-  - imageChangeParams:
-      automatic: true
-      containerNames:
-      - sippy
-      - fetchdata
-      from:
-        kind: ImageStreamTag
-        name: sippy:latest
-        namespace: bparees
-    type: ImageChange
