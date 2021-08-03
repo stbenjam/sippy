@@ -1,4 +1,4 @@
-import { Tooltip } from '@material-ui/core';
+import { Divider, Tooltip, Typography } from '@material-ui/core';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import FormGroup from '@material-ui/core/FormGroup';
 import { makeStyles, useTheme } from '@material-ui/core/styles';
@@ -116,7 +116,7 @@ Row.propTypes = {
 
 
 export default function TestByVariantTable(props) {
-    const [showFull, setShowFull] = useQueryParam("showFull", BooleanParam) 
+    const [showFull, setShowFull] = useQueryParam("showFull", BooleanParam)
 
     if (props.data === undefined) {
         return <p>No data.</p>
@@ -132,8 +132,24 @@ export default function TestByVariantTable(props) {
         setShowFull(e.target.checked)
     };
 
+    const pageTitle = (
+        <Typography variant="h4" style={{ margin: 20, textAlign: "center" }}>
+            {props.title}
+        </Typography>
+    );
+
+    if (props.data.tests && Object.keys(props.data.tests).length === 0) {
+        return (
+            <Fragment>
+                {pageTitle}
+                <p>No Results.</p>
+            </Fragment>
+        );
+    }
+
     return (
         <Fragment>
+            {pageTitle}
             <Table style={{ width: tableWidth, tableLayout: 'fixed' }}>
                 <TableHead>
                     <TableRow>

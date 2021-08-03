@@ -38,7 +38,7 @@ export default function PassRateCard(props) {
                 }
             ]
         )
-    }, [currentData])
+    }, [])
 
 
     return (

@@ -37,6 +37,7 @@ import Upgrades from './Upgrades';
 import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
 import logo from "./sippy.svg"
 import { QueryParamProvider } from 'use-query-params';
+import TestDetailTable from './TestDetailTable';
 
 const drawerWidth = 240;
 
@@ -335,7 +336,9 @@ export default function App(props) {
 
                 <Route path="/release/:release" render={(props) => <ReleaseOverview key={props.match.params.release} release={props.match.params.release} />} />
                 <Route path="/jobs/:release" render={(props) => <JobTable key={props.match.params.release} release={props.match.params.release} />} />
-                <Route path="/tests/:release" render={(props) => <TestTable key={props.match.params.release} title={"Test results for "+ props.match.params.release} release={props.match.params.release} />} />
+                <Route path="/tests/:release/details" render={(props) => <TestDetailTable key={props.match.params.release} release={props.match.params.release} />} />
+                <Route path="/tests/:release" render={(props) => <TestTable key={props.match.params.release} title={"Test results for " + props.match.params.release} release={props.match.params.release} />} />
+
                 <Route path="/upgrade/:release" render={(props) => <Upgrades key={props.match.params.release} release={props.match.params.release} />} />
                 <Route path="/">
                   {releases.length > 0 ? <ReleaseOverview key={releases[0]} release={releases[0]} /> : "Loading..."}

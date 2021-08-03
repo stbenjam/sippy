@@ -310,7 +310,20 @@ func (s *Server) tests(w http.ResponseWriter, req *http.Request) {
 	currTests := s.currTestReports[release].CurrentPeriodReport.ByTest
 	prevTests := s.currTestReports[release].PreviousWeekReport.ByTest
 
-	api.PrintTestsReport(w, req, currTests, prevTests)
+	api.PrintTestsJSON(w, req, currTests, prevTests)
+}
+
+func (s *Server) testDetails(w http.ResponseWriter, req *http.Request) {
+	release := req.URL.Query().Get("release")
+	if _, ok := s.currTestReports[release]; !ok {
+		generichtml.PrintStatusMessage(w, http.StatusNotFound, fmt.Sprintf("Release %q not found.", release))
+		return
+	}
+
+	currTests := s.currTestReports[release].CurrentPeriodReport
+	prevTests := s.currTestReports[release].PreviousWeekReport
+
+	api.PrintTestsDetailsJSON(w, req, currTests, prevTests)
 }
 
 func (s *Server) releases(w http.ResponseWriter, req *http.Request) {
@@ -475,6 +488,7 @@ func (s *Server) Serve() {
 	http.DefaultServeMux.HandleFunc("/api/jobs2", s.jsonJobsReport) // Call this something else
 	http.DefaultServeMux.HandleFunc("/api/jobs", s.jobs)
 	http.DefaultServeMux.HandleFunc("/api/releases", s.releases)
+	http.DefaultServeMux.HandleFunc("/api/tests/details", s.testDetails)
 	http.DefaultServeMux.HandleFunc("/api/tests", s.tests)
 	http.DefaultServeMux.HandleFunc("/api/variants", s.jsonVariantsReport)
 	http.DefaultServeMux.HandleFunc("/variants", s.htmlVariantsReport)

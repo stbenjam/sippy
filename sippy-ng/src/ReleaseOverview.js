@@ -1,10 +1,11 @@
-import { Container, Typography } from '@material-ui/core';
+import { Container, Tooltip, Typography } from '@material-ui/core';
 import Grid from '@material-ui/core/Grid';
 import { createTheme, makeStyles, useTheme } from '@material-ui/core/styles';
 import Alert from '@material-ui/lab/Alert';
 import React, { useEffect } from 'react';
 import PassRateByVariant from './PassRate/passRateByVariant';
 import PassRateCard from './PassRate/passRateCard';
+import InfoIcon from '@material-ui/icons/Info';
 
 const defaultTheme = createTheme();
 const useStyles = makeStyles(
@@ -52,11 +53,11 @@ export default function ReleaseOverview(props) {
 
     let cardBackground = (percent) => {
         if (percent > 90) {
-            return theme.palette.success.light; 
+            return theme.palette.success.light;
         } else if (percent > 60) {
             return theme.palette.warning.light;
         } else {
-            return theme.palette.error.light; 
+            return theme.palette.error.light;
         }
     }
 
@@ -80,7 +81,12 @@ export default function ReleaseOverview(props) {
                 <Typography variant="h4" gutterBottom className={classes.title}>CI Release {props.release} Health Summary</Typography>
                 <Grid container spacing={3} xs={12}>
                     <Grid item xs={12}>
-                        <Typography variant="h5">Top Level Release Indicators</Typography>
+                        <Typography variant="h5">
+                            Top Level Release Indicators
+                            <Tooltip title="Top level release indicators showing product health">
+                                <InfoIcon />
+                            </Tooltip>
+                        </Typography>
                     </Grid>
                     <Grid item xs={4}>
                         <PassRateCard backgroundColor={cardBackground(indicators.infrastructure.current_pass_rate.percentage)} name="Infrastructure" passRate={indicators.infrastructure} />
@@ -93,7 +99,12 @@ export default function ReleaseOverview(props) {
                     </Grid>
 
                     <Grid item xs={12}>
-                        <Typography variant="h5">Job Pass Rate By Variant</Typography>
+                        <Typography variant="h5">
+                            Job Pass Rate By Variant
+                            <Tooltip title="Aggregation of all job runs for a given variant, sorted by passing rate percentage.  Variants at the top of this list have unreliable CI jobs or the product is unreliable in those variants.  The pass rate in parenthesis is the pass rate for jobs that started to run the installer and got at least the bootstrap kube-apiserver up and running.">
+                                <InfoIcon />
+                            </Tooltip>
+                        </Typography>
                     </Grid>
                     <Grid item xs={12}>
                         <PassRateByVariant rows={passRateByVariant} release={props.release} />

@@ -6,6 +6,7 @@ import (
 	v1sippy "github.com/openshift/sippy/pkg/apis/sippy/v1"
 	v1 "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
 	"github.com/openshift/sippy/pkg/html/generichtml"
+	"github.com/openshift/sippy/pkg/html/installhtml"
 	"github.com/openshift/sippy/pkg/testgridanalysis/testidentification"
 	"github.com/openshift/sippy/pkg/util"
 	"net/http"
@@ -64,7 +65,14 @@ func generateTests(filterBy string, names []string, current, previous []v1.Faili
 	return rows
 }
 
-func PrintTestsReport(w http.ResponseWriter, req *http.Request, current []v1.FailingTestResult, previous []v1.FailingTestResult) {
+func PrintTestsDetailsJSON(w http.ResponseWriter, req *http.Request, current, previous v1.TestReport) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	fmt.Fprint(w, installhtml.TestDetailTests("json", current, previous, req.URL.Query()["test"]))
+}
+
+func PrintTestsJSON(w http.ResponseWriter, req *http.Request, current []v1.FailingTestResult, previous []v1.FailingTestResult) {
 	filterBy := req.URL.Query().Get("filterBy")
 
 	var names []string

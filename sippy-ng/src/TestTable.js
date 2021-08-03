@@ -15,6 +15,7 @@ import { makeStyles, withStyles } from '@material-ui/styles';
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import React, { Component, Fragment } from 'react';
+import { Link } from 'react-router-dom';
 import PassRateIcon from './PassRate/passRateIcon';
 
 function escapeRegExp(value) {
@@ -237,7 +238,7 @@ class TestTable extends Component {
             queryParams += "&filterBy=" + encodeURIComponent(this.props.filterBy)
             if (Array.isArray(this.props.filterNames)) {
                 this.props.filterNames.forEach((filterName) => {
-                    queryParams += "&name=" + encodeURIComponent(filterName)
+                    queryParams += "&test=" + encodeURIComponent(filterName)
                 })
             }
         }
@@ -313,6 +314,17 @@ class TestTable extends Component {
             title = <Typography variant="h4">{this.props.title}</Typography>
         }
 
+        const createTestNameQuery = () => {
+            const selectedIDs = new Set(this.state.selectedTests)
+            let tests = this.state.rows.filter((row) =>
+                selectedIDs.has(row.id)
+            )
+            tests = tests.map((test) =>
+                "test=" + encodeURIComponent(test.name)
+            )
+            return tests.join("&")
+        }
+
         return (
             <Container size="xl">
                 {title}
@@ -323,9 +335,9 @@ class TestTable extends Component {
                     autoHeight={true}
                     pageSize={25}
                     checkboxSelection
-                    onSelectionChange={(selection) => {
-                        this.setState({selectedTests: selection.name})
-                    }}
+                    onSelectionModelChange={(rows) =>
+                        this.setState({selectedTests: rows})
+                    }
                     getRowClassName={(params =>
                         clsx({
                             [classes.good]: (params.row.current_pass_percentage >= 80),
@@ -344,7 +356,7 @@ class TestTable extends Component {
 
                 />
 
-                {(this.state.selectedTests !== []) && <Button variant="contained" color="primary" style={{margin: 10}}>Get Details</Button>}
+                <Button component={Link} to={"/tests/" + this.props.release + "/details?" + createTestNameQuery()} variant="contained" color="primary" style={{margin: 10}}>Get Details</Button>
             </Container>
         );
     }

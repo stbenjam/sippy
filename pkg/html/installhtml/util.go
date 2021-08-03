@@ -26,20 +26,24 @@ type currPrevTestResult struct {
 }
 
 func (r currPrevTestResult) toTest(name string) v1.Test {
-	return v1.Test{
+	test := v1.Test{
 		Name:                  name,
 		CurrentPassPercentage: r.curr.PassPercentage,
 		CurrentSuccesses:      r.curr.Successes,
 		CurrentFailures:       r.curr.Failures,
 		CurrentFlakes:         r.curr.Flakes,
 		CurrentRuns:           r.curr.Successes + r.curr.Failures + r.curr.Flakes,
-
-		PreviousPassPercentage: r.prev.PassPercentage,
-		PreviousFlakes:         r.curr.Flakes,
-		PreviousFailures:       r.curr.Failures,
-		PreviousSuccesses:      r.curr.Successes,
-		PreviousRuns:           r.prev.Successes + r.prev.Failures + r.prev.Flakes,
 	}
+
+	if r.prev != nil {
+		test.PreviousPassPercentage = r.prev.PassPercentage
+		test.PreviousFlakes = r.prev.Flakes
+		test.PreviousFailures = r.prev.Failures
+		test.PreviousSuccesses = r.prev.Successes
+		test.PreviousRuns = r.prev.Successes + r.prev.Failures + r.prev.Flakes
+	}
+
+	return test
 }
 
 func (c *currPrevFailedTestResult) toCurrPrevTestResult() *currPrevTestResult {
@@ -194,8 +198,8 @@ func (a testsByVariant) getTableJSON(
 	testNameToDisplayName func(string) string,
 ) string {
 	summary := map[string]interface{}{
-		"title":       title,
-		"description": description,
+		"title":        title,
+		"description":  description,
 		"column_names": aggregationNames,
 	}
 	tests := make(map[string]map[string]v1.Test)
