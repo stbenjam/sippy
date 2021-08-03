@@ -1,5 +1,4 @@
-import Collapse from '@material-ui/core/Collapse';
-import IconButton from '@material-ui/core/IconButton';
+import { Box, Grid, Tooltip, Typography } from '@material-ui/core';
 import Paper from '@material-ui/core/Paper';
 import { createTheme, makeStyles, useTheme } from '@material-ui/core/styles';
 import Table from '@material-ui/core/Table';
@@ -8,14 +7,15 @@ import TableCell from '@material-ui/core/TableCell';
 import TableContainer from '@material-ui/core/TableContainer';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
-import KeyboardArrowDownIcon from '@material-ui/icons/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@material-ui/icons/KeyboardArrowUp';
-import clsx from 'clsx';
-import PropTypes from 'prop-types';
-import React, { Fragment, useEffect } from 'react';
-import PassRateIcon from './PassRate/passRateIcon';
-import { Tooltip, Typography } from '@material-ui/core';
 import HelpOutlineIcon from '@material-ui/icons/HelpOutline';
+import PropTypes from 'prop-types';
+import React, { Fragment } from 'react';
+import PassRateIcon from './PassRate/passRateIcon';
+import FormGroup from '@material-ui/core/FormGroup';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import Switch from '@material-ui/core/Switch';
+import { BooleanParam, useQueryParam } from 'use-query-params';
+
 
 const useRowStyles = makeStyles({
     root: {
@@ -76,19 +76,28 @@ function Cell(props) {
         return (
             <Tooltip title="No data">
                 <TableCell style={{ textAlign: "center", backgroundColor: theme.palette.warning.light }}>
-                    <HelpOutlineIcon style={{color: theme.palette.text.disabled}}/>
+                    <HelpOutlineIcon style={{ color: theme.palette.text.disabled }} />
                 </TableCell>
             </Tooltip>
         );
     }
 
-    return (
-        <Tooltip title={<PassRateCompare current={result.current_pass_percentage} previous={result.previous_pass_percentage} />}>
+    if (props.showFull) {
+        return (
             <TableCell width="8%" style={{ textAlign: "center", backgroundColor: cellBackground(result.current_pass_percentage) }}>
-                <PassRateIcon improvement={result.current_pass_percentage - result.previous_pass_percentage} />
+                <PassRateCompare current={result.current_pass_percentage} previous={result.previous_pass_percentage} />
             </TableCell>
-        </Tooltip>
-    );
+        );
+    } else {
+        return (
+            <Tooltip title={<PassRateCompare current={result.current_pass_percentage} previous={result.previous_pass_percentage} />}>
+                <TableCell width="8%" style={{ textAlign: "center", backgroundColor: cellBackground(result.current_pass_percentage) }}>
+                    <PassRateIcon improvement={result.current_pass_percentage - result.previous_pass_percentage} />
+                </TableCell>
+            </Tooltip>
+        );
+    }
+
 }
 
 function Row(props) {
@@ -98,10 +107,10 @@ function Row(props) {
     return (
         <Fragment>
             <TableRow className={classes.root}>
-                <TableCell width="30%">{testName}</TableCell>
+                <TableCell>{testName}</TableCell>
                 {
                     columnNames.map((column) =>
-                        <Cell result={results[column]}></Cell>
+                        <Cell showFull={props.showFull} result={results[column]}></Cell>
                     )}
             </TableRow>
         </Fragment>
@@ -125,28 +134,9 @@ Row.propTypes = {
 };
 
 
-export default function InstallTable(props) {
+export default function TestByVariantTable(props) {
     const theme = useTheme();
-
-    const [fetchError, setFetchError] = React.useState("")
-    const [isLoaded, setLoaded] = React.useState(false)
-    const [data, setData] = React.useState({})
-
-    let fetchData = () => {
-        fetch(process.env.REACT_APP_API_URL + '/api/upgrade?release=' + props.release)
-            .then((response) => {
-                if (response.status !== 200) {
-                    throw new Error("server returned " + response.status);
-                }
-                return response.json();
-            })
-            .then(json => {
-                setData(json)
-                setLoaded(true)
-            }).catch(error => {
-                setFetchError("Could not retrieve release " + props.release + ", " + error);
-            });
-    }
+    const [showFull, setShowFull] = useQueryParam("showFull", BooleanParam) 
 
     let cardBackground = (percent) => {
         if (percent > 90) {
@@ -158,39 +148,44 @@ export default function InstallTable(props) {
         }
     }
 
-    useEffect(() => {
-        if (!isLoaded) {
-            fetchData();
-        }
-    }, []);
+    if (props.data === undefined) {
+        return <p>No data.</p>
+    };
 
+    let cellWidth = (70 / props.data.column_names.length) + "%";
 
-    if (!isLoaded) {
-        return <p>Loading...</p>
+    // Hack until I can figure out how to get React or the Material UI tables
+    // to horizontally scroll in a nicer way
+    let tableWidth = showFull ? 2500 : "100%";
+
+    let handleSwitchFull = (e) => {
+        setShowFull(e.target.checked)
     };
 
     return (
         <Fragment>
-            <Typography variant="h4">
-                Upgrade rates by operator for {props.release}
-            </Typography>
-            <TableContainer component={Paper} style={{ overflowX: 'auto' }}>
-                <Table aria-label="collapsible table">
-                    <TableHead>
-                        <TableRow>
-                            <TableCell />
-                            {data.column_names.map((column) =>
-                                <TableCell>{column}</TableCell>
-                            )}
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {Object.keys(data.tests).map((test) => (
-                            <Row key={test} testName={test} columnNames={data.column_names} results={data.tests[test]} release={props.release} />
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+            <Table style={{ width: tableWidth, tableLayout: 'fixed' }}>
+                <TableHead>
+                    <TableRow>
+                        <TableCell style={{ width: "25%" }}>
+                            <FormGroup row>
+                                <FormControlLabel
+                                    control={<Switch checked={showFull} onChange={handleSwitchFull} name="showFull" />}
+                                    label="Show Full"
+                                />
+                            </FormGroup>
+                        </TableCell>
+                        {props.data.column_names.map((column) =>
+                            <TableCell width={cellWidth}>{column}</TableCell>
+                        )}
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {Object.keys(props.data.tests).map((test) => (
+                        <Row showFull={showFull} key={test} testName={test} columnNames={props.data.column_names} results={props.data.tests[test]} release={props.release} />
+                    ))}
+                </TableBody>
+            </Table>
         </Fragment>
     );
 }
