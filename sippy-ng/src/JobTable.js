@@ -1,4 +1,4 @@
-import { Box, Button, Container, Menu, MenuItem, Tooltip, Typography } from '@material-ui/core';
+import { Box, Button, Tooltip, Typography } from '@material-ui/core';
 import IconButton from '@material-ui/core/IconButton';
 import { createTheme } from '@material-ui/core/styles';
 import TextField from '@material-ui/core/TextField';
@@ -7,16 +7,17 @@ import {
     GridToolbarDensitySelector,
     GridToolbarFilterButton
 } from '@material-ui/data-grid';
-import { Bookmark, Search } from '@material-ui/icons';
+import { Search } from '@material-ui/icons';
 import ClearIcon from '@material-ui/icons/Clear';
 import SearchIcon from '@material-ui/icons/Search';
 import Alert from '@material-ui/lab/Alert';
 import { makeStyles, withStyles } from '@material-ui/styles';
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
-import React, { Component, Fragment, useEffect } from 'react';
+import React, { Fragment, useEffect } from 'react';
 import { StringParam, useQueryParam } from 'use-query-params';
 import PassRateIcon from './PassRate/passRateIcon';
+import SortByMenu from './SortByMenu';
 
 function escapeRegExp(value) {
     return value.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
@@ -123,7 +124,7 @@ function JobSearchToolbar(props) {
             <div>
                 <GridToolbarFilterButton />
                 <GridToolbarDensitySelector />
-                <ReportMenu initialReport={props.initialReport} requestReport={props.requestReport} />
+                <SortByMenu setSort={props.setSort} />
             </div>
             <TextField
                 variant="standard"
@@ -156,58 +157,31 @@ JobSearchToolbar.propTypes = {
     value: PropTypes.string.isRequired,
 };
 
-function ReportMenu(props) {
-    const [anchorEl, setAnchorEl] = React.useState(null);
-    const [selectedReport, setSelectedReport] = React.useState(props.initialReport);
-
-    const handleClick = (event) => {
-        setAnchorEl(event.currentTarget);
-    };
-
-    const handleClose = () => {
-        setAnchorEl(null);
-    };
-
-    const selectReport = (name) => {
-        props.requestReport(name);
-        setSelectedReport(name);
-        handleClose();
-    };
-
-    return (
-        <Fragment>
-            <Button aria-controls="reports-menu" aria-haspopup="true" onClick={handleClick} startIcon={<Bookmark />} color="primary">Reports</Button>
-            <Button color="secondary">
-                {selectedReport}
-            </Button>
-            <Menu
-                id="reports-menu"
-                anchorEl={anchorEl}
-                keepMounted
-                open={Boolean(anchorEl)}
-                onClose={handleClose}
-            >
-
-                <MenuItem onClick={() => selectReport("all")}>All jobs</MenuItem>
-                <MenuItem onClick={() => selectReport("improved")}>Most improved pass rate</MenuItem>
-                <MenuItem onClick={() => selectReport("reduced")}>Most reduced pass rate</MenuItem>
-                <MenuItem onClick={() => selectReport("> 10 runs")}>More than 10 runs</MenuItem>
-            </Menu>
-        </Fragment>
-    );
-}
-
 function JobTable(props) {
     const { classes } = props;
-    const [report, setReport] = useQueryParam("report", StringParam)
     const [fetchError, setFetchError] = React.useState("")
     const [isLoaded, setLoaded] = React.useState(false)
     const [jobs, setJobs] = React.useState([])
     const [rows, setRows] = React.useState([])
-    const [searchText, setSearchText] = React.useState("")
+    const [sortModel, setSortModel] = React.useState([{
+        field: 'net_improvement',
+        sort: 'asc',
+    }])
+
+    const [filterBy = props.filterBy, setFilterBy] = useQueryParam("filterBy", StringParam)
+    const [job = "", setJob] = useQueryParam("job", StringParam)
 
     const fetchData = () => {
-        fetch(process.env.REACT_APP_API_URL + '/api/jobs2?release=' + props.release)
+        let queryString = ""
+        if(filterBy && filterBy != "") {
+            queryString += "&filterBy=" + encodeURIComponent(filterBy)
+        }
+
+        if(job && job != "") {
+            queryString += "&job=" + encodeURIComponent(job)
+        }
+
+        fetch(process.env.REACT_APP_API_URL + '/api/jobs2?release=' + props.release + queryString)
             .then((response) => {
                 if (response.status !== 200) {
                     throw new Error("server returned " + response.status);
@@ -215,8 +189,9 @@ function JobTable(props) {
                 return response.json();
             })
             .then(json => {
+                setJobs(json)
+                setRows(json)
                 setLoaded(true)
-                setJobs(json, filterRows)
             }).catch(error => {
                 setFetchError("Could not retrieve jobs " + props.release + ", " + error );
             });
@@ -233,36 +208,9 @@ function JobTable(props) {
         setRows(filteredRows)
     };
 
-    const filterRows = () => {
-        let filteredRows = jobs.slice();
-        switch (report) {
-            case "> 10 runs":
-                filteredRows = jobs.filter((row) => {
-                    return row.current_runs > 10;
-                });
-                break;
-            case "reduced":
-                filteredRows.sort((first, second) => {
-                    return first.net_improvement - second.net_improvement;
-                })
-                break;
-            case "improved":
-                filteredRows.sort((first, second) => {
-                    return second.net_improvement - first.net_improvement;
-                })
-                break;
-            default:
-                break;
-        }
-        setRows(filteredRows)
-    };
-
     useEffect(() => {
-        if (!isLoaded) {
-            fetchData();
-        }
-        filterRows()
-    }, [isLoaded, jobs, report]);
+        fetchData();
+    }, [filterBy, job]);
 
     const pageTitle = () => {
         if (props.title) {
@@ -295,6 +243,8 @@ function JobTable(props) {
                 columns={columns}
                 autoHeight={true}
                 pageSize={25}
+                sortModel={sortModel}
+                onSortModelChange={(model) => setSortModel(model)}
                 getRowClassName={(params =>
                     clsx({
                         [classes.good]: (params.row.current_pass_percentage >= 80),
@@ -304,11 +254,9 @@ function JobTable(props) {
                 )}
                 componentsProps={{
                     toolbar: {
-                        value: searchText,
                         onChange: (event) => requestSearch(event.target.value),
-                        requestReport: (report) => setReport(report),
-                        initialReport: report,
                         clearSearch: () => requestSearch(''),
+                        setSort: setSortModel,
                     },
                 }}
 

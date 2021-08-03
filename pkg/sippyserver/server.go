@@ -310,7 +310,7 @@ func (s *Server) jsonTestsReport(w http.ResponseWriter, req *http.Request) {
 	currTests := s.currTestReports[release].CurrentPeriodReport.ByTest
 	prevTests := s.currTestReports[release].PreviousWeekReport.ByTest
 
-	api.PrintTestsJSON(w, req, currTests, prevTests)
+	api.PrintTestsJSON(release, w, req, currTests, prevTests)
 }
 
 func (s *Server) jsonTestDetailsReport(w http.ResponseWriter, req *http.Request) {
@@ -437,7 +437,7 @@ func (s *Server) jsonJobsReport(w http.ResponseWriter, req *http.Request) {
 		generichtml.PrintStatusMessage(w, http.StatusNotFound, fmt.Sprintf("Release %q not found.", release))
 	}
 
-	api.PrintJobs2Report(w, reports[release].CurrentPeriodReport.ByJob, reports[release].PreviousWeekReport.ByJob)
+	api.PrintJobs2Report(w, req, reports[release].CurrentPeriodReport.ByJob, reports[release].PreviousWeekReport.ByJob)
 }
 
 func (s *Server) jsonVariantsReport(w http.ResponseWriter, req *http.Request) {

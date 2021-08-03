@@ -13,11 +13,16 @@ import { createTheme, makeStyles, useTheme } from '@material-ui/core/styles';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import { BugReport, ExpandLess, ExpandMore } from '@material-ui/icons';
+import ApartmentIcon from '@material-ui/icons/Apartment';
+import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
 import AssessmentIcon from '@material-ui/icons/Assessment';
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import ExitToAppIcon from '@material-ui/icons/ExitToApp';
+import HomeIcon from '@material-ui/icons/Home';
 import InfoIcon from '@material-ui/icons/Info';
 import MenuIcon from '@material-ui/icons/Menu';
+import NewReleasesIcon from '@material-ui/icons/NewReleases';
 import SearchIcon from '@material-ui/icons/Search';
 import SupervisedUserCircleIcon from '@material-ui/icons/SupervisedUserCircle';
 import Alert from '@material-ui/lab/Alert';
@@ -27,19 +32,15 @@ import {
   BrowserRouter as Router, Link, Route, Switch
 } from "react-router-dom";
 import Cookies from 'universal-cookie';
-import BugzillaSearch from './BugzillaSearch';
-import ReleaseOverview from './ReleaseOverview';
-import TestTable from './TestTable';
-import NewReleasesIcon from '@material-ui/icons/NewReleases';
-import HomeIcon from '@material-ui/icons/Home';
-import JobTable from './JobTable';
-import Upgrades from './Upgrades';
-import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
-import logo from "./sippy.svg"
 import { QueryParamProvider } from 'use-query-params';
-import TestDetailTable from './TestDetailTable';
-import Jobs from './Jobs';
+import BugzillaSearch from './BugzillaSearch';
 import Install from './Install';
+import Jobs from './Jobs';
+import ReleaseOverview from './ReleaseOverview';
+import logo from "./sippy.svg";
+import TestDetailTable from './TestDetailTable';
+import TestTable from './TestTable';
+import Upgrades from './Upgrades';
 
 const drawerWidth = 240;
 
@@ -282,12 +283,6 @@ export default function App(props) {
                           </ListItemIcon>
                           <ListItemText primary="Overview" />
                         </ListItem>
-                        <ListItem key={"release-upgrade-" + index} component={Link} to={"/upgrade/" + release} button className={classes.nested}>
-                          <ListItemIcon>
-                            <ArrowUpwardIcon />
-                          </ListItemIcon>
-                          <ListItemText primary="Upgrade" />
-                        </ListItem>
                         <ListItem key={"release-jobs-" + index} component={Link} to={"/jobs/" + release} button className={classes.nested}>
                           <ListItemIcon>
                             <SupervisedUserCircleIcon />
@@ -300,6 +295,26 @@ export default function App(props) {
                           </ListItemIcon>
                           <ListItemText primary="Tests" />
                         </ListItem>
+                        <ListItem key={"release-upgrade-" + index} component={Link} to={"/upgrade/" + release} button className={classes.nested}>
+                          <ListItemIcon>
+                            <ArrowUpwardIcon />
+                          </ListItemIcon>
+                          <ListItemText primary="Upgrade" />
+                        </ListItem>
+                        <ListItem key={"release-install-" + index} component={Link} to={"/install/" + release} button className={classes.nested}>
+                          <ListItemIcon>
+                            <ExitToAppIcon />
+                          </ListItemIcon>
+                          <ListItemText primary="Install" />
+                        </ListItem>
+
+                        <ListItem key={"release-infrastructure-" + index} component={Link} to={"/tests/" + release + "/details?test=[sig-sippy] infrastructure should work"} button className={classes.nested}>
+                          <ListItemIcon>
+                            <ApartmentIcon />
+                          </ListItemIcon>
+                          <ListItemText primary="Infrastructure" />
+                        </ListItem>
+
                       </List>
                     </Collapse>
                   </Fragment>

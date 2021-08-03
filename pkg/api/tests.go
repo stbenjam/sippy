@@ -11,10 +11,11 @@ import (
 	"github.com/openshift/sippy/pkg/util"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
-func generateTests(filterBy string, names []string, current, previous []v1.FailingTestResult) []v1sippy.Test {
+func generateTests(release string, filterBy string, names []string, runs int, current, previous []v1.FailingTestResult) []v1sippy.Test {
 	rows := make([]v1sippy.Test, 0)
 	var filter func(result v1.FailingTestResult) bool
 
@@ -35,6 +36,14 @@ func generateTests(filterBy string, names []string, current, previous []v1.Faili
 		case "upgrade":
 			filter = func(test v1.FailingTestResult) bool {
 				return testidentification.IsUpgradeRelatedTest(test.TestName)
+			}
+		case "runs":
+			filter = func(test v1.FailingTestResult) bool {
+				return (test.TestResultAcrossAllJobs.Failures + test.TestResultAcrossAllJobs.Successes + test.TestResultAcrossAllJobs.Flakes) > runs
+			}
+		case "trt":
+			filter = func(test v1.FailingTestResult) bool {
+				return testidentification.IsCuratedTest(release, test.TestName)
 			}
 	}
 
@@ -76,19 +85,15 @@ func PrintTestsDetailsJSON(w http.ResponseWriter, req *http.Request, current, pr
 	fmt.Fprint(w, installhtml.TestDetailTests("json", current, previous, req.URL.Query()["test"]))
 }
 
-func PrintTestsJSON(w http.ResponseWriter, req *http.Request, current []v1.FailingTestResult, previous []v1.FailingTestResult) {
-	filterBy := req.URL.Query().Get("filterBy")
-
-	var names []string
-	if filterBy == "name" {
-		req.ParseForm()
-		names = req.Form["name"]
-	}
-
+func PrintTestsJSON(release string, w http.ResponseWriter, req *http.Request, current []v1.FailingTestResult, previous []v1.FailingTestResult) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	response := generateTests(filterBy, names, current, previous)
+	filterBy := req.URL.Query().Get("filterBy")
+	runs, _ := strconv.Atoi(req.URL.Query().Get("runs"))
+	names := req.URL.Query()["test"]
+
+	response := generateTests(release, filterBy, names, runs, current, previous)
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		generichtml.PrintStatusMessage(w, http.StatusInternalServerError, fmt.Sprintf("could not print test results: %s", err))

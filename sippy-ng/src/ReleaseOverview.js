@@ -90,10 +90,10 @@ export default function ReleaseOverview(props) {
                         </Typography>
                     </Grid>
                     <Grid item xs={4}>
-                        <PassRateCard backgroundColor={cardBackground(indicators.infrastructure.current_pass_rate.percentage)} name="Infrastructure" link={"/tests/" + props.release + "?filterBy=name&&test=[sig-sippy] infrastructure should work"} passRate={indicators.infrastructure} />
+                        <PassRateCard backgroundColor={cardBackground(indicators.infrastructure.current_pass_rate.percentage)} name="Infrastructure" link={"/tests/" + props.release + "/details?test=[sig-sippy] infrastructure should work"} passRate={indicators.infrastructure} />
                     </Grid>
                     <Grid item xs={4}>
-                        <PassRateCard backgroundColor={cardBackground(indicators.install.current_pass_rate.percentage)} name="Install" passRate={indicators.install} />
+                        <PassRateCard backgroundColor={cardBackground(indicators.install.current_pass_rate.percentage)} name="Install" link={"/install/" + props.release} passRate={indicators.install} />
                     </Grid>
                     <Grid item xs={4}>
                         <PassRateCard backgroundColor={cardBackground(indicators.upgrade.current_pass_rate.percentage)} name="Upgrade" link={"/upgrade/" + props.release} passRate={indicators.upgrade} />

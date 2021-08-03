@@ -14,8 +14,9 @@ import Alert from '@material-ui/lab/Alert';
 import { makeStyles, withStyles } from '@material-ui/styles';
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
-import React, { Component, Fragment } from 'react';
+import React, { Fragment, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { ArrayParam, NumberParam, StringParam, useQueryParam } from 'use-query-params';
 import PassRateIcon from './PassRate/passRateIcon';
 
 function escapeRegExp(value) {
@@ -49,9 +50,9 @@ const useStyles = makeStyles(
 );
 
 
-function ReportMenu(props) {
+function FilterMenu(props) {
     const [anchorEl, setAnchorEl] = React.useState(null);
-    const [selectedReport, setSelectedReport] = React.useState();
+    const [selectedFilter, setSelectedFilter] = React.useState(props.initialFilter);
 
     const handleClick = (event) => {
         setAnchorEl(event.currentTarget);
@@ -61,17 +62,17 @@ function ReportMenu(props) {
         setAnchorEl(null);
     };
 
-    const selectReport = (name) => {
-        props.requestReport(name);
-        setSelectedReport(name);
+    const selectFilter = (name) => {
+        props.requestFilter(name);
+        setSelectedFilter(name);
         handleClose();
     };
 
     return (
         <Fragment>
-            <Button aria-controls="reports-menu" aria-haspopup="true" onClick={handleClick} startIcon={<Bookmark />} color="primary">Reports</Button>
+            <Button aria-controls="reports-menu" aria-haspopup="true" onClick={handleClick} startIcon={<Bookmark />} color="primary">Filters</Button>
             <Button color="secondary">
-                {selectedReport}
+                {selectedFilter}
             </Button>
             <Menu
                 id="reports-menu"
@@ -81,11 +82,9 @@ function ReportMenu(props) {
                 onClose={handleClose}
             >
 
-                <MenuItem onClick={() => selectReport("all")}>All tests</MenuItem>
-                <MenuItem onClick={() => selectReport("trt")}>Curated TRT tests</MenuItem>
-                <MenuItem onClick={() => selectReport("improved")}>Most improved pass rate</MenuItem>
-                <MenuItem onClick={() => selectReport("reduced")}>Most reduced pass rate</MenuItem>
-                <MenuItem onClick={() => selectReport("> 10 runs")}>More than 10 runs</MenuItem>
+                <MenuItem onClick={() => selectFilter("all")}>All tests</MenuItem>
+                <MenuItem onClick={() => selectFilter("trt")}>Curated TRT tests</MenuItem>
+                <MenuItem onClick={() => selectFilter("runs")}>More than 10 runs</MenuItem>
             </Menu>
         </Fragment>
     );
@@ -99,7 +98,7 @@ function TestSearchToolbar(props) {
             <div>
                 <GridToolbarFilterButton />
                 <GridToolbarDensitySelector />
-                <ReportMenu requestReport={props.requestReport} />
+                <FilterMenu initialFilter={props.initialFilter} requestFilter={props.requestFilter} />
             </div>
             <TextField
                 variant="standard"
@@ -201,20 +200,35 @@ const columns = [
     },
 ];
 
-class TestTable extends Component {
-    state = {
-        fetchError: "",
-        isLoaded: false,
-        tests: [],
-        rows: [],
-        searchText: "",
-        currentReport: "",
-        queryParams: "",
-        selectedTests: [],
-    }
+function TestTable(props) {
+    const { classes } = props;
 
-    fetchData = (props, params) => {
-        fetch(process.env.REACT_APP_API_URL + '/api/tests?release=' + this.props.release + params)
+    const [fetchError, setFetchError] = React.useState("")
+    const [isLoaded, setLoaded] = React.useState(false)
+    const [tests, setTests] = React.useState([])
+    const [rows, setRows] = React.useState([])
+    const [selectedTests, setSelectedTests] = React.useState([])
+
+    const [runs = 10, setRuns] = useQueryParam("runs", NumberParam)
+    const [filterBy = props.filterBy, setFilterBy] = useQueryParam("filterBy", StringParam)
+    const [searchText, setSearchText] = useQueryParam("searchText", StringParam)
+    const [testNames = [], setTestNames] = useQueryParam("test", ArrayParam)
+
+    const fetchData = () => {
+        let queryString = ""
+        if (filterBy) {
+            queryString += "&filterBy=" + encodeURIComponent(filterBy)
+        }
+
+        testNames.forEach((test) =>
+            queryString += "&test=" + encodeURIComponent(test)
+        )
+
+        if(filterBy === "runs" && runs) {
+            queryString += "&runs=" + encodeURIComponent(runs)
+        }
+
+        fetch(process.env.REACT_APP_API_URL + '/api/tests?release=' + props.release + queryString)
             .then((response) => {
                 if (response.status !== 200) {
                     throw new Error("server returned " + response.status);
@@ -222,144 +236,98 @@ class TestTable extends Component {
                 return response.json();
             })
             .then(json => {
-                this.setState({
-                    isLoaded: true,
-                    tests: json,
-                    rows: json,
-                })
+                setTests(json)
+                setRows(json)
+                setLoaded(true)
             }).catch(error => {
-                this.setState({ fetchError: "Could not retrieve tests " + this.props.release + ", " + error });
+                setFetchError("Could not retrieve tests " + props.release + ", " + error);
             });
     }
 
-    componentDidMount() {
-        let queryParams = ""
-        if (this.props.filterBy !== undefined) {
-            queryParams += "&filterBy=" + encodeURIComponent(this.props.filterBy)
-            if (Array.isArray(this.props.filterNames)) {
-                this.props.filterNames.forEach((filterName) => {
-                    queryParams += "&test=" + encodeURIComponent(filterName)
-                })
-            }
-        }
+    useEffect(() => {
+        fetchData()
+    }, [filterBy])
 
-
-        this.fetchData(this.props, queryParams);
-    }
-
-    requestSearch = (searchValue) => {
-        this.setState({ searchText: searchValue });
+    const requestSearch = (searchValue) => {
+        setSearchText(searchValue)
         const searchRegex = new RegExp(escapeRegExp(searchValue), 'i');
-        const filteredRows = this.state.tests.filter((row) => {
+        const filteredRows = tests.filter((row) => {
             return Object.keys(row).some((field) => {
                 return searchRegex.test(row[field].toString());
             });
         });
-        this.setState({ rows: filteredRows })
+        setRows(filteredRows)
     };
 
-    requestReport = (report) => {
-        this.setState({ currentReport: report });
-        let filteredRows = this.state.tests.slice();
-
-        switch (report) {
-            case "all":
-                break;
-            case "> 10 runs":
-                filteredRows = this.state.tests.filter((row) => {
-                    return row.current_runs > 10;
-                });
-                break;
-            case "reduced":
-                filteredRows.sort((first, second) => {
-                    return first.net_improvement - second.net_improvement;
-                })
-                break;
-            case "improved":
-                filteredRows.sort((first, second) => {
-                    return second.net_improvement - first.net_improvement;
-                })
-                break;
-            case "trt":
-                filteredRows = this.state.tests.filter((row) => {
-                    let trt = [
-                        "Kubernetes APIs remain available",
-                        "OAuth APIs remain available",
-                        "OpenShift APIs remain available",
-                        "Cluster frontend ingress remain available",
-                    ]
-
-                    return new RegExp(trt.join("|")).test(row.name);
-                })
-                break;
-            default:
-                break;
-        }
-        this.setState({ rows: filteredRows })
-    };
-
-    render() {
-        const { classes } = this.props;
-
-        if (this.state.fetchError !== "") {
-            return <Alert severity="error">{this.state.fetchError}</Alert>;
-        }
-
-        if (this.state.isLoaded === false) {
-            return "Loading..."
-        }
-
-        let title = ""
-        if (this.props.title !== undefined) {
-            title = <Typography variant="h4">{this.props.title}</Typography>
-        }
-
-        const createTestNameQuery = () => {
-            const selectedIDs = new Set(this.state.selectedTests)
-            let tests = this.state.rows.filter((row) =>
-                selectedIDs.has(row.id)
-            )
-            tests = tests.map((test) =>
-                "test=" + encodeURIComponent(test.name)
-            )
-            return tests.join("&")
-        }
-
-        return (
-            <Container size="xl">
-                {title}
-                <DataGrid
-                    components={{ Toolbar: TestSearchToolbar }}
-                    rows={this.state.rows}
-                    columns={columns}
-                    autoHeight={true}
-                    pageSize={25}
-                    checkboxSelection
-                    onSelectionModelChange={(rows) =>
-                        this.setState({selectedTests: rows})
-                    }
-                    getRowClassName={(params =>
-                        clsx({
-                            [classes.good]: (params.row.current_pass_percentage >= 80),
-                            [classes.ok]: (params.row.current_pass_percentage >= 60 && params.row.current_pass_percentage < 80),
-                            [classes.failing]: (params.row.current_pass_percentage < 60),
-                        })
-                    )}
-                    componentsProps={{
-                        toolbar: {
-                            value: this.state.searchText,
-                            onChange: (event) => this.requestSearch(event.target.value),
-                            requestReport: (report) => this.requestReport(report),
-                            clearSearch: () => this.requestSearch(''),
-                        },
-                    }}
-
-                />
-
-                <Button component={Link} to={"/tests/" + this.props.release + "/details?" + createTestNameQuery()} variant="contained" color="primary" style={{margin: 10}}>Get Details</Button>
-            </Container>
-        );
+    if (fetchError !== "") {
+        return <Alert severity="error">{fetchError}</Alert>;
     }
+
+    if (isLoaded === false) {
+        return "Loading..."
+    }
+
+    let title = ""
+    if (props.title !== undefined) {
+        title = <Typography variant="h4">{props.title}</Typography>
+    }
+
+    const createTestNameQuery = () => {
+        const selectedIDs = new Set(selectedTests)
+        let tests = rows.filter((row) =>
+            selectedIDs.has(row.id)
+        )
+        tests = tests.map((test) =>
+            "test=" + encodeURIComponent(test.name)
+        )
+        return tests.join("&")
+    }
+
+    const humanizedFilter = () => {
+        switch(filterBy) {
+            case "name":
+                return "Filtered by name";
+            case "trt":
+                return "Filtered by curated TRT tests";
+            case "runs":
+                return "> " + runs + " runs";
+        }
+    }
+    return (
+        <Container size="xl">
+            {title}
+            <DataGrid
+                components={{ Toolbar: (filterBy === "install" || filterBy == "upgrade") ? "" : TestSearchToolbar }}
+                rows={rows}
+                columns={columns}
+                autoHeight={true}
+                pageSize={25}
+                checkboxSelection
+                onSelectionModelChange={(rows) =>
+                    setSelectedTests(rows)
+                }
+                getRowClassName={(params =>
+                    clsx({
+                        [classes.good]: (params.row.current_pass_percentage >= 80),
+                        [classes.ok]: (params.row.current_pass_percentage >= 60 && params.row.current_pass_percentage < 80),
+                        [classes.failing]: (params.row.current_pass_percentage < 60),
+                    })
+                )}
+                componentsProps={{
+                    toolbar: {
+                        value: searchText,
+                        onChange: (event) => requestSearch(event.target.value),
+                        requestFilter: (report) => setFilterBy(report),
+                        initialFilter: humanizedFilter(),
+                        clearSearch: () => requestSearch(''),
+                    },
+                }}
+
+            />
+
+            <Button component={Link} to={"/tests/" + props.release + "/details?" + createTestNameQuery()} variant="contained" color="primary" style={{ margin: 10 }}>Get Details</Button>
+        </Container>
+    );
 }
 
 export default withStyles(styles)(TestTable);

@@ -1,12 +1,11 @@
-import { Container, Grid, Paper, Tab, Tabs, Tooltip, Typography } from '@material-ui/core';
-import { Alert, TabContext } from '@material-ui/lab';
-import React, { Fragment, useEffect } from 'react';
+import { Container, Grid, Paper, Tab, Tabs, Typography } from '@material-ui/core';
+import { TabContext } from '@material-ui/lab';
+import React from 'react';
 import {
-    Link, Redirect, Route, Switch, useRouteMatch
+    Link, Route, Switch, useRouteMatch
 } from "react-router-dom";
 import JobTable from './JobTable';
-import PassRateByVariant, { TOOLTIP as VariantToolTip } from './PassRate/passRateByVariant';
-import Info from '@material-ui/icons/Info';
+import PassRateByVariant from './PassRate/passRateByVariant';
 
 export default function Jobs(props) {
     let { path, url } = useRouteMatch();

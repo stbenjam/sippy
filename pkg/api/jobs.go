@@ -8,6 +8,7 @@ import (
 	"github.com/openshift/sippy/pkg/html/generichtml"
 	"github.com/openshift/sippy/pkg/util"
 	"net/http"
+	"strings"
 	"time"
 
 	testgridv1 "github.com/openshift/sippy/pkg/apis/testgrid/v1"
@@ -45,18 +46,41 @@ func jobRunStatus(result testgridanalysisapi.RawJobRunResult) string {
 	return "f" // unknown failure
 }
 
-func PrintJobs2Report(w http.ResponseWriter, current, previous []v1.JobResult) {
+func PrintJobs2Report(w http.ResponseWriter, req *http.Request, current, previous []v1.JobResult) {
 	jobs := make([]sippyv1.Job, 0)
 
+	filterBy := req.URL.Query().Get("filterBy")
+	job := req.URL.Query().Get("job")
+
+	var filterFunc func(string) bool
+	switch filterBy {
+	case "name":
+		filterFunc = func(name string) bool {
+			return strings.Contains(name, job)
+		}
+	case "upgrade":
+		filterFunc = func(name string) bool {
+			return strings.Contains(name, "-upgrade-")
+		}
+	default:
+		filterFunc = func(_ string) bool {
+			return true
+		}
+	}
+
 	for idx, jobResult := range current {
+		if !filterFunc(jobResult.Name) {
+			continue
+		}
+
 		prevResult := util.FindJobResultForJobName(jobResult.Name, previous)
 
 		job := sippyv1.Job{
-			ID: idx,
-			Name: jobResult.Name,
-			CurrentPassPercentage: jobResult.PassPercentage,
+			ID:                             idx,
+			Name:                           jobResult.Name,
+			CurrentPassPercentage:          jobResult.PassPercentage,
 			CurrentProjectedPassPercentage: jobResult.PassPercentageWithoutInfrastructureFailures,
-			CurrentRuns: jobResult.Failures + jobResult.Successes,
+			CurrentRuns:                    jobResult.Failures + jobResult.Successes,
 		}
 
 		if previous != nil {
