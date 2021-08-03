@@ -1,7 +1,7 @@
 import Collapse from '@material-ui/core/Collapse';
 import IconButton from '@material-ui/core/IconButton';
 import Paper from '@material-ui/core/Paper';
-import { createTheme, makeStyles, useTheme } from '@material-ui/core/styles';
+import { makeStyles, useTheme } from '@material-ui/core/styles';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
@@ -10,7 +10,6 @@ import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import KeyboardArrowDownIcon from '@material-ui/icons/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@material-ui/icons/KeyboardArrowUp';
-import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import React, { Fragment } from 'react';
 import VariantTable from '../VariantTable';
@@ -24,22 +23,6 @@ const useRowStyles = makeStyles({
         },
     },
 });
-
-const defaultTheme = createTheme();
-const styles = {
-    good: {
-        backgroundColor: defaultTheme.palette.success.light,
-        color: defaultTheme.palette.success.contrastText,
-    },
-    ok: {
-        backgroundColor: defaultTheme.palette.warning.light,
-        color: defaultTheme.palette.warning.contrastText,
-    },
-    failing: {
-        backgroundColor: defaultTheme.palette.error.light,
-        color: defaultTheme.palette.warning.contrastText,
-    }
-};
 
 function Row(props) {
     const { row } = props;

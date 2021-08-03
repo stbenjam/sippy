@@ -1,5 +1,4 @@
 import { Grid, Paper, Tab, Tabs, Typography } from '@material-ui/core';
-import { useTheme } from '@material-ui/core/styles';
 import { Alert, TabContext } from '@material-ui/lab';
 import React, { useEffect } from 'react';
 import {
@@ -42,7 +41,7 @@ export default function Upgrades(props) {
         return <p>Loading...</p>
     };
 
-    if (fetchError != "") {
+    if (fetchError !== "") {
         return <Alert severity="error">Failed to load data, {fetchError}</Alert>;
     }
 

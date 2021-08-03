@@ -15,8 +15,7 @@ import { makeStyles, withStyles } from '@material-ui/styles';
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import React, { Component, Fragment } from 'react';
-import PassRateIcon from '../PassRate/passRateIcon';
-
+import PassRateIcon from './PassRate/passRateIcon';
 
 function escapeRegExp(value) {
     return value.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
@@ -234,10 +233,10 @@ class TestTable extends Component {
 
     componentDidMount() {
         let queryParams = ""
-        if (this.props.filterBy != undefined) {
+        if (this.props.filterBy !== undefined) {
             queryParams += "&filterBy=" + encodeURIComponent(this.props.filterBy)
             if (Array.isArray(this.props.filterNames)) {
-                this.props.filterNames.map((filterName) => {
+                this.props.filterNames.forEach((filterName) => {
                     queryParams += "&name=" + encodeURIComponent(filterName)
                 })
             }

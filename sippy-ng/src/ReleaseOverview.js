@@ -2,10 +2,9 @@ import { Container, Typography } from '@material-ui/core';
 import Grid from '@material-ui/core/Grid';
 import { createTheme, makeStyles, useTheme } from '@material-ui/core/styles';
 import Alert from '@material-ui/lab/Alert';
-import React, { Component, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import PassRateByVariant from '../PassRate/passRateByVariant';
-import PassRateCard from '../PassRate/passRateCard';
+import React, { useEffect } from 'react';
+import PassRateByVariant from './PassRate/passRateByVariant';
+import PassRateCard from './PassRate/passRateCard';
 
 const defaultTheme = createTheme();
 const useStyles = makeStyles(

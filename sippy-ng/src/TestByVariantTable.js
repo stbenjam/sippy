@@ -1,20 +1,18 @@
-import { Box, Grid, Tooltip, Typography } from '@material-ui/core';
-import Paper from '@material-ui/core/Paper';
-import { createTheme, makeStyles, useTheme } from '@material-ui/core/styles';
+import { Tooltip } from '@material-ui/core';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import FormGroup from '@material-ui/core/FormGroup';
+import { makeStyles, useTheme } from '@material-ui/core/styles';
+import Switch from '@material-ui/core/Switch';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
-import TableContainer from '@material-ui/core/TableContainer';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import HelpOutlineIcon from '@material-ui/icons/HelpOutline';
 import PropTypes from 'prop-types';
 import React, { Fragment } from 'react';
-import PassRateIcon from './PassRate/passRateIcon';
-import FormGroup from '@material-ui/core/FormGroup';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import Switch from '@material-ui/core/Switch';
 import { BooleanParam, useQueryParam } from 'use-query-params';
+import PassRateIcon from './PassRate/passRateIcon';
 
 
 const useRowStyles = makeStyles({
@@ -27,25 +25,8 @@ const useRowStyles = makeStyles({
     },
 });
 
-const defaultTheme = createTheme();
-const styles = {
-    good: {
-        backgroundColor: defaultTheme.palette.success.light,
-        color: defaultTheme.palette.success.contrastText,
-    },
-    ok: {
-        backgroundColor: defaultTheme.palette.warning.light,
-        color: defaultTheme.palette.warning.contrastText,
-    },
-    failing: {
-        backgroundColor: defaultTheme.palette.error.light,
-        color: defaultTheme.palette.warning.contrastText,
-    }
-};
-
 function PassRateCompare(props) {
     const { previous, current } = props;
-    const theme = useTheme();
 
 
     return (
@@ -72,7 +53,7 @@ function Cell(props) {
         }
     }
 
-    if (result == undefined) {
+    if (result === undefined) {
         return (
             <Tooltip title="No data">
                 <TableCell style={{ textAlign: "center", backgroundColor: theme.palette.warning.light }}>
@@ -135,18 +116,7 @@ Row.propTypes = {
 
 
 export default function TestByVariantTable(props) {
-    const theme = useTheme();
     const [showFull, setShowFull] = useQueryParam("showFull", BooleanParam) 
-
-    let cardBackground = (percent) => {
-        if (percent > 90) {
-            return theme.palette.success.light;
-        } else if (percent > 60) {
-            return theme.palette.warning.light;
-        } else {
-            return theme.palette.error.light;
-        }
-    }
 
     if (props.data === undefined) {
         return <p>No data.</p>
