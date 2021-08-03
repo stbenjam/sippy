@@ -14,7 +14,8 @@ import Alert from '@material-ui/lab/Alert';
 import { makeStyles, withStyles } from '@material-ui/styles';
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
-import React, { Component, Fragment } from 'react';
+import React, { Component, Fragment, useEffect } from 'react';
+import { StringParam, useQueryParam } from 'use-query-params';
 import PassRateIcon from './PassRate/passRateIcon';
 
 function escapeRegExp(value) {
@@ -122,7 +123,7 @@ function JobSearchToolbar(props) {
             <div>
                 <GridToolbarFilterButton />
                 <GridToolbarDensitySelector />
-                <ReportMenu requestReport={props.requestReport} />
+                <ReportMenu initialReport={props.initialReport} requestReport={props.requestReport} />
             </div>
             <TextField
                 variant="standard"
@@ -157,7 +158,7 @@ JobSearchToolbar.propTypes = {
 
 function ReportMenu(props) {
     const [anchorEl, setAnchorEl] = React.useState(null);
-    const [selectedReport, setSelectedReport] = React.useState();
+    const [selectedReport, setSelectedReport] = React.useState(props.initialReport);
 
     const handleClick = (event) => {
         setAnchorEl(event.currentTarget);
@@ -196,18 +197,17 @@ function ReportMenu(props) {
     );
 }
 
-class JobTable extends Component {
-    state = {
-        fetchError: "",
-        isLoaded: false,
-        jobs: [],
-        rows: [],
-        searchText: "",
-        currentReport: "",
-    }
+function JobTable(props) {
+    const { classes } = props;
+    const [report, setReport] = useQueryParam("report", StringParam)
+    const [fetchError, setFetchError] = React.useState("")
+    const [isLoaded, setLoaded] = React.useState(false)
+    const [jobs, setJobs] = React.useState([])
+    const [rows, setRows] = React.useState([])
+    const [searchText, setSearchText] = React.useState("")
 
-    fetchData = (props) => {
-        fetch(process.env.REACT_APP_API_URL + '/api/jobs2?release=' + this.props.release)
+    const fetchData = () => {
+        fetch(process.env.REACT_APP_API_URL + '/api/jobs2?release=' + props.release)
             .then((response) => {
                 if (response.status !== 200) {
                     throw new Error("server returned " + response.status);
@@ -215,40 +215,29 @@ class JobTable extends Component {
                 return response.json();
             })
             .then(json => {
-                this.setState({
-                    isLoaded: true,
-                    jobs: json,
-                    rows: json,
-                })
+                setLoaded(true)
+                setJobs(json, filterRows)
             }).catch(error => {
-                this.setState({ fetchError: "Could not retrieve jobs " + this.props.release + ", " + error });
+                setFetchError("Could not retrieve jobs " + props.release + ", " + error );
             });
-    }
+    };
 
-    componentDidMount() {
-        this.fetchData(this.props);
-    }
-
-    requestSearch = (searchValue) => {
+    const requestSearch = (searchValue) => {
         this.setState({ searchText: searchValue });
         const searchRegex = new RegExp(escapeRegExp(searchValue), 'i');
-        const filteredRows = this.state.jobs.filter((row) => {
+        const filteredRows = jobs.filter((row) => {
             return Object.keys(row).some((field) => {
                 return searchRegex.test(row[field].toString());
             });
         });
-        this.setState({ rows: filteredRows })
+        setRows(filteredRows)
     };
 
-    requestReport = (report) => {
-        this.setState({ currentReport: report });
-        let filteredRows = this.state.jobs.slice();
-
+    const filterRows = () => {
+        let filteredRows = jobs.slice();
         switch (report) {
-            case "all":
-                break;
             case "> 10 runs":
-                filteredRows = this.state.jobs.filter((row) => {
+                filteredRows = jobs.filter((row) => {
                     return row.current_runs > 10;
                 });
                 break;
@@ -265,63 +254,67 @@ class JobTable extends Component {
             default:
                 break;
         }
-        this.setState({ rows: filteredRows })
+        setRows(filteredRows)
     };
 
-    pageTitle = () => {
-        if (this.props.title) {
+    useEffect(() => {
+        if (!isLoaded) {
+            fetchData();
+        }
+        filterRows()
+    }, [isLoaded, jobs, report]);
+
+    const pageTitle = () => {
+        if (props.title) {
             return (
-                <Typography align="center" style={{margin: 20 }} variant="h4">
-                   {this.props.title} 
+                <Typography align="center" style={{ margin: 20 }} variant="h4">
+                    {props.title}
                 </Typography>
             );
         }
     }
 
-    render() {
-        const { classes } = this.props;
-
-        if (this.state.fetchError !== "") {
-            return <Alert severity="error">{this.state.fetchError}</Alert>;
-        }
-
-        if (this.state.isLoaded === false) {
-            return "Loading..."
-        }
-
-        if (this.state.jobs.length === 0) {
-            return <p>No jobs.</p>;
-        }
-
-        return (
-            <Fragment>
-                {this.pageTitle()}
-                <DataGrid
-                    components={{ Toolbar: JobSearchToolbar }}
-                    rows={this.state.rows}
-                    columns={columns}
-                    autoHeight={true}
-                    pageSize={25}
-                    getRowClassName={(params =>
-                        clsx({
-                            [classes.good]: (params.row.current_pass_percentage >= 80),
-                            [classes.ok]: (params.row.current_pass_percentage >= 60 && params.row.current_pass_percentage < 80),
-                            [classes.failing]: (params.row.current_pass_percentage < 60),
-                        })
-                    )}
-                    componentsProps={{
-                        toolbar: {
-                            value: this.state.searchText,
-                            onChange: (event) => this.requestSearch(event.target.value),
-                            requestReport: (report) => this.requestReport(report),
-                            clearSearch: () => this.requestSearch(''),
-                        },
-                    }}
-
-                />
-            </Fragment>
-        );
+    if (fetchError !== "") {
+        return <Alert severity="error">{fetchError}</Alert>;
     }
+
+    if (isLoaded === false) {
+        return "Loading..."
+    }
+
+    if (jobs.length === 0) {
+        return <p>No jobs.</p>;
+    }
+
+    return (
+        <Fragment>
+            {pageTitle()}
+            <DataGrid
+                components={{ Toolbar: JobSearchToolbar }}
+                rows={rows}
+                columns={columns}
+                autoHeight={true}
+                pageSize={25}
+                getRowClassName={(params =>
+                    clsx({
+                        [classes.good]: (params.row.current_pass_percentage >= 80),
+                        [classes.ok]: (params.row.current_pass_percentage >= 60 && params.row.current_pass_percentage < 80),
+                        [classes.failing]: (params.row.current_pass_percentage < 60),
+                    })
+                )}
+                componentsProps={{
+                    toolbar: {
+                        value: searchText,
+                        onChange: (event) => requestSearch(event.target.value),
+                        requestReport: (report) => setReport(report),
+                        initialReport: report,
+                        clearSearch: () => requestSearch(''),
+                    },
+                }}
+
+            />
+        </Fragment>
+    );
 }
 
-export default withStyles(styles, { withTheme: true })(JobTable);
+export default withStyles(styles)(JobTable);

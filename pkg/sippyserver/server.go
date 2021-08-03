@@ -300,7 +300,7 @@ func (s *Server) detailed(w http.ResponseWriter, req *http.Request) {
 
 }
 
-func (s *Server) tests(w http.ResponseWriter, req *http.Request) {
+func (s *Server) jsonTestsReport(w http.ResponseWriter, req *http.Request) {
 	release := req.URL.Query().Get("release")
 	if _, ok := s.currTestReports[release]; !ok {
 		generichtml.PrintStatusMessage(w, http.StatusNotFound, fmt.Sprintf("Release %q not found.", release))
@@ -313,7 +313,7 @@ func (s *Server) tests(w http.ResponseWriter, req *http.Request) {
 	api.PrintTestsJSON(w, req, currTests, prevTests)
 }
 
-func (s *Server) testDetails(w http.ResponseWriter, req *http.Request) {
+func (s *Server) jsonTestDetailsReport(w http.ResponseWriter, req *http.Request) {
 	release := req.URL.Query().Get("release")
 	if _, ok := s.currTestReports[release]; !ok {
 		generichtml.PrintStatusMessage(w, http.StatusNotFound, fmt.Sprintf("Release %q not found.", release))
@@ -326,7 +326,7 @@ func (s *Server) testDetails(w http.ResponseWriter, req *http.Request) {
 	api.PrintTestsDetailsJSON(w, req, currTests, prevTests)
 }
 
-func (s *Server) releases(w http.ResponseWriter, req *http.Request) {
+func (s *Server) jsonReleasesReport(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
@@ -475,7 +475,6 @@ func (s *Server) Serve() {
 	http.DefaultServeMux.HandleFunc("/", s.printHTMLReport)
 	http.DefaultServeMux.HandleFunc("/install", s.printInstallHTMLReport)
 	http.DefaultServeMux.HandleFunc("/upgrade", s.printUpgradeHTMLReport)
-	http.DefaultServeMux.HandleFunc("/api/upgrade", s.printUpgradeJSONReport)
 
 	http.DefaultServeMux.HandleFunc("/operator-health", s.printOperatorHealthHTMLReport)
 	http.DefaultServeMux.HandleFunc("/testdetails", s.printTestDetailHTMLReport)
@@ -485,12 +484,15 @@ func (s *Server) Serve() {
 	http.DefaultServeMux.HandleFunc("/canary", s.printCanaryReport)
 	http.DefaultServeMux.HandleFunc("/jobs", s.jobsReport)
 
-	http.DefaultServeMux.HandleFunc("/api/jobs2", s.jsonJobsReport) // Call this something else
 	http.DefaultServeMux.HandleFunc("/api/jobs", s.jobs)
-	http.DefaultServeMux.HandleFunc("/api/releases", s.releases)
-	http.DefaultServeMux.HandleFunc("/api/tests/details", s.testDetails)
-	http.DefaultServeMux.HandleFunc("/api/tests", s.tests)
+	http.DefaultServeMux.HandleFunc("/api/jobs2", s.jsonJobsReport) // Call this something else
+	http.DefaultServeMux.HandleFunc("/api/install", s.jsonInstallReport) // Call this something else
+	http.DefaultServeMux.HandleFunc("/api/releases", s.jsonReleasesReport)
+	http.DefaultServeMux.HandleFunc("/api/tests", s.jsonTestsReport)
+	http.DefaultServeMux.HandleFunc("/api/tests/details", s.jsonTestDetailsReport)
+	http.DefaultServeMux.HandleFunc("/api/upgrade", s.jsonUpgradeReport)
 	http.DefaultServeMux.HandleFunc("/api/variants", s.jsonVariantsReport)
+
 	http.DefaultServeMux.HandleFunc("/variants", s.htmlVariantsReport)
 
 	klog.Infof("Serving reports on %s ", s.listenAddr)

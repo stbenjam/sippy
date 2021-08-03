@@ -39,6 +39,7 @@ import logo from "./sippy.svg"
 import { QueryParamProvider } from 'use-query-params';
 import TestDetailTable from './TestDetailTable';
 import Jobs from './Jobs';
+import Install from './Install';
 
 const drawerWidth = 240;
 
@@ -138,7 +139,11 @@ export default function App(props) {
         return response.json();
       })
       .then(json => {
-        setReleases(json.releases);
+        if(json.releases) {
+          setReleases(json.releases);
+        } else {
+          throw new Error("no releases found");
+        }
       }).catch(error => {
         setFetchError("Could not retrieve releases, " + error)
       })
@@ -195,6 +200,10 @@ export default function App(props) {
     return (
       <Alert severity="error">{fetchError}</Alert>
     )
+  }
+
+  if (!isLoaded) {
+    return <p>Loading...</p>
   }
 
   return (
@@ -364,6 +373,12 @@ export default function App(props) {
                 <Route path="/upgrade/:release" render={(props) =>
                   <Upgrades
                     key={"upgrades-" + props.match.params.release}
+                    release={props.match.params.release} />
+                    } />
+
+                <Route path="/install/:release" render={(props) =>
+                  <Install
+                    key={"install-" + props.match.params.release}
                     release={props.match.params.release} />
                     } />
 

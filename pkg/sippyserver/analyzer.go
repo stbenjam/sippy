@@ -137,11 +137,11 @@ func updateBugCacheForJobResults(bugCache buganalysis.BugCache, rawJobResults te
 	failedTestNamesAcrossAllJobRuns := getFailedTestNamesFromJobResults(rawJobResults.JobResults)
 	if err := bugCache.UpdateForFailedTests(failedTestNamesAcrossAllJobRuns.List()...); err != nil {
 		klog.Error(err)
-		warnings = append(warnings, fmt.Sprintf("Bugzilla Lookup Error: an error was encountered looking up existing bugs for failing tests, some test failures may have associated bugs that are not listed below.  Lookup error: %v", err.Error()))
+		warnings = append(warnings, fmt.Sprintf("Bugzilla Lookup Error: an error was encountered looking up existing bugs for failing jsonTestsReport, some test failures may have associated bugs that are not listed below.  Lookup error: %v", err.Error()))
 	}
 	if err := bugCache.UpdateJobBlockers(sets.StringKeySet(rawJobResults.JobResults).List()...); err != nil {
 		klog.Error(err)
-		warnings = append(warnings, fmt.Sprintf("Bugzilla Lookup Error: an error was encountered looking up existing bugs for failing tests, some test failures may have associated bugs that are not listed below.  Lookup error: %v", err.Error()))
+		warnings = append(warnings, fmt.Sprintf("Bugzilla Lookup Error: an error was encountered looking up existing bugs for failing jsonTestsReport, some test failures may have associated bugs that are not listed below.  Lookup error: %v", err.Error()))
 	}
 
 	return warnings

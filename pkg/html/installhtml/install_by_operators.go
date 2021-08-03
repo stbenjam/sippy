@@ -2,6 +2,7 @@ package installhtml
 
 import (
 	"fmt"
+	"github.com/openshift/sippy/pkg/testgridanalysis/testidentification"
 	"strings"
 
 	"github.com/openshift/sippy/pkg/util"
@@ -13,7 +14,7 @@ import (
 	sippyprocessingv1 "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
 )
 
-func installOperatorTests(curr, prev sippyprocessingv1.TestReport) string {
+func InstallOperatorTests(format string, curr, prev sippyprocessingv1.TestReport) string {
 	dataForTestsByVariant := getDataForTestsByVariant(
 		curr, prev,
 		func(testResult sippyprocessingv1.TestResult) bool {
@@ -43,7 +44,15 @@ func installOperatorTests(curr, prev sippyprocessingv1.TestReport) string {
 
 	columnNames := append([]string{"All"}, variantColumns...)
 
-	return dataForTestsByVariant.getTableHTML("Install Rates by Operator", "InstallRatesByOperator", "Install Rates by Operator by Variant", columnNames, getOperatorFromTest)
+	if format == "json" {
+		return dataForTestsByVariant.getTableJSON("Install Rates by Operator", "Install Rates by Operator by Variant", columnNames, getOperatorFromTest)
+	} else {
+		return dataForTestsByVariant.getTableHTML("Install Rates by Operator", "InstallRatesByOperator", "Install Rates by Operator by Variant", columnNames, getOperatorFromTest)
+	}
+}
+
+func isInstallRelatedTest(testResult sippyprocessingv1.TestResult) bool {
+	return testidentification.IsInstallRelatedTest(testResult.Name)
 }
 
 func summaryInstallRelatedTests(curr, prev sippyprocessingv1.TestReport, numDays int, release string) string {
@@ -71,17 +80,3 @@ func summaryInstallRelatedTests(curr, prev sippyprocessingv1.TestReport, numDays
 	return s
 }
 
-func isInstallRelatedTest(testResult sippyprocessingv1.TestResult) bool {
-	if testgridanalysisapi.OperatorConditionsTestCaseName.MatchString(testResult.Name) {
-		return true
-	}
-	if strings.Contains(testResult.Name, testgridanalysisapi.InstallTestName) {
-		return true
-	}
-	if strings.Contains(testResult.Name, testgridanalysisapi.InstallTimeoutTestName) {
-		return true
-	}
-
-	return false
-
-}

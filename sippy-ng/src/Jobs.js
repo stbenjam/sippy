@@ -26,22 +26,19 @@ export default function Jobs(props) {
                                 indicatorColor="primary"
                                 textColor="primary"
                             >
-                                <Tab label="All jobs" value="all" component={Link} to={url + "/all"} />
-                                <Tooltip title={VariantToolTip}>
-                                    <Tab label="Jobs by variant" value="variant" component={Link} to={url + "/variant"} />
-                                </Tooltip>
+                                <Tab label="All jobs" value={props.release} component={Link} to={url} />
+                                <Tab label="Jobs by variant" value="variant" component={Link} to={url + "/variant"} />
                             </Tabs>
                         </Paper>
                     </Grid>
                     <Switch>
                         <Container size="xl">
-                            <Route path={path + "/all"}>
-                                <JobTable release={props.release} />
-                            </Route>
                             <Route path={path + "/variant"}>
                                 <PassRateByVariant release={props.release} />
                             </Route>
-                            <Redirect from="/" to={url + "/all"} />
+                            <Route path={path}>
+                                <JobTable release={props.release} />
+                            </Route>
                         </Container>
                     </Switch>
                 </TabContext>

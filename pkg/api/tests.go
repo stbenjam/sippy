@@ -28,6 +28,10 @@ func generateTests(filterBy string, names []string, current, previous []v1.Faili
 				}
 				return match
 			}
+		case "install":
+			filter = func(test v1.FailingTestResult) bool {
+				return testidentification.IsInstallRelatedTest(test.TestName)
+			}
 		case "upgrade":
 			filter = func(test v1.FailingTestResult) bool {
 				return testidentification.IsUpgradeRelatedTest(test.TestName)
