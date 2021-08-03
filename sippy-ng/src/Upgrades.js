@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import {
     BrowserRouter as Router, Link, Redirect, Route, Switch, useRouteMatch
 } from "react-router-dom";
+import JobTable from './JobTable';
 import TestByVariantTable from './TestByVariantTable';
 import TestTable from './TestTable';
 
@@ -67,13 +68,13 @@ export default function Upgrades(props) {
                     </Grid>
                     <Switch>
                         <Route path={path + "/operators"}>
-                            <TestByVariantTable data={data} />
+                            <TestByVariantTable colorScale={[90,100]} data={data} />
                         </Route>
                         <Route path={path + "/tests"}>
                             <TestTable release={props.release} filterBy="upgrade" />
                         </Route>
                         <Route path={path + "/jobs"}>
-                            Jobs
+                            <JobTable release={props.release} filterBy="upgrade" />
                         </Route>
                         <Redirect from="/" to={url + "/operators"} />
                     </Switch>

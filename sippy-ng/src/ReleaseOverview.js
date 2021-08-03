@@ -32,7 +32,6 @@ export default function ReleaseOverview(props) {
     const [fetchError, setFetchError] = React.useState("")
     const [isLoaded, setLoaded] = React.useState(false)
     const [indicators, setIndicators] = React.useState({})
-    const [passRateByVariant, setPassRateByVariant] = React.useState([])
 
     let fetchData = () => {
         fetch(process.env.REACT_APP_API_URL + '/json?release=' + props.release)
@@ -44,7 +43,6 @@ export default function ReleaseOverview(props) {
             })
             .then(json => {
                 setIndicators(json[props.release].topLevelReleaseIndicators)
-                setPassRateByVariant(json[props.release].jobPassRateByVariant)
                 setLoaded(true)
             }).catch(error => {
                 setFetchError("Could not retrieve release " + props.release + ", " + error);
@@ -107,7 +105,7 @@ export default function ReleaseOverview(props) {
                         </Typography>
                     </Grid>
                     <Grid item xs={12}>
-                        <PassRateByVariant rows={passRateByVariant} release={props.release} />
+                        <PassRateByVariant release={props.release} />
                     </Grid>
                 </Grid>
             </Container>

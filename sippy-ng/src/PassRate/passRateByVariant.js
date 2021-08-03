@@ -10,8 +10,9 @@ import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import KeyboardArrowDownIcon from '@material-ui/icons/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@material-ui/icons/KeyboardArrowUp';
+import { Alert } from '@material-ui/lab';
 import PropTypes from 'prop-types';
-import React, { Fragment } from 'react';
+import React, { Fragment, useEffect } from 'react';
 import VariantTable from '../VariantTable';
 import PassRateIcon from './passRateIcon';
 
@@ -75,6 +76,10 @@ Row.propTypes = {
 export default function PassRateByVariant(props) {
     const theme = useTheme();
 
+    const [jobs, setJobs] = React.useState([])
+    const [isLoaded, setLoaded] = React.useState(false)
+    const [fetchError, setFetchError] = React.useState("")
+
     let rowBackground = (percent) => {
         if (percent > 90) {
             return theme.palette.success.light;
@@ -83,6 +88,46 @@ export default function PassRateByVariant(props) {
         } else {
             return theme.palette.error.light;
         }
+    }
+
+    let fetchData = () => {
+        fetch(process.env.REACT_APP_API_URL + '/json?release=' + props.release)
+            .then((response) => {
+                if (response.status !== 200) {
+                    throw new Error("server returned " + response.status);
+                }
+                return response.json();
+            })
+            .then(json => {
+                setJobs(json[props.release].jobPassRateByVariant)
+                setLoaded(true)
+            }).catch(error => {
+                setFetchError("Could not retrieve release " + props.release + ", " + error);
+            });
+    }
+
+    let cardBackground = (percent) => {
+        if (percent > 90) {
+            return theme.palette.success.light;
+        } else if (percent > 60) {
+            return theme.palette.warning.light;
+        } else {
+            return theme.palette.error.light;
+        }
+    }
+
+    useEffect(() => {
+        if (!isLoaded) {
+            fetchData();
+        }
+    }, []);
+
+    if (fetchError !== "") {
+        return <Alert severity="error">{fetchError}</Alert>;
+    }
+
+    if (!isLoaded) {
+        return "Loading..."
     }
 
     return (
@@ -98,7 +143,7 @@ export default function PassRateByVariant(props) {
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                    {props.rows.map((row) => (
+                    {jobs.map((row) => (
                         <Row key={row.platform} bgColor={rowBackground(row.passRates.latest.percentage)} row={row} release={props.release} />
                     ))}
                 </TableBody>

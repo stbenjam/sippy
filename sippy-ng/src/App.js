@@ -38,6 +38,7 @@ import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
 import logo from "./sippy.svg"
 import { QueryParamProvider } from 'use-query-params';
 import TestDetailTable from './TestDetailTable';
+import Jobs from './Jobs';
 
 const drawerWidth = 240;
 
@@ -334,12 +335,38 @@ export default function App(props) {
                   <p>Hello, world!</p>
                 </Route>
 
-                <Route path="/release/:release" render={(props) => <ReleaseOverview key={props.match.params.release} release={props.match.params.release} />} />
-                <Route path="/jobs/:release" render={(props) => <JobTable key={props.match.params.release} release={props.match.params.release} />} />
-                <Route path="/tests/:release/details" render={(props) => <TestDetailTable key={props.match.params.release} release={props.match.params.release} />} />
-                <Route path="/tests/:release" render={(props) => <TestTable key={props.match.params.release} title={"Test results for " + props.match.params.release} release={props.match.params.release} />} />
+                <Route path="/release/:release" render={(props) =>
+                  <ReleaseOverview
+                    key={"release-overview-" + props.match.params.release}
+                    release={props.match.params.release} />
+                  }/>
 
-                <Route path="/upgrade/:release" render={(props) => <Upgrades key={props.match.params.release} release={props.match.params.release} />} />
+                <Route path="/jobs/:release" render={(props) =>
+                  <Jobs
+                    key={"jobs-" + props.match.params.release}
+                    title={"Job results for " + props.match.params.release}
+                    release={props.match.params.release} />
+                  }/>
+
+                <Route path="/tests/:release/details" render={(props) =>
+                  <TestDetailTable
+                    key={props.match.params.release}
+                    release={props.match.params.release} />
+                    } />
+
+                <Route path="/tests/:release" render={(props) =>
+                  <TestTable
+                    key={"tests-" + props.match.params.release}
+                    title={"Test results for " + props.match.params.release}
+                    release={props.match.params.release} />
+                    } />
+
+                <Route path="/upgrade/:release" render={(props) =>
+                  <Upgrades
+                    key={"upgrades-" + props.match.params.release}
+                    release={props.match.params.release} />
+                    } />
+
                 <Route path="/">
                   {releases.length > 0 ? <ReleaseOverview key={releases[0]} release={releases[0]} /> : "Loading..."}
                 </Route>

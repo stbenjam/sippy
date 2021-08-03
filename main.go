@@ -188,6 +188,8 @@ func (o *Options) Run() error {
 }
 
 func (o *Options) runServerMode() error {
+	// This embeds the contents of the two static directories directly into the binary. It
+	// needs to be in main.go, so rice can find it when injecting the contents.
 	sippyNG, err := rice.FindBox("./sippy-ng/build")
 	if err != nil {
 		log.Fatal(err)

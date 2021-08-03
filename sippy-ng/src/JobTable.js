@@ -49,16 +49,16 @@ const useStyles = makeStyles(
 
 const styles = {
     good: {
-        backgroundColor: "#c3e6cb",
-        color: "#000000"
+        backgroundColor: defaultTheme.palette.success.light,
+        color: "black"
     },
     ok: {
-        backgroundColor: "#ffeeba",
-        color: "#000000"
+        backgroundColor: defaultTheme.palette.warning.light,
+        color: "black"
     },
     failing: {
-        backgroundColor: "#f5c6cb",
-        color: "#000000"
+        backgroundColor: defaultTheme.palette.error.light,
+        color: "black"
     }
 };
 
@@ -107,7 +107,7 @@ const columns = [
         renderCell: (params) => {
             return (
                 <Box>
-                    <Button target="_blank" startIcon={<Search />} href={"https://search.ci.openshift.org/?search=" + encodeURIComponent(params.row.name) +"&maxAge=336h&context=1&type=bug%2Bjunit&name=&excludeName=&maxMatches=5&maxBytes=20971520&groupBy=job" } />
+                    <Button target="_blank" startIcon={<Search />} href={"https://search.ci.openshift.org/?search=" + encodeURIComponent(params.row.name) + "&maxAge=336h&context=1&type=bug%2Bjunit&name=&excludeName=&maxMatches=5&maxBytes=20971520&groupBy=job"} />
                 </Box>
             );
         },
@@ -268,6 +268,16 @@ class JobTable extends Component {
         this.setState({ rows: filteredRows })
     };
 
+    pageTitle = () => {
+        if (this.props.title) {
+            return (
+                <Typography align="center" style={{margin: 20 }} variant="h4">
+                   {this.props.title} 
+                </Typography>
+            );
+        }
+    }
+
     render() {
         const { classes } = this.props;
 
@@ -284,10 +294,8 @@ class JobTable extends Component {
         }
 
         return (
-            <Container size="xl">
-                <Typography variant="h4">
-                    Job Results for {this.props.release}
-                </Typography>
+            <Fragment>
+                {this.pageTitle()}
                 <DataGrid
                     components={{ Toolbar: JobSearchToolbar }}
                     rows={this.state.rows}
@@ -311,9 +319,9 @@ class JobTable extends Component {
                     }}
 
                 />
-            </Container>
+            </Fragment>
         );
     }
 }
 
-export default withStyles(styles, { withTheme: true})(JobTable);
+export default withStyles(styles, { withTheme: true })(JobTable);
