@@ -137,15 +137,15 @@ TestSearchToolbar.propTypes = {
 const styles = {
     good: {
         backgroundColor: defaultTheme.palette.success.light,
-        color: defaultTheme.palette.success.contrastText, 
+        color: defaultTheme.palette.success.contrastText,
     },
     ok: {
-        backgroundColor: defaultTheme.palette.warning.light, 
-        color: defaultTheme.palette.warning.contrastText, 
+        backgroundColor: defaultTheme.palette.warning.light,
+        color: defaultTheme.palette.warning.contrastText,
     },
     failing: {
         backgroundColor: defaultTheme.palette.error.light,
-        color: defaultTheme.palette.warning.contrastText,  
+        color: defaultTheme.palette.warning.contrastText,
     }
 };
 
@@ -209,10 +209,12 @@ class TestTable extends Component {
         rows: [],
         searchText: "",
         currentReport: "",
+        queryParams: "",
+        selectedTests: [],
     }
 
-    fetchData = (props) => {
-        fetch(process.env.REACT_APP_API_URL + '/api/tests?release=' + this.props.release)
+    fetchData = (props, params) => {
+        fetch(process.env.REACT_APP_API_URL + '/api/tests?release=' + this.props.release + params)
             .then((response) => {
                 if (response.status !== 200) {
                     throw new Error("server returned " + response.status);
@@ -231,7 +233,18 @@ class TestTable extends Component {
     }
 
     componentDidMount() {
-        this.fetchData(this.props);
+        let queryParams = ""
+        if (this.props.filterBy != undefined) {
+            queryParams += "&filterBy=" + encodeURIComponent(this.props.filterBy)
+            if (Array.isArray(this.props.filterNames)) {
+                this.props.filterNames.map((filterName) => {
+                    queryParams += "&name=" + encodeURIComponent(filterName)
+                })
+            }
+        }
+
+
+        this.fetchData(this.props, queryParams);
     }
 
     requestSearch = (searchValue) => {
@@ -296,17 +309,24 @@ class TestTable extends Component {
             return "Loading..."
         }
 
+        let title = ""
+        if (this.props.title !== undefined) {
+            title = <Typography variant="h4">{this.props.title}</Typography>
+        }
+
         return (
             <Container size="xl">
-                <Typography variant="h4">
-                    Test Results for {this.props.release}
-                </Typography>
+                {title}
                 <DataGrid
                     components={{ Toolbar: TestSearchToolbar }}
                     rows={this.state.rows}
                     columns={columns}
                     autoHeight={true}
                     pageSize={25}
+                    checkboxSelection
+                    onSelectionChange={(selection) => {
+                        this.setState({selectedTests: selection.name})
+                    }}
                     getRowClassName={(params =>
                         clsx({
                             [classes.good]: (params.row.current_pass_percentage >= 80),
@@ -324,6 +344,8 @@ class TestTable extends Component {
                     }}
 
                 />
+
+                {(this.state.selectedTests !== []) && <Button variant="contained" color="primary" style={{margin: 10}}>Get Details</Button>}
             </Container>
         );
     }

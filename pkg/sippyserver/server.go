@@ -310,7 +310,7 @@ func (s *Server) tests(w http.ResponseWriter, req *http.Request) {
 	currTests := s.currTestReports[release].CurrentPeriodReport.ByTest
 	prevTests := s.currTestReports[release].PreviousWeekReport.ByTest
 
-	api.PrintTestsReport(w, currTests, prevTests)
+	api.PrintTestsReport(w, req, currTests, prevTests)
 }
 
 func (s *Server) releases(w http.ResponseWriter, req *http.Request) {

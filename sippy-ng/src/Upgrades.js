@@ -6,6 +6,7 @@ import {
     BrowserRouter as Router, Link, Redirect, Route, Switch, useRouteMatch
 } from "react-router-dom";
 import TestByVariantTable from './TestByVariantTable';
+import TestTable from './TestTable';
 
 export default function Upgrades(props) {
     let { path, url } = useRouteMatch();
@@ -72,7 +73,7 @@ export default function Upgrades(props) {
                                 <TestByVariantTable title={"Upgrade rates by operator for " + props.release} data={data} />
                             </Route>
                             <Route path={path + "/tests"}>
-                                Tests
+                                <TestTable release={props.release} filterBy="upgrade" />
                             </Route>
                             <Route path={path + "/jobs"}>
                                 Jobs
