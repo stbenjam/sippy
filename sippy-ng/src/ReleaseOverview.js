@@ -3,9 +3,12 @@ import Grid from '@material-ui/core/Grid';
 import { createTheme, makeStyles, useTheme } from '@material-ui/core/styles';
 import Alert from '@material-ui/lab/Alert';
 import React, { useEffect } from 'react';
-import PassRateByVariant from './PassRate/passRateByVariant';
+import PassRateByVariant, { TOOLTIP as VariantToolTip } from './PassRate/passRateByVariant';
 import PassRateCard from './PassRate/passRateCard';
 import InfoIcon from '@material-ui/icons/Info';
+import { Link } from 'react-router-dom';
+
+export const TOOLTIP = "Top level release indicators showing product health"
 
 const defaultTheme = createTheme();
 const useStyles = makeStyles(
@@ -81,7 +84,7 @@ export default function ReleaseOverview(props) {
                     <Grid item xs={12}>
                         <Typography variant="h5">
                             Top Level Release Indicators
-                            <Tooltip title="Top level release indicators showing product health">
+                            <Tooltip title={TOOLTIP}>
                                 <InfoIcon />
                             </Tooltip>
                         </Typography>
@@ -99,7 +102,7 @@ export default function ReleaseOverview(props) {
                     <Grid item xs={12}>
                         <Typography variant="h5">
                             Job Pass Rate By Variant
-                            <Tooltip title="Aggregation of all job runs for a given variant, sorted by passing rate percentage.  Variants at the top of this list have unreliable CI jobs or the product is unreliable in those variants.  The pass rate in parenthesis is the pass rate for jobs that started to run the installer and got at least the bootstrap kube-apiserver up and running.">
+                            <Tooltip title={VariantToolTip}>
                                 <InfoIcon />
                             </Tooltip>
                         </Typography>

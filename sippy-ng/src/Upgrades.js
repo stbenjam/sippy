@@ -1,4 +1,4 @@
-import { Grid, Paper, Tab, Tabs, Typography } from '@material-ui/core';
+import { Container, Grid, Paper, Tab, Tabs, Typography } from '@material-ui/core';
 import { Alert, TabContext } from '@material-ui/lab';
 import React, { useEffect } from 'react';
 import {
@@ -74,7 +74,9 @@ export default function Upgrades(props) {
                             <TestTable release={props.release} filterBy="upgrade" />
                         </Route>
                         <Route path={path + "/jobs"}>
-                            <JobTable release={props.release} filterBy="upgrade" />
+                            <Container size="xl">
+                                <JobTable release={props.release} filterBy="upgrade" />
+                            </Container>
                         </Route>
                         <Redirect from="/" to={url + "/operators"} />
                     </Switch>

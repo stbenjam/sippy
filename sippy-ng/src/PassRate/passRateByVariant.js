@@ -25,6 +25,8 @@ const useRowStyles = makeStyles({
     },
 });
 
+export const TOOLTIP = "Aggregation of all job runs for a given variant, sorted by passing rate percentage.  Variants at the top of this list have unreliable CI jobs or the product is unreliable in those variants.  The pass rate in parenthesis is the pass rate for jobs that started to run the installer and got at least the bootstrap kube-apiserver up and running."
+
 function Row(props) {
     const { row } = props;
     const [open, setOpen] = React.useState(false);
