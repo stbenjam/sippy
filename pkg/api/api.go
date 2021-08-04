@@ -411,6 +411,11 @@ func respondWithJSON(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
+	if jsonString, ok := data.(string); ok {
+		fmt.Fprintf(w, jsonString)
+		return
+	}
+
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Sprintf(`{message: "could not marshal results: %s"}`, err)

@@ -63,6 +63,7 @@ type Server struct {
 	currTestReports           map[string]StandardReport
 	sippyNG                   *rice.Box
 	static                    *rice.Box
+	httpServer                *http.Server
 }
 
 type TestGridDashboardCoordinates struct {
@@ -94,14 +95,6 @@ func (s *Server) RefreshData() {
 		s.currTestReports[dashboard.ReportName] = s.testReportGeneratorConfig.PrepareStandardTestReports(dashboard, s.syntheticTestManager, s.variantManager, s.bugCache)
 	}
 	klog.Infof("Refresh complete")
-}
-
-func (s *Server) defaultHandler(w http.ResponseWriter, req *http.Request) {
-	if req.URL.Path == "/" {
-		s.printHTMLReport(w, req)
-	} else {
-		generichtml.PrintStatusMessage(w, http.StatusNotFound, "Page not found.")
-	}
 }
 
 func (s *Server) printHTMLReport(w http.ResponseWriter, req *http.Request) {
@@ -272,6 +265,7 @@ func (s *Server) detailed(w http.ResponseWriter, req *http.Request) {
 	testReportConfig := TestReportGeneratorConfig{
 		TestGridLoadingConfig: TestGridLoadingConfig{
 			LocalData: s.testReportGeneratorConfig.TestGridLoadingConfig.LocalData,
+			Loader:    s.testReportGeneratorConfig.TestGridLoadingConfig.Loader,
 			JobFilter: jobFilter,
 		},
 		RawJobResultsAnalysisConfig: RawJobResultsAnalysisConfig{
@@ -284,6 +278,7 @@ func (s *Server) detailed(w http.ResponseWriter, req *http.Request) {
 			FailureClusterThreshold: failureClusterThreshold,
 		},
 	}
+
 	dashboardCoordinates, found := s.reportNameToDashboardCoordinates(reportName)
 	if !found {
 		releasehtml.WriteLandingPage(w, reportNames)
@@ -437,10 +432,12 @@ func (s *Server) jsonVariantsReport(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Server) Serve() {
+	// Use private ServeMux to prevent tests from stomping on serveMux
+	serveMux := http.NewServeMux()
 
 	// Handle serving React version of frontend with support for browser router, i.e. anything not found
 	// goes to index.html
-	http.DefaultServeMux.HandleFunc("/sippy-ng/", func(w http.ResponseWriter, r *http.Request) {
+	serveMux.HandleFunc("/sippy-ng/", func(w http.ResponseWriter, r *http.Request) {
 		fs := s.sippyNG.HTTPBox()
 		if r.URL.Path != "/sippy-ng/" {
 			fullPath := strings.TrimPrefix(r.URL.Path, "/sippy-ng/")
@@ -455,35 +452,45 @@ func (s *Server) Serve() {
 		http.StripPrefix("/sippy-ng/", http.FileServer(fs)).ServeHTTP(w, r)
 	})
 
-	http.DefaultServeMux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(s.static.HTTPBox())))
+	serveMux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(s.static.HTTPBox())))
 
-	http.DefaultServeMux.HandleFunc("/", s.printHTMLReport)
-	http.DefaultServeMux.HandleFunc("/install", s.printInstallHTMLReport)
-	http.DefaultServeMux.HandleFunc("/upgrade", s.printUpgradeHTMLReport)
+	serveMux.HandleFunc("/", s.printHTMLReport)
+	serveMux.HandleFunc("/install", s.printInstallHTMLReport)
+	serveMux.HandleFunc("/upgrade", s.printUpgradeHTMLReport)
 
-	http.DefaultServeMux.HandleFunc("/operator-health", s.printOperatorHealthHTMLReport)
-	http.DefaultServeMux.HandleFunc("/testdetails", s.printTestDetailHTMLReport)
-	http.DefaultServeMux.HandleFunc("/detailed", s.detailed)
-	http.DefaultServeMux.HandleFunc("/refresh", s.refresh)
-	http.DefaultServeMux.HandleFunc("/canary", s.printCanaryReport)
+	serveMux.HandleFunc("/operator-health", s.printOperatorHealthHTMLReport)
+	serveMux.HandleFunc("/testdetails", s.printTestDetailHTMLReport)
+	serveMux.HandleFunc("/detailed", s.detailed)
+	serveMux.HandleFunc("/refresh", s.refresh)
+	serveMux.HandleFunc("/canary", s.printCanaryReport)
+	serveMux.HandleFunc("/variants", s.htmlVariantsReport)
 
 	// Old API
-	http.DefaultServeMux.HandleFunc("/json", s.printJSONReport)
+	serveMux.HandleFunc("/json", s.printJSONReport)
 
 	// New API's
-	http.DefaultServeMux.HandleFunc("/api/jobs", s.jsonJobsReport)
-	http.DefaultServeMux.HandleFunc("/api/install", s.jsonInstallReport)
-	http.DefaultServeMux.HandleFunc("/api/tests", s.jsonTestsReport)
-	http.DefaultServeMux.HandleFunc("/api/releases", s.jsonReleasesReport)
-	http.DefaultServeMux.HandleFunc("/api/health", s.jsonHealthReport)
-	http.DefaultServeMux.HandleFunc("/api/tests/details", s.jsonTestDetailsReport)
-	http.DefaultServeMux.HandleFunc("/api/upgrade", s.jsonUpgradeReport)
-	http.DefaultServeMux.HandleFunc("/api/variants", s.jsonVariantsReport)
+	serveMux.HandleFunc("/api/jobs", s.jsonJobsReport)
+	serveMux.HandleFunc("/api/install", s.jsonInstallReport)
+	serveMux.HandleFunc("/api/tests", s.jsonTestsReport)
+	serveMux.HandleFunc("/api/releases", s.jsonReleasesReport)
+	serveMux.HandleFunc("/api/health", s.jsonHealthReport)
+	serveMux.HandleFunc("/api/tests/details", s.jsonTestDetailsReport)
+	serveMux.HandleFunc("/api/upgrade", s.jsonUpgradeReport)
+	serveMux.HandleFunc("/api/variants", s.jsonVariantsReport)
 
-	http.DefaultServeMux.HandleFunc("/variants", s.htmlVariantsReport)
+	// Store a pointer to the HTTP server for later retrieval.
+	s.httpServer = &http.Server{
+		Addr:    s.listenAddr,
+		Handler: serveMux,
+	}
 
 	klog.Infof("Serving reports on %s ", s.listenAddr)
-	if err := http.ListenAndServe(s.listenAddr, nil); err != nil {
+
+	if err := s.httpServer.ListenAndServe(); err != http.ErrServerClosed {
 		klog.Exitf("Server exited: %v", err)
 	}
+}
+
+func (s *Server) GetHTTPServer() *http.Server {
+	return s.httpServer
 }
