@@ -30,16 +30,16 @@ export default function Jobs(props) {
                             </Tabs>
                         </Paper>
                     </Grid>
-                    <Switch>
-                        <Container size="xl">
+                    <Container size="xl">
+                        <Switch>
                             <Route path={path + "/variant"}>
                                 <PassRateByVariant release={props.release} />
                             </Route>
                             <Route exact path={path}>
                                 <JobTable release={props.release} />
                             </Route>
-                        </Container>
-                    </Switch>
+                        </Switch>
+                    </Container>
                 </TabContext>
             )}
         />

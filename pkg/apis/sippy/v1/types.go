@@ -87,18 +87,27 @@ type Test struct {
 	PreviousPassPercentage float64 `json:"previous_pass_percentage"`
 	PreviousRuns           int     `json:"previous_runs"`
 	NetImprovement         float64 `json:"net_improvement"`
+
+	Bugs           []bugsv1.Bug `json:"bugs"`
+	AssociatedBugs []bugsv1.Bug `json:"associated_bugs"`
 }
 
-// Job contains the full accounting of a job's history.
+// Job contains the full accounting of a job's history, with a synthetic ID. The format of
+// this struct is suitable for use in a data table.
 type Job struct {
 	ID                             int     `json:"id"`
 	Name                           string  `json:"name"`
+	BriefName 					   string   `json:"brief_name"`
 	CurrentPassPercentage          float64 `json:"current_pass_percentage"`
 	CurrentProjectedPassPercentage float64 `json:"current_projected_pass_percentage"`
-	CurrentRuns                     int     `json:"current_runs"`
+	CurrentRuns                    int     `json:"current_runs"`
 
 	PreviousPassPercentage          float64 `json:"previous_pass_percentage"`
 	PreviousProjectedPassPercentage float64 `json:"previous_projected_pass_percentage"`
 	PreviousRuns                    int     `json:"previous_runs"`
 	NetImprovement                  float64 `json:"net_improvement"`
+
+	TestGridURL    string       `json:"test_grid_url"`
+	Bugs           []bugsv1.Bug `json:"bugs"`
+	AssociatedBugs []bugsv1.Bug `json:"associated_bugs"`
 }

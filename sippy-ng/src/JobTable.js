@@ -1,4 +1,4 @@
-import { Box, Button, Tooltip, Typography } from '@material-ui/core';
+import { Box, Button, Hidden, Tooltip, Typography } from '@material-ui/core';
 import IconButton from '@material-ui/core/IconButton';
 import { createTheme } from '@material-ui/core/styles';
 import TextField from '@material-ui/core/TextField';
@@ -7,7 +7,7 @@ import {
     GridToolbarDensitySelector,
     GridToolbarFilterButton
 } from '@material-ui/data-grid';
-import { Search } from '@material-ui/icons';
+import { BugReport, Search } from '@material-ui/icons';
 import ClearIcon from '@material-ui/icons/Clear';
 import SearchIcon from '@material-ui/icons/Search';
 import Alert from '@material-ui/lab/Alert';
@@ -16,8 +16,8 @@ import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import React, { Fragment, useEffect } from 'react';
 import { NumberParam, StringParam, useQueryParam } from 'use-query-params';
+import BugzillaDialog from './BugzillaDialog';
 import PassRateIcon from './PassRate/passRateIcon';
-import SortByMenu from './SortByMenu';
 
 function escapeRegExp(value) {
     return value.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
@@ -65,70 +65,6 @@ const styles = {
 };
 
 
-const columns = [
-    {
-        field: 'name',
-        headerName: 'Name',
-        flex: 5,
-        renderCell: (params) => {
-            return (
-                <Tooltip title={params.value}>
-                    <p>{params.value}</p>
-                </Tooltip>
-            );
-        }
-    },
-    {
-        field: 'current_pass_percentage',
-        headerName: 'Last 7 Days',
-        type: 'number',
-        flex: 1,
-        renderCell: (params) => (
-            <Tooltip title={params.row.current_runs + " runs"}>
-                <p>
-                    {Number(params.value).toFixed(2).toLocaleString()}%
-                </p>
-            </Tooltip>
-        ),
-    },
-    {
-        field: 'net_improvement',
-        headerName: 'Improvement',
-        type: 'number',
-        flex: 0.2,
-        renderCell: (params) => {
-            return (
-                <PassRateIcon improvement={params.value} />
-            );
-        },
-    },
-    {
-        field: 'previous_pass_percentage',
-        headerName: 'Previous 7 days',
-        flex: 1,
-        type: 'number',
-        renderCell: (params) => (
-            <Tooltip title={params.row.current_runs + " runs"}>
-                <p>
-                    {Number(params.value).toFixed(2).toLocaleString()}%
-                </p>
-            </Tooltip>
-        ),
-    },
-    {
-        field: 'link',
-        headerName: ' ',
-        flex: 0.75,
-        renderCell: (params) => {
-            return (
-                <Box>
-                    <Button target="_blank" startIcon={<Search />} href={"https://search.ci.openshift.org/?search=" + encodeURIComponent(params.row.name) + "&maxAge=336h&context=1&type=bug%2Bjunit&name=&excludeName=&maxMatches=5&maxBytes=20971520&groupBy=job"} />
-                </Box>
-            );
-        },
-    },
-];
-
 function JobSearchToolbar(props) {
     const classes = useStyles();
 
@@ -137,7 +73,6 @@ function JobSearchToolbar(props) {
             <div>
                 <GridToolbarFilterButton />
                 <GridToolbarDensitySelector />
-                <SortByMenu setSort={props.setSort} />
             </div>
             <TextField
                 variant="standard"
@@ -152,7 +87,6 @@ function JobSearchToolbar(props) {
                             title="Clear"
                             aria-label="Clear"
                             size="small"
-                            style={{ visibility: props.value ? 'visible' : 'hidden' }}
                             onClick={props.clearSearch}
                         >
                             <ClearIcon fontSize="small" />
@@ -167,7 +101,6 @@ function JobSearchToolbar(props) {
 JobSearchToolbar.propTypes = {
     clearSearch: PropTypes.func.isRequired,
     onChange: PropTypes.func.isRequired,
-    value: PropTypes.string.isRequired,
 };
 
 function JobTable(props) {
@@ -176,10 +109,6 @@ function JobTable(props) {
     const [isLoaded, setLoaded] = React.useState(false)
     const [jobs, setJobs] = React.useState([])
     const [rows, setRows] = React.useState([])
-    const [sortModel, setSortModel] = React.useState([{
-        field: 'net_improvement',
-        sort: 'asc',
-    }])
 
     const [filterBy = props.filterBy, setFilterBy] = useQueryParam("filterBy", StringParam)
     const [sortBy = props.sortBy, sortSortBy] = useQueryParam("sortBy", StringParam)
@@ -188,22 +117,113 @@ function JobTable(props) {
 
     const [job = "", setJob] = useQueryParam("job", StringParam)
 
+    const [isBugzillaDialogOpen, setBugzillaDialogOpen] = React.useState(false)
+    const [jobDetails, setJobDetails] = React.useState({ bugs: [] })
+
+    const columns = [
+        {
+            field: 'name',
+            headerName: 'Name',
+            flex: 4,
+            renderCell: (params) => {
+                return (
+                    <Tooltip title={params.value}>
+                        <Box>{props.briefTable ? params.row.brief_name : params.value}</Box>
+                    </Tooltip>
+                );
+            }
+        },
+        {
+            field: 'current_pass_percentage',
+            headerName: 'Last 7 Days',
+            type: 'number',
+            flex: 1,
+            renderCell: (params) => (
+                <Tooltip title={params.row.current_runs + " runs"}>
+                    <Box>
+                        {Number(params.value).toFixed(2).toLocaleString()}%
+                    </Box>
+                </Tooltip>
+            ),
+        },
+        {
+            field: 'net_improvement',
+            headerName: 'Improvement',
+            type: 'number',
+            flex: 0.5,
+            renderCell: (params) => {
+                return (
+                    <PassRateIcon improvement={params.value} />
+                );
+            },
+        },
+        {
+            field: 'previous_pass_percentage',
+            headerName: 'Previous 7 days',
+            flex: 1,
+            type: 'number',
+            renderCell: (params) => (
+                <Tooltip title={params.row.current_runs + " runs"}>
+                    <Box>
+                        {Number(params.value).toFixed(2).toLocaleString()}%
+                    </Box>
+                </Tooltip>
+            ),
+        },
+        {
+            field: 'link',
+            headerName: ' ',
+            flex: 0.40,
+            renderCell: (params) => {
+                return (
+                    <Button style={{ justifyContent: "center" }} target="_blank" startIcon={<Search />} href={"https://search.ci.openshift.org/?search=" + encodeURIComponent(params.row.name) + "&maxAge=336h&context=1&type=bug%2Bjunit&name=&excludeName=&maxMatches=5&maxBytes=20971520&groupBy=job"} />
+                );
+            },
+            hide: props.briefTable,
+        },
+        {
+            field: 'bugs',
+            headerName: ' ',
+            flex: 0.40,
+            renderCell: (params) => {
+                return (
+                    <Tooltip title={params.value.length + " linked bugs" + ", " + params.row.associated_bugs.length + " associated bugs"}>
+                        <Button style={{ justifyContent: "center", color: params.value.length > 0 ? "black" : "silver" }} startIcon={<BugReport />} onClick={() => openBugzillaDialog(params.row)} />
+                    </Tooltip>
+                );
+            },
+            sortComparator: (v1, v2, param1, param2) =>
+                param1.value.length - param2.value.length
+            ,
+            hide: props.briefTable,
+        },
+    ];
+
+    const openBugzillaDialog = (job) => {
+        setJobDetails(job)
+        setBugzillaDialogOpen(true)
+    }
+
+    const closeBugzillaDialog = (details) => {
+        setBugzillaDialogOpen(false)
+    }
+
     const fetchData = () => {
         let queryString = ""
-        if (filterBy && filterBy != "") {
+        if (filterBy && filterBy !== "") {
             queryString += "&filterBy=" + encodeURIComponent(filterBy)
         }
 
-        if (sortBy && sortBy != "") {
+        if (sortBy && sortBy !== "") {
             queryString += "&sortBy=" + encodeURIComponent(sortBy)
         }
 
-        if (limit && limit != "") {
+        if (limit && limit !== "") {
             queryString += "&limit=" + encodeURIComponent(limit)
         }
 
 
-        if (job && job != "") {
+        if (job && job !== "") {
             queryString += "&job=" + encodeURIComponent(job)
         }
 
@@ -211,7 +231,7 @@ function JobTable(props) {
             queryString += "&runs=" + encodeURIComponent(runs)
         }
 
-        fetch(process.env.REACT_APP_API_URL + '/api/jobs2?release=' + props.release + queryString)
+        fetch(process.env.REACT_APP_API_URL + '/api/jobs?release=' + props.release + queryString)
             .then((response) => {
                 if (response.status !== 200) {
                     throw new Error("server returned " + response.status);
@@ -240,7 +260,7 @@ function JobTable(props) {
 
     useEffect(() => {
         fetchData();
-    }, [filterBy, job]);
+    }, [filterBy]);
 
     const pageTitle = () => {
         if (props.title) {
@@ -273,8 +293,8 @@ function JobTable(props) {
                 columns={columns}
                 autoHeight={true}
                 pageSize={props.pageSize}
-                sortModel={sortModel}
-                onSortModelChange={(model) => setSortModel(model)}
+                disableColumnFilter={props.briefTable}
+                disableColumnMenu={true}
                 getRowClassName={(params =>
                     clsx({
                         [classes.good]: (params.row.current_pass_percentage >= 80),
@@ -286,11 +306,11 @@ function JobTable(props) {
                     toolbar: {
                         onChange: (event) => requestSearch(event.target.value),
                         clearSearch: () => requestSearch(''),
-                        setSort: setSortModel,
                     },
                 }}
 
             />
+            <BugzillaDialog item={jobDetails} isOpen={isBugzillaDialogOpen} close={closeBugzillaDialog} />
         </Fragment>
     );
 }
@@ -298,6 +318,7 @@ function JobTable(props) {
 JobTable.defaultProps = {
     hideControls: false,
     pageSize: 25,
+    briefTable: false,
 }
 
 export default withStyles(styles)(JobTable);

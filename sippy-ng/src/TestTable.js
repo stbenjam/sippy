@@ -1,13 +1,13 @@
 import { Box, Button, Container, Menu, MenuItem, Tooltip, Typography } from '@material-ui/core';
 import IconButton from '@material-ui/core/IconButton';
-import { createTheme } from '@material-ui/core/styles';
+import { createTheme, useTheme } from '@material-ui/core/styles';
 import TextField from '@material-ui/core/TextField';
 import {
     DataGrid,
     GridToolbarDensitySelector,
     GridToolbarFilterButton
 } from '@material-ui/data-grid';
-import { Bookmark, Search } from '@material-ui/icons';
+import { Bookmark, BugReport, Search } from '@material-ui/icons';
 import ClearIcon from '@material-ui/icons/Clear';
 import SearchIcon from '@material-ui/icons/Search';
 import Alert from '@material-ui/lab/Alert';
@@ -15,8 +15,9 @@ import { makeStyles, withStyles } from '@material-ui/styles';
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import React, { Fragment, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Switch, Route } from 'react-router-dom';
 import { ArrayParam, NumberParam, StringParam, useQueryParam } from 'use-query-params';
+import BugzillaDialog from './BugzillaDialog';
 import PassRateIcon from './PassRate/passRateIcon';
 
 function escapeRegExp(value) {
@@ -83,6 +84,8 @@ function FilterMenu(props) {
             >
 
                 <MenuItem onClick={() => selectFilter("all")}>All tests</MenuItem>
+                <MenuItem onClick={() => selectFilter("hasBug")}>With bugs</MenuItem>
+                <MenuItem onClick={() => selectFilter("noBug")}>No bug</MenuItem>
                 <MenuItem onClick={() => selectFilter("trt")}>Curated TRT tests</MenuItem>
                 <MenuItem onClick={() => selectFilter("runs")}>More than 10 runs</MenuItem>
             </Menu>
@@ -149,68 +152,99 @@ const styles = {
 };
 
 
-const columns = [
-    {
-        field: 'name',
-        headerName: 'Name',
-        flex: 5,
-        renderCell: (params) => (
-            <Tooltip title={params.value}>
-                <p>{params.value}</p>
-            </Tooltip>
-        ),
-    },
-    {
-        field: 'current_pass_percentage',
-        headerName: 'Last 7 Days',
-        type: 'number',
-        flex: 1,
-        renderCell: (params) => (
-            <Tooltip title={params.row.current_runs + " runs"}>
-                <p>
-                    {Number(params.value).toFixed(2).toLocaleString()}%
-                </p>
-            </Tooltip>
-        ),
-    },
-    {
-        field: 'net_improvement',
-        headerName: 'Improvement',
-        type: 'number',
-        flex: 0.2,
-        renderCell: (params) => {
-            return <PassRateIcon improvement={params.value} />
-        },
-    },
-    {
-        field: 'previous_pass_percentage',
-        headerName: 'Previous 7 days',
-        flex: 1,
-        type: 'number',
-        renderCell: (params) => (
-            <Tooltip title={params.row.current_runs + " runs"}>
-                <p>
-                    {Number(params.value).toFixed(2).toLocaleString()}%
-                </p>
-            </Tooltip>
-        ),
-    },
-    {
-        field: 'link',
-        headerName: ' ',
-        flex: 0.75,
-        renderCell: (params) => {
-            return (
-                <Box>
-                    <Button target="_blank" startIcon={<Search />} href={"https://search.ci.openshift.org/?search=" + encodeURIComponent(params.row.name) + "&maxAge=336h&context=1&type=bug%2Bjunit&name=&excludeName=&maxMatches=5&maxBytes=20971520&groupBy=job"} />
-                </Box>
-            );
-        },
-    },
-];
 
 function TestTable(props) {
     const { classes } = props;
+    const { theme } = useTheme();
+
+    console.log("re-render")
+
+    const columns = [
+        {
+            field: 'name',
+            headerName: 'Name',
+            flex: 4,
+            renderCell: (params) => (
+                <Tooltip title={params.value}>
+                    <p>{params.value}</p>
+                </Tooltip>
+            ),
+        },
+        {
+            field: 'current_pass_percentage',
+            headerName: 'Last 7 Days',
+            type: 'number',
+            flex: 0.75,
+            renderCell: (params) => (
+                <Tooltip title={params.row.current_runs + " runs"}>
+                    <p>
+                        {Number(params.value).toFixed(2).toLocaleString()}%
+                    </p>
+                </Tooltip>
+            ),
+        },
+        {
+            field: 'net_improvement',
+            headerName: 'Improvement',
+            type: 'number',
+            flex: 0.2,
+            renderCell: (params) => {
+                return <PassRateIcon improvement={params.value} />
+            },
+        },
+        {
+            field: 'previous_pass_percentage',
+            headerName: 'Previous 7 days',
+            flex: 0.75,
+            type: 'number',
+            renderCell: (params) => (
+                <Tooltip title={params.row.current_runs + " runs"}>
+                    <p>
+                        {Number(params.value).toFixed(2).toLocaleString()}%
+                    </p>
+                </Tooltip>
+            ),
+        },
+        {
+            field: 'link',
+            headerName: ' ',
+            flex: 0.50,
+            renderCell: (params) => {
+                return (
+                    <Button target="_blank" startIcon={<Search />} href={"https://search.ci.openshift.org/?search=" + encodeURIComponent(params.row.name) + "&maxAge=336h&context=1&type=bug%2Bjunit&name=&excludeName=&maxMatches=5&maxBytes=20971520&groupBy=job"} />
+                );
+            },
+            hide: props.briefTable,
+        },
+        {
+            field: 'bugs',
+            headerName: ' ',
+            flex: 0.50,
+            renderCell: (params) => {
+                return (
+                    <Tooltip title={params.value.length + " linked bugs" + ", " + params.row.associated_bugs.length + " associated bugs"}>
+                        <Button style={{ color: params.value.length > 0 ? "black" : "silver" }} startIcon={<BugReport />} onClick={() => openBugzillaDialog(params.row)} />
+                    </Tooltip>
+                );
+            },
+            sortComparator: (v1, v2, param1, param2) => 
+                param1.value.length - param2.value.length
+            ,
+            hide: props.briefTable,
+        },
+    ];
+
+    const openBugzillaDialog = (test) => {
+        setTestDetails(test)
+        setBugzillaDialogOpen(true)
+    }
+
+    const closeBugzillaDialog = (details) => {
+        setBugzillaDialogOpen(false)
+    }
+
+    const [isBugzillaDialogOpen, setBugzillaDialogOpen] = React.useState(false)
+    const [testDetails, setTestDetails] = React.useState({ bugs: [] })
 
     const [fetchError, setFetchError] = React.useState("")
     const [isLoaded, setLoaded] = React.useState(false)
@@ -326,6 +360,8 @@ function TestTable(props) {
                 rows={rows}
                 columns={columns}
                 autoHeight={true}
+                disableColumnFilter={props.briefTable}
+                disableColumnMenu={true}
                 pageSize={props.pageSize}
                 checkboxSelection={!props.hideControls}
                 onSelectionModelChange={(rows) =>
@@ -351,6 +387,7 @@ function TestTable(props) {
 
             {props.hideControls ? "" : detailsButton}
 
+            <BugzillaDialog item={testDetails} isOpen={isBugzillaDialogOpen} close={closeBugzillaDialog} />
         </Container>
     );
 }
@@ -358,6 +395,7 @@ function TestTable(props) {
 TestTable.defaultProps = {
     hideControls: false,
     pageSize: 25,
+    briefTable: false,
 }
 
 export default withStyles(styles)(TestTable);

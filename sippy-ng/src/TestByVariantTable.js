@@ -121,7 +121,7 @@ Row.propTypes = {
 export default function TestByVariantTable(props) {
     const [showFull, setShowFull] = useQueryParam("showFull", BooleanParam)
 
-    if (props.data === undefined) {
+    if (props.data === undefined || !Array.isArray(props.data)) {
         return <p>No data.</p>
     };
 

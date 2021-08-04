@@ -118,6 +118,7 @@ export default function ReleaseOverview(props) {
                                 filterBy="runs"
                                 runs={10}
                                 pageSize={5}
+                                briefTable={true}
                                 release={props.release} />
 
                         </Card>
@@ -139,7 +140,8 @@ export default function ReleaseOverview(props) {
                                 filterBy="runs"
                                 runs={10}
                                 pageSize={5}
-                                release={props.release} />
+                                release={props.release}
+                                briefTable={true} />
 
                         </Card>
                     </Grid>

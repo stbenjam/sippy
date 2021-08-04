@@ -14,6 +14,13 @@ import (
 	"github.com/openshift/sippy/pkg/util/sets"
 )
 
+type ResponseFormat string
+
+const (
+	HTML ResponseFormat = "html"
+	JSON ResponseFormat = "json"
+)
+
 var individualInstallUpgradeColor = generichtml.ColorizationCriteria{
 	MinRedPercent:    0,  // failure.  In this range, there is a systemic failure so severe that a reliable signal isn't available.
 	MinYellowPercent: 90, // at risk.  In this range, there is a systemic problem that needs to be addressed.

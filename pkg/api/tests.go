@@ -1,11 +1,8 @@
 package api
 
 import (
-	"encoding/json"
-	"fmt"
-	v1sippy "github.com/openshift/sippy/pkg/apis/sippy/v1"
-	v1 "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
-	"github.com/openshift/sippy/pkg/html/generichtml"
+	v1 "github.com/openshift/sippy/pkg/apis/sippy/v1"
+	v1sippyprocessing "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
 	"github.com/openshift/sippy/pkg/html/installhtml"
 	"github.com/openshift/sippy/pkg/testgridanalysis/testidentification"
 	"github.com/openshift/sippy/pkg/util"
@@ -16,13 +13,19 @@ import (
 	"strings"
 )
 
-func generateTests(release string, filterBy string, sortBy string, limit int, names []string, runs int, current, previous []v1.FailingTestResult) []v1sippy.Test {
-	rows := make([]v1sippy.Test, 0)
-	var filter func(result v1.FailingTestResult) bool
+func PrintTestsDetailsJSON(w http.ResponseWriter, req *http.Request, current, previous v1sippyprocessing.TestReport) {
+	respondWithJSON(w, installhtml.TestDetailTests(installhtml.JSON, current, previous, req.URL.Query()["test"]))
+}
 
+func testFilter(req *http.Request, release string) func(result v1sippyprocessing.FailingTestResult) bool {
+	filterBy := req.URL.Query().Get("filterBy")
+	runs, _ := strconv.Atoi(req.URL.Query().Get("runs"))
+	names := req.URL.Query()["test"]
+
+	var filter func(result v1sippyprocessing.FailingTestResult) bool
 	switch filterBy {
 	case "name":
-		filter = func(test v1.FailingTestResult) bool {
+		filter = func(test v1sippyprocessing.FailingTestResult) bool {
 			regex := regexp.QuoteMeta(strings.Join(names, "|"))
 			match, err := regexp.Match(regex, []byte(test.TestName))
 			if err != nil {
@@ -31,22 +34,65 @@ func generateTests(release string, filterBy string, sortBy string, limit int, na
 			return match
 		}
 	case "install":
-		filter = func(test v1.FailingTestResult) bool {
+		filter = func(test v1sippyprocessing.FailingTestResult) bool {
 			return testidentification.IsInstallRelatedTest(test.TestName)
 		}
 	case "upgrade":
-		filter = func(test v1.FailingTestResult) bool {
+		filter = func(test v1sippyprocessing.FailingTestResult) bool {
 			return testidentification.IsUpgradeRelatedTest(test.TestName)
 		}
 	case "runs":
-		filter = func(test v1.FailingTestResult) bool {
+		filter = func(test v1sippyprocessing.FailingTestResult) bool {
 			return (test.TestResultAcrossAllJobs.Failures + test.TestResultAcrossAllJobs.Successes + test.TestResultAcrossAllJobs.Flakes) > runs
 		}
 	case "trt":
-		filter = func(test v1.FailingTestResult) bool {
+		filter = func(test v1sippyprocessing.FailingTestResult) bool {
 			return testidentification.IsCuratedTest(release, test.TestName)
 		}
+	case "hasBug":
+		return func(test v1sippyprocessing.FailingTestResult) bool {
+			return len(test.TestResultAcrossAllJobs.BugList) > 0
+		}
+	case "noBug":
+		return func(test v1sippyprocessing.FailingTestResult) bool {
+			return len(test.TestResultAcrossAllJobs.BugList) == 0
+		}
 	}
+
+	return filter
+}
+
+type testsApiResult []v1.Test
+
+func (tests testsApiResult) sort(req *http.Request) testsApiResult {
+	sortBy := req.URL.Query().Get("sortBy")
+
+	switch sortBy {
+	case "regression":
+		sort.Slice(tests, func(i, j int) bool {
+			return tests[i].NetImprovement < tests[j].NetImprovement
+		})
+	case "improvement":
+		sort.Slice(tests, func(i, j int) bool {
+			return tests[i].NetImprovement > tests[j].NetImprovement
+		})
+	}
+
+	return tests
+}
+
+func (tests testsApiResult) limit(req *http.Request) testsApiResult {
+	limit, _ := strconv.Atoi(req.URL.Query().Get("limit"))
+	if limit > 0 {
+		return tests[:limit]
+	}
+
+	return tests
+}
+
+func PrintTestsJSON(release string, w http.ResponseWriter, req *http.Request, current []v1sippyprocessing.FailingTestResult, previous []v1sippyprocessing.FailingTestResult) {
+	tests := testsApiResult{}
+	filter := testFilter(req, release)
 
 	for idx, test := range current {
 		if filter != nil && !filter(test) {
@@ -55,8 +101,8 @@ func generateTests(release string, filterBy string, sortBy string, limit int, na
 
 		testPrev := util.FindFailedTestResult(test.TestName, previous)
 
-		var row v1sippy.Test
-		row = v1sippy.Test{
+		var row v1.Test
+		row = v1.Test{
 			ID:                    idx,
 			Name:                  test.TestName,
 			CurrentSuccesses:      test.TestResultAcrossAllJobs.Successes,
@@ -74,43 +120,13 @@ func generateTests(release string, filterBy string, sortBy string, limit int, na
 			row.NetImprovement = row.CurrentPassPercentage - row.PreviousPassPercentage
 		}
 
-		rows = append(rows, row)
+		row.Bugs = test.TestResultAcrossAllJobs.BugList
+		row.AssociatedBugs = test.TestResultAcrossAllJobs.AssociatedBugList
+
+		tests = append(tests, row)
 	}
 
-	switch sortBy {
-	case "regression":
-		sort.Slice(rows, func(i, j int) bool {
-			return rows[i].NetImprovement < rows[j].NetImprovement
-		})
-	}
-
-	if limit > 0 {
-		return rows[:limit]
-	} else {
-		return rows
-	}
-}
-
-func PrintTestsDetailsJSON(w http.ResponseWriter, req *http.Request, current, previous v1.TestReport) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	fmt.Fprint(w, installhtml.TestDetailTests("json", current, previous, req.URL.Query()["test"]))
-}
-
-func PrintTestsJSON(release string, w http.ResponseWriter, req *http.Request, current []v1.FailingTestResult, previous []v1.FailingTestResult) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	filterBy := req.URL.Query().Get("filterBy")
-	sortBy := req.URL.Query().Get("sortBy")
-	limit, _ := strconv.Atoi(req.URL.Query().Get("limit"))
-	runs, _ := strconv.Atoi(req.URL.Query().Get("runs"))
-	names := req.URL.Query()["test"]
-
-	response := generateTests(release, filterBy, sortBy, limit, names, runs, current, previous)
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		generichtml.PrintStatusMessage(w, http.StatusInternalServerError, fmt.Sprintf("could not print test results: %s", err))
-	}
+	respondWithJSON(w, tests.
+		sort(req).
+		limit(req))
 }

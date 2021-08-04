@@ -231,7 +231,6 @@ func (c *bugCache) ListJobBlockingBugs(jobName string) []bugsv1.Bug {
 
 func findBugs(testNames []string) (map[string][]bugsv1.Bug, error) {
 	searchResults := make(map[string][]bugsv1.Bug)
-	return nil, nil
 
 	v := url.Values{}
 	v.Set("type", "bug")

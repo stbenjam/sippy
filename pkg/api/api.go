@@ -12,7 +12,6 @@ import (
 	sippyv1 "github.com/openshift/sippy/pkg/apis/sippy/v1"
 	sippyprocessingv1 "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
 	"github.com/openshift/sippy/pkg/util"
-	"k8s.io/klog"
 )
 
 // stats on failure groups
@@ -130,9 +129,6 @@ func summaryTopFailingTestsWithBug(topFailingTestsWithBug, prevTestResults []sip
 	return topFailingTests
 
 }
-
-
-
 
 // top failing tests without a bug
 func summaryTopFailingTestsWithoutBug(topFailingTestsWithoutBug, prevTopFailingTestsWithoutBug []sippyprocessingv1.FailingTestResult) []sippyv1.FailingTestBug {
@@ -407,11 +403,16 @@ func PrintJSONReport(w http.ResponseWriter, req *http.Request, releaseReports ma
 		prevReport := reports[1]
 		reportObjects[report.Release] = formatJSONReport(report, prevReport, numDays, jobTestCount)
 	}
-	enc := json.NewEncoder(w)
-	enc.SetEscapeHTML(false)
-	enc.SetIndent("", "    ")
-	err := enc.Encode(reportObjects)
-	if err != nil {
-		klog.Errorf("unable to render json %v", err)
+
+	respondWithJSON(w, reportObjects)
+}
+
+func respondWithJSON(w http.ResponseWriter, data interface{}) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Sprintf(`{message: "could not marshal results: %s"}`, err)
 	}
 }

@@ -1,59 +1,91 @@
 package api
 
 import (
-	"encoding/json"
-	"fmt"
-	sippyv1 "github.com/openshift/sippy/pkg/apis/sippy/v1"
-	v1 "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
-	"github.com/openshift/sippy/pkg/html/generichtml"
+	v1 "github.com/openshift/sippy/pkg/apis/sippy/v1"
+	v1sippyprocessing "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
 	"github.com/openshift/sippy/pkg/util"
 	"net/http"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 )
 
-const failure string = "Failure"
-
-func PrintJobs2Report(w http.ResponseWriter, req *http.Request, current, previous []v1.JobResult) {
-	jobs := make([]sippyv1.Job, 0)
-
+func jobFilter(req *http.Request) func(result v1sippyprocessing.JobResult) bool {
 	filterBy := req.URL.Query().Get("filterBy")
-	sortBy := req.URL.Query().Get("sortBy")
-	limit, _ := strconv.Atoi(req.URL.Query().Get("limit"))
 	runs, _ := strconv.Atoi(req.URL.Query().Get("runs"))
 	job := req.URL.Query().Get("job")
 
-	var filterFunc func(result v1.JobResult) bool
 	switch filterBy {
 	case "name":
-		filterFunc = func(jobResult v1.JobResult) bool {
+		return func(jobResult v1sippyprocessing.JobResult) bool {
 			return strings.Contains(jobResult.Name, job)
 		}
 	case "upgrade":
-		filterFunc = func(jobResult v1.JobResult) bool {
+		return func(jobResult v1sippyprocessing.JobResult) bool {
 			return strings.Contains(jobResult.Name, "-upgrade-")
 		}
 	case "runs":
-		filterFunc = func(jobResult v1.JobResult) bool {
-			return (jobResult.Failures + jobResult.Successes) > runs
+		return func(jobResult v1sippyprocessing.JobResult) bool {
+			return (jobResult.Failures + jobResult.Successes) >= runs
+		}
+	case "hasBug":
+		return func(jobResult v1sippyprocessing.JobResult) bool {
+			return len(jobResult.BugList) > 0
+		}
+	case "noBug":
+		return func(jobResult v1sippyprocessing.JobResult) bool {
+			return len(jobResult.BugList) == 0
 		}
 	default:
-		filterFunc = func(_ v1.JobResult) bool {
-			return true
-		}
+		// Unfiltered
+		return nil
+	}
+}
+
+type jobsApiResult []v1.Job
+
+func (jobs jobsApiResult) sort(req *http.Request) jobsApiResult {
+	sortBy := req.URL.Query().Get("sortBy")
+
+	switch sortBy {
+	case "regression":
+		sort.Slice(jobs, func(i, j int) bool {
+			return jobs[i].NetImprovement < jobs[j].NetImprovement
+		})
+	case "improvement":
+		sort.Slice(jobs, func(i, j int) bool {
+			return jobs[i].NetImprovement < jobs[j].NetImprovement
+		})
 	}
 
+	return jobs
+}
+
+func (jobs jobsApiResult) limit(req *http.Request) jobsApiResult {
+	limit, _ := strconv.Atoi(req.URL.Query().Get("limit"))
+	if limit > 0 {
+		return jobs[:limit]
+	}
+
+	return jobs
+}
+
+func PrintJobsReport(w http.ResponseWriter, req *http.Request, current, previous []v1sippyprocessing.JobResult) {
+	jobs := jobsApiResult{}
+	filter := jobFilter(req)
+	briefName := regexp.MustCompile("periodic-ci-openshift-release-master-(ci|nightly)-[0-9]+.[0-9]+-")
+
 	for idx, jobResult := range current {
-		if !filterFunc(jobResult) {
+		if filter != nil && !filter(jobResult) {
 			continue
 		}
 
 		prevResult := util.FindJobResultForJobName(jobResult.Name, previous)
-
-		job := sippyv1.Job{
+		job := v1.Job{
 			ID:                             idx,
 			Name:                           jobResult.Name,
+			BriefName:						briefName.ReplaceAllString(jobResult.Name, ""),
 			CurrentPassPercentage:          jobResult.PassPercentage,
 			CurrentProjectedPassPercentage: jobResult.PassPercentageWithoutInfrastructureFailures,
 			CurrentRuns:                    jobResult.Failures + jobResult.Successes,
@@ -66,24 +98,14 @@ func PrintJobs2Report(w http.ResponseWriter, req *http.Request, current, previou
 			job.NetImprovement = jobResult.PassPercentage - prevResult.PassPercentage
 		}
 
+		job.Bugs = jobResult.BugList
+		job.AssociatedBugs = jobResult.AssociatedBugList
+		job.TestGridURL = jobResult.TestGridURL
+
 		jobs = append(jobs, job)
 	}
 
-	switch sortBy {
-	case "regression":
-		sort.Slice(jobs, func(i, j int) bool {
-			return jobs[i].NetImprovement < jobs[j].NetImprovement
-		})
-	}
-
-	if limit > 0 {
-		jobs = jobs[:limit]
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	if err := json.NewEncoder(w).Encode(jobs); err != nil {
-		generichtml.PrintStatusMessage(w, http.StatusInternalServerError, fmt.Sprintf("could not print test results: %s", err))
-	}
+	respondWithJSON(w, jobs.
+		sort(req).
+		limit(req))
 }

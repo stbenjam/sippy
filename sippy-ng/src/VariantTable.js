@@ -40,9 +40,9 @@ const columns = [
         flex: 1,
         renderCell: (params) => (
             <Tooltip title={params.row.current_runs + " runs"}>
-                <p>
+                <Box>
                     {Number(params.value).toFixed(2).toLocaleString()}%
-                </p>
+                </Box>
             </Tooltip>
         ),
     },
@@ -62,9 +62,9 @@ const columns = [
         type: 'number',
         renderCell: (params) => (
             <Tooltip title={params.row.current_runs + " runs"}>
-                <p>
+                <Box>
                     {Number(params.value).toFixed(2).toLocaleString()}%
-                </p>
+                </Box>
             </Tooltip>
         ),
     },
