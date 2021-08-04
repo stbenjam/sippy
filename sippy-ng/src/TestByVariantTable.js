@@ -51,7 +51,6 @@ function Cell(props) {
                 theme.palette.warning.light,
                 theme.palette.success.light
             ]).domain(props.colorScale) 
-        console.log(percent)
         return(colorScale(percent).hex())
     }
 
@@ -121,7 +120,7 @@ Row.propTypes = {
 export default function TestByVariantTable(props) {
     const [showFull, setShowFull] = useQueryParam("showFull", BooleanParam)
 
-    if (props.data === undefined || !Array.isArray(props.data)) {
+    if (props.data === undefined || props.data.tests.length == 0) {
         return <p>No data.</p>
     };
 

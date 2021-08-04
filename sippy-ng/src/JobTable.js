@@ -1,4 +1,4 @@
-import { Box, Button, Hidden, Tooltip, Typography } from '@material-ui/core';
+import { Box, Button, Container, Hidden, Tooltip, Typography } from '@material-ui/core';
 import IconButton from '@material-ui/core/IconButton';
 import { createTheme } from '@material-ui/core/styles';
 import TextField from '@material-ui/core/TextField';
@@ -79,8 +79,7 @@ function JobSearchToolbar(props) {
                 value={props.value}
                 onChange={props.onChange}
                 placeholder="Search…"
-                className={classes.textField}
-                InputProps={{
+                inputProps={{
                     startAdornment: <SearchIcon fontSize="small" />,
                     endAdornment: (
                         <IconButton
@@ -124,7 +123,7 @@ function JobTable(props) {
         {
             field: 'name',
             headerName: 'Name',
-            flex: 4,
+            flex: 3,
             renderCell: (params) => {
                 return (
                     <Tooltip title={params.value}>
@@ -285,7 +284,7 @@ function JobTable(props) {
     }
 
     return (
-        <Fragment>
+        <Container size="xl">
             {pageTitle()}
             <DataGrid
                 components={{ Toolbar: props.hideControls ? "" : JobSearchToolbar }}
@@ -311,7 +310,7 @@ function JobTable(props) {
 
             />
             <BugzillaDialog item={jobDetails} isOpen={isBugzillaDialogOpen} close={closeBugzillaDialog} />
-        </Fragment>
+        </Container>
     );
 }
 

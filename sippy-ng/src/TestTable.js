@@ -157,13 +157,11 @@ function TestTable(props) {
     const { classes } = props;
     const { theme } = useTheme();
 
-    console.log("re-render")
-
     const columns = [
         {
             field: 'name',
             headerName: 'Name',
-            flex: 4,
+            flex: 3,
             renderCell: (params) => (
                 <Tooltip title={params.value}>
                     <p>{params.value}</p>
@@ -174,7 +172,7 @@ function TestTable(props) {
             field: 'current_pass_percentage',
             headerName: 'Last 7 Days',
             type: 'number',
-            flex: 0.75,
+            flex: 0.5,
             renderCell: (params) => (
                 <Tooltip title={params.row.current_runs + " runs"}>
                     <p>
@@ -187,7 +185,7 @@ function TestTable(props) {
             field: 'net_improvement',
             headerName: 'Improvement',
             type: 'number',
-            flex: 0.2,
+            flex: 0.5,
             renderCell: (params) => {
                 return <PassRateIcon improvement={params.value} />
             },
@@ -195,7 +193,7 @@ function TestTable(props) {
         {
             field: 'previous_pass_percentage',
             headerName: 'Previous 7 days',
-            flex: 0.75,
+            flex: 0.5,
             type: 'number',
             renderCell: (params) => (
                 <Tooltip title={params.row.current_runs + " runs"}>

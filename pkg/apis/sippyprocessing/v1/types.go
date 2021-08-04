@@ -70,6 +70,16 @@ type TopLevelIndicators struct {
 	Upgrade FailingTestResult
 	// FinalOperatorState indicates how often test runs finish with every operator healthy
 	FinalOperatorHealth FailingTestResult
+	// Variants contains a metric for overall health. Success is the variant pass rate over 80%, flake over 60%, fail under
+	// that. This excludes never-stable.
+	Variant VariantHealth
+}
+
+// VariantHealth is used to report overall health of variants.
+type VariantHealth struct {
+	Success int `json:"success"`
+	Unstable int `json:"unstable"`
+	Failed int `json:"failed"`
 }
 
 // VariantResults

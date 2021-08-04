@@ -35,6 +35,7 @@ func PrepareTestReport(
 	infrequentJobsTestResultFilterFn := StandardTestResultFilter(2, successThreshold)
 
 	byVariant := convertRawDataToByVariant(allJobResults, standardTestResultFilterFn, variantManager)
+	variantHealth := convertVariantResultsToHealth(byVariant)
 
 	filteredFailureGroups := filterFailureGroups(rawData.JobResults, allTestResultsByName, failureClusterThreshold)
 	frequentJobResults := filterPertinentFrequentJobResults(allJobResults, numDays, standardTestResultFilterFn)
@@ -61,6 +62,7 @@ func PrepareTestReport(
 			Install:             install,
 			Upgrade:             upgrade,
 			FinalOperatorHealth: finalOperatorHealth,
+			Variant: variantHealth,
 		},
 
 		ByTest:        allTestResultsByName.toOrderedList(),

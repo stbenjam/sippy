@@ -343,6 +343,22 @@ func (s *Server) jsonReleasesReport(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func (s *Server) jsonHealthReport(w http.ResponseWriter, req *http.Request) {
+	release := req.URL.Query().Get("release")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	if _, ok := s.currTestReports[release]; !ok {
+		generichtml.PrintStatusMessage(w, http.StatusNotFound, fmt.Sprintf("Release %q not found.", release))
+		return
+	}
+
+	curr := s.currTestReports[release].CurrentPeriodReport
+	prev := s.currTestReports[release].PreviousWeekReport
+
+	api.PrintOverallReleaseHealth(w, curr, prev)
+}
+
 func (s *Server) variantsReport(w http.ResponseWriter, req *http.Request) (*sippyprocessingv1.VariantResults, *sippyprocessingv1.VariantResults) {
 	release := req.URL.Query().Get("release")
 	variant := req.URL.Query().Get("variant")
@@ -447,15 +463,19 @@ func (s *Server) Serve() {
 
 	http.DefaultServeMux.HandleFunc("/operator-health", s.printOperatorHealthHTMLReport)
 	http.DefaultServeMux.HandleFunc("/testdetails", s.printTestDetailHTMLReport)
-	http.DefaultServeMux.HandleFunc("/json", s.printJSONReport)
 	http.DefaultServeMux.HandleFunc("/detailed", s.detailed)
 	http.DefaultServeMux.HandleFunc("/refresh", s.refresh)
 	http.DefaultServeMux.HandleFunc("/canary", s.printCanaryReport)
 
+	// Old API
+	http.DefaultServeMux.HandleFunc("/json", s.printJSONReport)
+
+	// New API's
 	http.DefaultServeMux.HandleFunc("/api/jobs", s.jsonJobsReport)
 	http.DefaultServeMux.HandleFunc("/api/install", s.jsonInstallReport)
-	http.DefaultServeMux.HandleFunc("/api/releases", s.jsonReleasesReport)
 	http.DefaultServeMux.HandleFunc("/api/tests", s.jsonTestsReport)
+	http.DefaultServeMux.HandleFunc("/api/releases", s.jsonReleasesReport)
+	http.DefaultServeMux.HandleFunc("/api/health", s.jsonHealthReport)
 	http.DefaultServeMux.HandleFunc("/api/tests/details", s.jsonTestDetailsReport)
 	http.DefaultServeMux.HandleFunc("/api/upgrade", s.jsonUpgradeReport)
 	http.DefaultServeMux.HandleFunc("/api/variants", s.jsonVariantsReport)
