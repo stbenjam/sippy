@@ -10,7 +10,6 @@ import (
 	"github.com/openshift/sippy/pkg/html/generichtml"
 	"github.com/openshift/sippy/pkg/html/releasehtml"
 	"github.com/openshift/sippy/pkg/testgridanalysis/testgridconversion"
-	"github.com/openshift/sippy/pkg/testgridanalysis/testgridhelpers"
 	"github.com/openshift/sippy/pkg/testgridanalysis/testidentification"
 	"k8s.io/klog"
 	"net/http"
@@ -344,36 +343,6 @@ func (s *Server) jsonReleasesReport(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (s *Server) jobs(w http.ResponseWriter, req *http.Request) {
-	reportName := req.URL.Query().Get("release")
-	jobFilterString := req.URL.Query().Get("jobFilter")
-
-	var jobFilter *regexp.Regexp
-	if len(jobFilterString) > 0 {
-		var err error
-		jobFilter, err = regexp.Compile(jobFilterString)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("jobFilter: %s", err), http.StatusBadRequest)
-			return
-		}
-	}
-
-	dashboardCoordinates, found := s.reportNameToDashboardCoordinates(reportName)
-	if !found {
-		http.Error(w, fmt.Sprintf("release %s not found", reportName), http.StatusBadRequest)
-		return
-	}
-
-	testGridJobDetails, lastUpdateTime := testgridhelpers.LoadTestGridDataFromDisk(s.testReportGeneratorConfig.TestGridLoadingConfig.LocalData, dashboardCoordinates.TestGridDashboardNames, jobFilter)
-
-	api.PrintJobsReport(w, s.syntheticTestManager, testGridJobDetails, lastUpdateTime)
-}
-
-func (s *Server) jobsReport(w http.ResponseWriter, req *http.Request) {
-	reportName := req.URL.Query().Get("release")
-	releasehtml.PrintJobsReport(w, reportName)
-}
-
 func (s *Server) variantsReport(w http.ResponseWriter, req *http.Request) (*sippyprocessingv1.VariantResults, *sippyprocessingv1.VariantResults) {
 	release := req.URL.Query().Get("release")
 	variant := req.URL.Query().Get("variant")
@@ -482,11 +451,9 @@ func (s *Server) Serve() {
 	http.DefaultServeMux.HandleFunc("/detailed", s.detailed)
 	http.DefaultServeMux.HandleFunc("/refresh", s.refresh)
 	http.DefaultServeMux.HandleFunc("/canary", s.printCanaryReport)
-	http.DefaultServeMux.HandleFunc("/jobs", s.jobsReport)
 
-	http.DefaultServeMux.HandleFunc("/api/jobs", s.jobs)
-	http.DefaultServeMux.HandleFunc("/api/jobs2", s.jsonJobsReport) // Call this something else
-	http.DefaultServeMux.HandleFunc("/api/install", s.jsonInstallReport) // Call this something else
+	http.DefaultServeMux.HandleFunc("/api/jobs", s.jsonJobsReport)
+	http.DefaultServeMux.HandleFunc("/api/install", s.jsonInstallReport)
 	http.DefaultServeMux.HandleFunc("/api/releases", s.jsonReleasesReport)
 	http.DefaultServeMux.HandleFunc("/api/tests", s.jsonTestsReport)
 	http.DefaultServeMux.HandleFunc("/api/tests/details", s.jsonTestDetailsReport)
