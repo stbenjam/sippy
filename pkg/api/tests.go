@@ -17,48 +17,49 @@ func PrintTestsDetailsJSON(w http.ResponseWriter, req *http.Request, current, pr
 	respondWithJSON(w, installhtml.TestDetailTests(installhtml.JSON, current, previous, req.URL.Query()["test"]))
 }
 
-func testFilter(req *http.Request, release string) func(result v1sippyprocessing.FailingTestResult) bool {
-	filterBy := req.URL.Query().Get("filterBy")
+func testFilter(req *http.Request, release string) []func(result v1sippyprocessing.FailingTestResult) bool {
+	filterBy := req.URL.Query()["filterBy"]
 	runs, _ := strconv.Atoi(req.URL.Query().Get("runs"))
 	names := req.URL.Query()["test"]
 
-	var filter func(result v1sippyprocessing.FailingTestResult) bool
-	switch filterBy {
-	case "name":
-		filter = func(test v1sippyprocessing.FailingTestResult) bool {
-			regex := regexp.QuoteMeta(strings.Join(names, "|"))
-			match, err := regexp.Match(regex, []byte(test.TestName))
-			if err != nil {
-				return false
-			}
-			return match
-		}
-	case "install":
-		filter = func(test v1sippyprocessing.FailingTestResult) bool {
-			return testidentification.IsInstallRelatedTest(test.TestName)
-		}
-	case "upgrade":
-		filter = func(test v1sippyprocessing.FailingTestResult) bool {
-			return testidentification.IsUpgradeRelatedTest(test.TestName)
-		}
-	case "runs":
-		filter = func(test v1sippyprocessing.FailingTestResult) bool {
-			return (test.TestResultAcrossAllJobs.Failures + test.TestResultAcrossAllJobs.Successes + test.TestResultAcrossAllJobs.Flakes) > runs
-		}
-	case "trt":
-		filter = func(test v1sippyprocessing.FailingTestResult) bool {
-			return testidentification.IsCuratedTest(release, test.TestName)
-		}
-	case "hasBug":
-		return func(test v1sippyprocessing.FailingTestResult) bool {
-			return len(test.TestResultAcrossAllJobs.BugList) > 0
-		}
-	case "noBug":
-		return func(test v1sippyprocessing.FailingTestResult) bool {
-			return len(test.TestResultAcrossAllJobs.BugList) == 0
+	var filter []func(result v1sippyprocessing.FailingTestResult) bool
+	for _, filterName := range filterBy {
+		switch filterName {
+		case "name":
+			filter = append(filter, func(test v1sippyprocessing.FailingTestResult) bool {
+				regex := regexp.QuoteMeta(strings.Join(names, "|"))
+				match, err := regexp.Match(regex, []byte(test.TestName))
+				if err != nil {
+					return false
+				}
+				return match
+			})
+		case "install":
+			filter = append(filter, func(test v1sippyprocessing.FailingTestResult) bool {
+				return testidentification.IsInstallRelatedTest(test.TestName)
+			})
+		case "upgrade":
+			filter = append(filter, func(test v1sippyprocessing.FailingTestResult) bool {
+				return testidentification.IsUpgradeRelatedTest(test.TestName)
+			})
+		case "runs":
+			filter = append(filter, func(test v1sippyprocessing.FailingTestResult) bool {
+				return (test.TestResultAcrossAllJobs.Failures + test.TestResultAcrossAllJobs.Successes + test.TestResultAcrossAllJobs.Flakes) > runs
+			})
+		case "trt":
+			filter = append(filter, func(test v1sippyprocessing.FailingTestResult) bool {
+				return testidentification.IsCuratedTest(release, test.TestName)
+			})
+		case "hasBug":
+			filter = append(filter, func(test v1sippyprocessing.FailingTestResult) bool {
+				return len(test.TestResultAcrossAllJobs.BugList) > 0
+			})
+		case "noBug":
+			filter = append(filter, func(test v1sippyprocessing.FailingTestResult) bool {
+				return len(test.TestResultAcrossAllJobs.BugList) == 0
+			})
 		}
 	}
-
 	return filter
 }
 
@@ -83,20 +84,24 @@ func (tests testsApiResult) sort(req *http.Request) testsApiResult {
 
 func (tests testsApiResult) limit(req *http.Request) testsApiResult {
 	limit, _ := strconv.Atoi(req.URL.Query().Get("limit"))
-	if limit > 0 {
-		return tests[:limit]
+	if limit == 0 || len(tests) < limit  {
+		return tests
 	}
 
-	return tests
+	return tests[:limit]
 }
 
 func PrintTestsJSON(release string, w http.ResponseWriter, req *http.Request, current []v1sippyprocessing.FailingTestResult, previous []v1sippyprocessing.FailingTestResult) {
 	tests := testsApiResult{}
-	filter := testFilter(req, release)
+	filters := testFilter(req, release)
 
+buildTests:
 	for idx, test := range current {
-		if filter != nil && !filter(test) {
-			continue
+
+		for _, filter := range filters {
+			if !filter(test) {
+				continue buildTests
+			}
 		}
 
 		testPrev := util.FindFailedTestResult(test.TestName, previous)

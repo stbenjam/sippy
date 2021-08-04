@@ -251,7 +251,7 @@ function TestTable(props) {
     const [selectedTests, setSelectedTests] = React.useState([])
 
     const [runs = props.runs, setRuns] = useQueryParam("runs", NumberParam)
-    const [filterBy = props.filterBy, setFilterBy] = useQueryParam("filterBy", StringParam)
+    const [filterBy = props.filterBy, setFilterBy] = useQueryParam("filterBy", ArrayParam)
     const [sortBy = props.sortBy, setSortBy] = useQueryParam("sortBy", StringParam)
     const [limit = props.limit, setLimit] = useQueryParam("limit, StringParam")
 
@@ -260,15 +260,21 @@ function TestTable(props) {
 
     const fetchData = () => {
         let queryString = ""
-        if (filterBy && filterBy !== "") {
-            queryString += "&filterBy=" + encodeURIComponent(filterBy)
+        if (filterBy) {
+            if (Array.isArray(filterBy)) {
+                filterBy.forEach((filter) =>
+                    queryString += "&filterBy=" + encodeURIComponent(filter)
+                )
+            } else {
+                queryString += "&filterBy=" + encodeURIComponent(filterBy)
+            }
         }
 
         testNames.forEach((test) =>
             queryString += "&test=" + encodeURIComponent(test)
         )
 
-        if (filterBy === "runs" && runs) {
+        if (runs) {
             queryString += "&runs=" + encodeURIComponent(runs)
         }
 

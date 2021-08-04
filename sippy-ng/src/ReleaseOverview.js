@@ -13,6 +13,9 @@ import SummaryCard from './SummaryCard';
 
 export const TOOLTIP = "Top level release indicators showing product health"
 export const REGRESSED_TOOLTIP = "Shows the most regressed items this week vs. last week, for those with more than 10 runs"
+export const NOBUG_TOOLTIP = "Shows the list of tests ordered by least successful and without a bug, for those with more than 10 runs"
+export const TRT_TOOLTIP = "Shows a curated list of tests selected by the TRT team"
+
 
 const defaultTheme = createTheme();
 const useStyles = makeStyles(
@@ -201,6 +204,49 @@ export default function ReleaseOverview(props) {
 
                         </Card>
                     </Grid>
+
+                    <Grid item xs={6}>
+                        <Card enhancement="5" style={{ textAlign: 'center' }}>
+                            <Typography component={Link} to={"/tests/" + props.release + "?filterBy=runs&filterBy=noBug&runs=10"} style={{ textAlign: 'center' }} variant="h5">
+                                Top failing tests without a bug
+                                <Tooltip title={NOBUG_TOOLTIP}>
+                                    <InfoIcon />
+                                </Tooltip>
+                            </Typography>
+
+                            <TestTable
+                                hideControls={true}
+                                filterBy={["noBug", "runs"]}
+                                runs={10}
+                                limit={10}
+                                pageSize={5}
+                                briefTable={true}
+                                release={props.release} />
+
+                        </Card>
+                    </Grid>
+
+                    <Grid item xs={6}>
+                        <Card enhancement="5" style={{ textAlign: 'center' }}>
+                            <Typography component={Link} to={"/tests/" + props.release + "?filterBy=runs&filterBy=trt&runs=10"} style={{ textAlign: 'center' }} variant="h5">
+                               Curated by TRT 
+                                <Tooltip title={TRT_TOOLTIP}>
+                                    <InfoIcon />
+                                </Tooltip>
+                            </Typography>
+
+                            <TestTable
+                                hideControls={true}
+                                filterBy={["trt", "runs"]}
+                                runs={10}
+                                limit={10}
+                                pageSize={5}
+                                briefTable={true}
+                                release={props.release} />
+
+                        </Card>
+                    </Grid>
+
                 </Grid>
             </Container>
         </div>
