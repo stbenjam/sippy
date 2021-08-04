@@ -7,7 +7,7 @@ import {
     GridToolbarDensitySelector,
     GridToolbarFilterButton
 } from '@material-ui/data-grid';
-import { BugReport, Search } from '@material-ui/icons';
+import { BugReport, GridOn, Search } from '@material-ui/icons';
 import ClearIcon from '@material-ui/icons/Clear';
 import SearchIcon from '@material-ui/icons/Search';
 import Alert from '@material-ui/lab/Alert';
@@ -170,12 +170,14 @@ function JobTable(props) {
             ),
         },
         {
-            field: 'link',
+            field: 'test_grid_url',
             headerName: ' ',
             flex: 0.40,
             renderCell: (params) => {
                 return (
-                    <Button style={{ justifyContent: "center" }} target="_blank" startIcon={<Search />} href={"https://search.ci.openshift.org/?search=" + encodeURIComponent(params.row.name) + "&maxAge=336h&context=1&type=bug%2Bjunit&name=&excludeName=&maxMatches=5&maxBytes=20971520&groupBy=job"} />
+                    <Tooltip title="TestGrid">
+                        <Button style={{ justifyContent: "center" }} target="_blank" startIcon={<GridOn />} href={params.value} />
+                    </Tooltip>
                 );
             },
             hide: props.briefTable,
