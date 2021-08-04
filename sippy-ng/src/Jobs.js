@@ -35,7 +35,7 @@ export default function Jobs(props) {
                             <Route path={path + "/variant"}>
                                 <PassRateByVariant release={props.release} />
                             </Route>
-                            <Route path={path}>
+                            <Route exact path={path}>
                                 <JobTable release={props.release} />
                             </Route>
                         </Container>

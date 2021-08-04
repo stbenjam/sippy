@@ -209,14 +209,17 @@ function TestTable(props) {
     const [rows, setRows] = React.useState([])
     const [selectedTests, setSelectedTests] = React.useState([])
 
-    const [runs = 10, setRuns] = useQueryParam("runs", NumberParam)
+    const [runs = props.runs, setRuns] = useQueryParam("runs", NumberParam)
     const [filterBy = props.filterBy, setFilterBy] = useQueryParam("filterBy", StringParam)
+    const [sortBy = props.sortBy, setSortBy] = useQueryParam("sortBy", StringParam)
+    const [limit = props.limit, setLimit] = useQueryParam("limit, StringParam")
+
     const [searchText, setSearchText] = useQueryParam("searchText", StringParam)
     const [testNames = [], setTestNames] = useQueryParam("test", ArrayParam)
 
     const fetchData = () => {
         let queryString = ""
-        if (filterBy) {
+        if (filterBy && filterBy !== "") {
             queryString += "&filterBy=" + encodeURIComponent(filterBy)
         }
 
@@ -224,8 +227,16 @@ function TestTable(props) {
             queryString += "&test=" + encodeURIComponent(test)
         )
 
-        if(filterBy === "runs" && runs) {
+        if (filterBy === "runs" && runs) {
             queryString += "&runs=" + encodeURIComponent(runs)
+        }
+
+        if (sortBy && sortBy !== "") {
+            queryString += "&sortBy=" + encodeURIComponent(sortBy)
+        }
+
+        if (limit) {
+            queryString += "&limit=" + encodeURIComponent(limit)
         }
 
         fetch(process.env.REACT_APP_API_URL + '/api/tests?release=' + props.release + queryString)
@@ -284,7 +295,7 @@ function TestTable(props) {
     }
 
     const humanizedFilter = () => {
-        switch(filterBy) {
+        switch (filterBy) {
             case "name":
                 return "Filtered by name";
             case "trt":
@@ -293,16 +304,21 @@ function TestTable(props) {
                 return "> " + runs + " runs";
         }
     }
+
+    const detailsButton = (
+        <Button component={Link} to={"/tests/" + props.release + "/details?" + createTestNameQuery()} variant="contained" color="primary" style={{ margin: 10 }}>Get Details</Button>
+    );
+
     return (
         <Container size="xl">
             {title}
             <DataGrid
-                components={{ Toolbar: (filterBy === "install" || filterBy == "upgrade") ? "" : TestSearchToolbar }}
+                components={{ Toolbar: (filterBy === "install" || filterBy == "upgrade" || props.hideControls) ? "" : TestSearchToolbar }}
                 rows={rows}
                 columns={columns}
                 autoHeight={true}
-                pageSize={25}
-                checkboxSelection
+                pageSize={props.pageSize}
+                checkboxSelection={!props.hideControls}
                 onSelectionModelChange={(rows) =>
                     setSelectedTests(rows)
                 }
@@ -322,12 +338,17 @@ function TestTable(props) {
                         clearSearch: () => requestSearch(''),
                     },
                 }}
-
             />
 
-            <Button component={Link} to={"/tests/" + props.release + "/details?" + createTestNameQuery()} variant="contained" color="primary" style={{ margin: 10 }}>Get Details</Button>
+            {props.hideControls ? "" : detailsButton}
+
         </Container>
     );
+}
+
+TestTable.defaultProps = {
+    hideControls: false,
+    pageSize: 25,
 }
 
 export default withStyles(styles)(TestTable);

@@ -15,7 +15,7 @@ import { makeStyles, withStyles } from '@material-ui/styles';
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import React, { Fragment, useEffect } from 'react';
-import { StringParam, useQueryParam } from 'use-query-params';
+import { NumberParam, StringParam, useQueryParam } from 'use-query-params';
 import PassRateIcon from './PassRate/passRateIcon';
 import SortByMenu from './SortByMenu';
 
@@ -169,6 +169,9 @@ function JobTable(props) {
     }])
 
     const [filterBy = props.filterBy, setFilterBy] = useQueryParam("filterBy", StringParam)
+    const [sortBy = props.sortBy, sortSortBy] = useQueryParam("sortBy", StringParam)
+    const [limit = props.limit, setLimit] = useQueryParam("limit", NumberParam)
+    
     const [job = "", setJob] = useQueryParam("job", StringParam)
 
     const fetchData = () => {
@@ -176,6 +179,15 @@ function JobTable(props) {
         if(filterBy && filterBy != "") {
             queryString += "&filterBy=" + encodeURIComponent(filterBy)
         }
+
+        if(sortBy && sortBy != "") {
+            queryString += "&sortBy=" + encodeURIComponent(sortBy)
+        }
+
+        if(limit && limit != "") {
+            queryString += "&limit=" + encodeURIComponent(limit)
+        }
+
 
         if(job && job != "") {
             queryString += "&job=" + encodeURIComponent(job)

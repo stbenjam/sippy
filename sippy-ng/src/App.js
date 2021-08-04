@@ -105,13 +105,6 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const darkMode = {
-  palette: {
-    type: 'dark',
-    secondary: yellow,
-  },
-};
-
 const lightMode = {
   palette: {
     type: 'light',
@@ -125,7 +118,6 @@ export default function App(props) {
 
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [isLoaded, setLoaded] = React.useState(false);
-  const [isThemeDark, setThemeDark] = React.useState(false);
   const [open, setOpen] = React.useState({});
   const [releases, setReleases] = React.useState([]);
   const [fetchError, setFetchError] = React.useState("");
@@ -154,28 +146,8 @@ export default function App(props) {
     if (!isLoaded) {
       fetchReleases();
       setLoaded(true);
-
-      // Cookie to save user's theme preference
-      let darkMode = cookies.get("darkMode")
-      console.log(darkMode)
-
-      if (darkMode === 'false' || darkMode == undefined) {
-        setThemeDark(false)
-      } else {
-        setThemeDark(true)
-      }
     }
   });
-
-  const handleDarkMode = (event) => {
-    if (event.target.checked) {
-      cookies.set('darkMode', 'true', { path: '/' });
-      setThemeDark(true)
-    } else {
-      cookies.set('darkMode', 'false', { path: '/' });
-      setThemeDark(false)
-    }
-  };
 
   const handleDrawerOpen = () => {
     setDrawerOpen(true);
@@ -208,7 +180,7 @@ export default function App(props) {
   }
 
   return (
-    <MuiThemeProvider theme={isThemeDark ? createTheme(darkMode) : createTheme(lightMode)}>
+    <MuiThemeProvider theme={createTheme(lightMode)}>
       <CssBaseline />
       <Router basename="/sippy-ng">
         <QueryParamProvider ReactRouterRoute={Route}>
@@ -231,12 +203,6 @@ export default function App(props) {
                   <MenuIcon />
                 </IconButton>
                 <Typography variant="h6" className={classes.title}>Sippy</Typography>
-                <FormGroup>
-                  <FormControlLabel
-                    control={<ControlSwitch checked={isThemeDark} onChange={handleDarkMode} />}
-                    label="Dark mode"
-                  />
-                </FormGroup>
               </Toolbar>
             </AppBar>
 
