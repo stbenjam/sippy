@@ -8,6 +8,8 @@ import (
 	"github.com/openshift/sippy/pkg/html/generichtml"
 	"github.com/openshift/sippy/pkg/util"
 	"net/http"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -50,26 +52,33 @@ func PrintJobs2Report(w http.ResponseWriter, req *http.Request, current, previou
 	jobs := make([]sippyv1.Job, 0)
 
 	filterBy := req.URL.Query().Get("filterBy")
+	sortBy := req.URL.Query().Get("sortBy")
+	limit, _ := strconv.Atoi(req.URL.Query().Get("limit"))
+	runs, _ := strconv.Atoi(req.URL.Query().Get("runs"))
 	job := req.URL.Query().Get("job")
 
-	var filterFunc func(string) bool
+	var filterFunc func(result v1.JobResult) bool
 	switch filterBy {
 	case "name":
-		filterFunc = func(name string) bool {
-			return strings.Contains(name, job)
+		filterFunc = func(jobResult v1.JobResult) bool {
+			return strings.Contains(jobResult.Name, job)
 		}
 	case "upgrade":
-		filterFunc = func(name string) bool {
-			return strings.Contains(name, "-upgrade-")
+		filterFunc = func(jobResult v1.JobResult) bool {
+			return strings.Contains(jobResult.Name, "-upgrade-")
+		}
+	case "runs":
+		filterFunc = func(jobResult v1.JobResult) bool {
+			return (jobResult.Failures + jobResult.Successes) > runs
 		}
 	default:
-		filterFunc = func(_ string) bool {
+		filterFunc = func(_ v1.JobResult) bool {
 			return true
 		}
 	}
 
 	for idx, jobResult := range current {
-		if !filterFunc(jobResult.Name) {
+		if !filterFunc(jobResult) {
 			continue
 		}
 
@@ -91,6 +100,17 @@ func PrintJobs2Report(w http.ResponseWriter, req *http.Request, current, previou
 		}
 
 		jobs = append(jobs, job)
+	}
+
+	switch sortBy {
+	case "regression":
+		sort.Slice(jobs, func(i, j int) bool {
+			return jobs[i].NetImprovement < jobs[j].NetImprovement
+		})
+	}
+
+	if limit > 0 {
+		jobs = jobs[:limit]
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")

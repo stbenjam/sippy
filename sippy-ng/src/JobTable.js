@@ -66,7 +66,18 @@ const styles = {
 
 
 const columns = [
-    { field: 'name', headerName: 'Name', flex: 5 },
+    {
+        field: 'name',
+        headerName: 'Name',
+        flex: 5,
+        renderCell: (params) => {
+            return (
+                <Tooltip title={params.value}>
+                    <p>{params.value}</p>
+                </Tooltip>
+            );
+        }
+    },
     {
         field: 'current_pass_percentage',
         headerName: 'Last 7 Days',
@@ -86,7 +97,9 @@ const columns = [
         type: 'number',
         flex: 0.2,
         renderCell: (params) => {
-            return <PassRateIcon improvement={params.value} />
+            return (
+                <PassRateIcon improvement={params.value} />
+            );
         },
     },
     {
@@ -171,26 +184,31 @@ function JobTable(props) {
     const [filterBy = props.filterBy, setFilterBy] = useQueryParam("filterBy", StringParam)
     const [sortBy = props.sortBy, sortSortBy] = useQueryParam("sortBy", StringParam)
     const [limit = props.limit, setLimit] = useQueryParam("limit", NumberParam)
-    
+    const [runs = props.runs] = useQueryParam("runs", NumberParam)
+
     const [job = "", setJob] = useQueryParam("job", StringParam)
 
     const fetchData = () => {
         let queryString = ""
-        if(filterBy && filterBy != "") {
+        if (filterBy && filterBy != "") {
             queryString += "&filterBy=" + encodeURIComponent(filterBy)
         }
 
-        if(sortBy && sortBy != "") {
+        if (sortBy && sortBy != "") {
             queryString += "&sortBy=" + encodeURIComponent(sortBy)
         }
 
-        if(limit && limit != "") {
+        if (limit && limit != "") {
             queryString += "&limit=" + encodeURIComponent(limit)
         }
 
 
-        if(job && job != "") {
+        if (job && job != "") {
             queryString += "&job=" + encodeURIComponent(job)
+        }
+
+        if (runs) {
+            queryString += "&runs=" + encodeURIComponent(runs)
         }
 
         fetch(process.env.REACT_APP_API_URL + '/api/jobs2?release=' + props.release + queryString)
@@ -205,7 +223,7 @@ function JobTable(props) {
                 setRows(json)
                 setLoaded(true)
             }).catch(error => {
-                setFetchError("Could not retrieve jobs " + props.release + ", " + error );
+                setFetchError("Could not retrieve jobs " + props.release + ", " + error);
             });
     };
 
@@ -250,11 +268,11 @@ function JobTable(props) {
         <Fragment>
             {pageTitle()}
             <DataGrid
-                components={{ Toolbar: JobSearchToolbar }}
+                components={{ Toolbar: props.hideControls ? "" : JobSearchToolbar }}
                 rows={rows}
                 columns={columns}
                 autoHeight={true}
-                pageSize={25}
+                pageSize={props.pageSize}
                 sortModel={sortModel}
                 onSortModelChange={(model) => setSortModel(model)}
                 getRowClassName={(params =>
@@ -275,6 +293,11 @@ function JobTable(props) {
             />
         </Fragment>
     );
+}
+
+JobTable.defaultProps = {
+    hideControls: false,
+    pageSize: 25,
 }
 
 export default withStyles(styles)(JobTable);

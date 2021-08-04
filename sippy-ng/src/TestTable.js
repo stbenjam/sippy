@@ -150,7 +150,16 @@ const styles = {
 
 
 const columns = [
-    { field: 'name', headerName: 'Name', flex: 5 },
+    {
+        field: 'name',
+        headerName: 'Name',
+        flex: 5,
+        renderCell: (params) => (
+            <Tooltip title={params.value}>
+                <p>{params.value}</p>
+            </Tooltip>
+        ),
+    },
     {
         field: 'current_pass_percentage',
         headerName: 'Last 7 Days',

@@ -101,7 +101,8 @@ export default function ReleaseOverview(props) {
                     <Grid item xs={4}>
                         <PassRateCard backgroundColor={cardBackground(indicators.upgrade.current_pass_rate.percentage)} name="Upgrade" link={"/upgrade/" + props.release} passRate={indicators.upgrade} />
                     </Grid>
-                    <Grid item xs={12}>
+
+                    <Grid item xs={6}>
                         <Card enhancement="5" style={{ textAlign: 'center'}}>
                             <Typography component={Link} to={"/tests/" + props.release + "?sortBy=regression&filterBy=runs&runs=10"} style={{ margin: 20, textAlign: 'center' }} variant="h5">
                                 Most regressed tests
@@ -121,6 +122,29 @@ export default function ReleaseOverview(props) {
 
                         </Card>
                     </Grid>
+
+                    <Grid item xs={6}>
+                        <Card enhancement="5" style={{ textAlign: 'center'}}>
+                            <Typography component={Link} to={"/jobs/" + props.release + "?sortBy=regression&filterBy=runs&runs=10"} style={{ margin: 20, textAlign: 'center' }} variant="h5">
+                                Most regressed jobs
+                                <Tooltip title={REGRESSED_TOOLTIP}>
+                                    <InfoIcon />
+                                </Tooltip>
+                            </Typography>
+
+                            <JobTable
+                                hideControls={true}
+                                sortBy="regression"
+                                limit={10}
+                                filterBy="runs"
+                                runs={10}
+                                pageSize={5}
+                                release={props.release} />
+
+                        </Card>
+                    </Grid>
+
+
                     <Grid item xs={6}>
 
                     </Grid>
