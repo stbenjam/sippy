@@ -1,4 +1,4 @@
-import { Table, TableContainer, TableHead, TableBody, TableCell, Paper, Typography, TableRow, Button, Container, Divider, Tooltip } from '@material-ui/core';
+import { Button, Divider, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from '@material-ui/core';
 import Dialog from '@material-ui/core/Dialog';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
@@ -6,7 +6,6 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import { Close, Info } from '@material-ui/icons';
 import PropTypes from 'prop-types';
 import React, { Fragment } from 'react';
-import { useEffect } from 'react';
 import bugzillaURL from './BugzillaUtils';
 
 export default function BugzillaDialog(props) {

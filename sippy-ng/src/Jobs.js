@@ -4,6 +4,7 @@ import React from 'react';
 import {
     Link, Route, Switch, useRouteMatch
 } from "react-router-dom";
+import JobsDashboard from './JobsDashboard';
 import JobTable from './JobTable';
 import PassRateByVariant from './PassRate/passRateByVariant';
 
@@ -27,6 +28,7 @@ export default function Jobs(props) {
                             >
                                 <Tab label="All jobs" value={props.release} component={Link} to={url} />
                                 <Tab label="Jobs by variant" value="variant" component={Link} to={url + "/variant"} />
+                                <Tab label="Dashboard" value="dashboard" component={Link} to={url + "/dashboard"} />
                             </Tabs>
                         </Paper>
                     </Grid>
@@ -35,6 +37,11 @@ export default function Jobs(props) {
                             <Route path={path + "/variant"}>
                                 <PassRateByVariant release={props.release} />
                             </Route>
+
+                            <Route path={path + "/dashboard"}>
+                                <JobsDashboard release={props.release} />
+                            </Route>
+
                             <Route exact path={path}>
                                 <JobTable release={props.release} />
                             </Route>

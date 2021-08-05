@@ -108,21 +108,11 @@ export default function PassRateByVariant(props) {
             });
     }
 
-    let cardBackground = (percent) => {
-        if (percent > 90) {
-            return theme.palette.success.light;
-        } else if (percent > 60) {
-            return theme.palette.warning.light;
-        } else {
-            return theme.palette.error.light;
-        }
-    }
-
     useEffect(() => {
         if (!isLoaded) {
             fetchData();
         }
-    }, []);
+    }, [fetchData, isLoaded]);
 
     if (fetchError !== "") {
         return <Alert severity="error">{fetchError}</Alert>;
