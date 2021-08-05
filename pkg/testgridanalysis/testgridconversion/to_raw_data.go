@@ -31,7 +31,7 @@ type ProcessingOptions struct {
 	NumDays              int
 }
 
-// returns the raw data and a list of warnings encountered processing the data.
+// ProcessTestGridDataIntoRawJobResults returns the raw data and a list of warnings encountered processing the data.
 func (o ProcessingOptions) ProcessTestGridDataIntoRawJobResults(testGridJobInfo []testgridv1.JobDetails) (testgridanalysisapi.RawData, []string) {
 	rawJobResults := testgridanalysisapi.RawData{JobResults: map[string]testgridanalysisapi.RawJobResult{}}
 

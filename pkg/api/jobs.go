@@ -1,16 +1,94 @@
 package api
 
 import (
+	"fmt"
+	testgridv1 "github.com/openshift/sippy/pkg/apis/testgrid/v1"
+	"github.com/openshift/sippy/pkg/testgridanalysis/testgridanalysisapi"
+	"github.com/openshift/sippy/pkg/testgridanalysis/testgridconversion"
 	"net/http"
 	"regexp"
 	gosort "sort"
 	"strconv"
 	"strings"
+	"time"
 
 	v1 "github.com/openshift/sippy/pkg/apis/sippy/v1"
 	v1sippyprocessing "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
 	"github.com/openshift/sippy/pkg/util"
 )
+
+const failure string = "Failure"
+
+func jobRunStatus(result testgridanalysisapi.RawJobRunResult) string {
+	if result.Succeeded {
+		return "S" // Success
+	}
+
+	if !result.Failed {
+		return "R" // Running
+	}
+
+	if result.SetupStatus == failure {
+		if len(result.FinalOperatorStates) == 0 {
+			return "N" // Infrastructure failure
+		}
+		return "I" // Install failure
+	}
+	if result.UpgradeStarted && (result.UpgradeForOperatorsStatus == failure || result.UpgradeForMachineConfigPoolsStatus == failure) {
+		return "U" // Upgrade failure
+	}
+	if result.OpenShiftTestsStatus == failure {
+		return "F" // Failure
+	}
+	if result.SetupStatus == "" {
+		return "n" // no setup results
+	}
+	return "f" // unknown failure
+}
+
+func PrintTestGridJobsReport(w http.ResponseWriter, syntheticTestManager testgridconversion.SyntheticTestManager, testGridJobDetails []testgridv1.JobDetails, lastUpdateTime time.Time) {
+	rawJobResultOptions := testgridconversion.ProcessingOptions{
+		SyntheticTestManager: syntheticTestManager,
+		StartDay:             0,
+		NumDays:              1000,
+	}
+	rawJobResults, _ := rawJobResultOptions.ProcessTestGridDataIntoRawJobResults(testGridJobDetails)
+
+	type jsonJob struct {
+		Name        string   `json:"name"`
+		Timestamps  []int    `json:"timestamps"`
+		Results     []string `json:"results"`
+		BuildIDs    []string `json:"build_ids"`
+		TestGridURL string   `json:"testgrid_url"`
+	}
+	type jsonResponse struct {
+		Jobs           []jsonJob `json:"jobs"`
+		LastUpdateTime time.Time `json:"last_update_time"`
+	}
+
+	response := jsonResponse{
+		LastUpdateTime: lastUpdateTime,
+		Jobs:           []jsonJob{},
+	}
+
+	for _, job := range testGridJobDetails {
+		results := rawJobResults.JobResults[job.Name]
+		var statuses []string
+		for i := range job.Timestamps {
+			jobURL := fmt.Sprintf("https://prow.ci.openshift.org/view/gcs/%s/%s", job.Query, job.ChangeLists[i])
+			statuses = append(statuses, jobRunStatus(results.JobRunResults[jobURL]))
+		}
+		response.Jobs = append(response.Jobs, jsonJob{
+			Name:        job.Name,
+			Timestamps:  job.Timestamps,
+			Results:     statuses,
+			BuildIDs:    job.ChangeLists,
+			TestGridURL: job.TestGridURL,
+		})
+	}
+
+	respondWithJSON(w, response)
+}
 
 func jobFilter(req *http.Request) func(result v1sippyprocessing.JobResult) bool {
 	filterBy := req.URL.Query().Get("filterBy")
