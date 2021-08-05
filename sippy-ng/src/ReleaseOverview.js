@@ -129,6 +129,7 @@ export default function ReleaseOverview(props) {
                             success={data.indicators.infrastructure.current.percentage}
                             fail={100 - data.indicators.infrastructure.current.percentage}
                             caption={indicatorCaption(data.indicators.infrastructure)}
+                            tooltip="How often we get to the point of running the installer. This is judged by whether a kube-apiserver is available, it's not perfect, but it's very close."
                         />
                     </Grid>
                     <Grid item xs={3}>
@@ -138,6 +139,7 @@ export default function ReleaseOverview(props) {
                             success={data.indicators.install.current.percentage}
                             fail={100 - data.indicators.install.current.percentage}
                             caption={indicatorCaption(data.indicators.install)}
+                            tooltip="How often the install completes successfully."
                         />
                     </Grid>
                     <Grid item xs={3}>
@@ -147,6 +149,7 @@ export default function ReleaseOverview(props) {
                             success={data.indicators.upgrade.current.percentage}
                             fail={100 - data.indicators.upgrade.current.percentage}
                             caption={indicatorCaption(data.indicators.upgrade)}
+                            tooltip="How often an upgrade that is started completes successfully."
                         />
                     </Grid>
 
@@ -158,6 +161,7 @@ export default function ReleaseOverview(props) {
                             fail={data.variants.current.failed}
                             flakes={data.variants.current.unstable}
                             caption={variantCaption(data.variants.current)}
+                            tooltip="Overall health of variants excluding never-stable. Success is greater than 80% pass, unstable is greater than 60%, and anything else is considered failed."
                         />
                     </Grid>
 

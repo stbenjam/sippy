@@ -1,4 +1,4 @@
-import { Box, Card, CardContent, Typography } from '@material-ui/core';
+import { Box, Card, CardContent, Tooltip, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
@@ -21,10 +21,6 @@ export default function SummaryCard(props) {
 
     const [currentData, setCurrentData] = React.useState([])
 
-    let header = props.name
-    if (props.link !== undefined) {
-        header = <Link to={props.link}>{props.name}</Link>
-    }
 
     useEffect(() => {
         let data = []
@@ -52,6 +48,20 @@ export default function SummaryCard(props) {
         setCurrentData(data)
 }, [])
 
+    let header = props.name
+    if (props.link !== undefined) {
+        header = <Link to={props.link}>{props.name}</Link>
+    }
+
+    header = <Typography variant="h6">{header}</Typography>;
+
+    if(props.tooltip != "") {
+        header =  (
+            <Tooltip title={props.tooltip}>
+                {header}
+            </Tooltip>
+        );
+    }
 
 return (
     <Card elevation={5} className={`${classes.summaryCard}`}>
@@ -83,4 +93,5 @@ SummaryCard.defaultProps = {
     success: 0,
     fail: 0,
     caption: "",
+    tooltip: ""
 }

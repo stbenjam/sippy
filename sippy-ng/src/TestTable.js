@@ -187,7 +187,7 @@ function TestTable(props) {
             type: 'number',
             flex: 0.5,
             renderCell: (params) => {
-                return <PassRateIcon improvement={params.value} />
+                return <PassRateIcon tooltip={true} improvement={params.value} />
             },
         },
         {

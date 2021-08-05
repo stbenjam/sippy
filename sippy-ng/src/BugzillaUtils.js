@@ -1,13 +1,9 @@
-
-
-
-
 export default function bugzillaURL(item) {
     let title = item.name
     let titleEncoded = encodeURIComponent(title)
     let url = `https://search.ci.openshift.org/?maxAge=168h&context=1&type=bug%2Bjunit&name=&maxMatches=5&maxBytes=20971520&groupBy=job&search=${titleEncoded}`
-    if (item.testGridURL) {
-        url = item.testGridURL
+    if (item.test_grid_url) {
+        url = item.test_grid_url
     }
 
     let bugText = encodeURIComponent(`

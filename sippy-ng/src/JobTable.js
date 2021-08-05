@@ -109,6 +109,7 @@ function JobTable(props) {
     const [jobs, setJobs] = React.useState([])
     const [rows, setRows] = React.useState([])
 
+    const [searchText, setSearchText] = useQueryParam("search", StringParam)
     const [filterBy = props.filterBy, setFilterBy] = useQueryParam("filterBy", StringParam)
     const [sortBy = props.sortBy, sortSortBy] = useQueryParam("sortBy", StringParam)
     const [limit = props.limit, setLimit] = useQueryParam("limit", NumberParam)
@@ -152,7 +153,7 @@ function JobTable(props) {
             flex: 0.5,
             renderCell: (params) => {
                 return (
-                    <PassRateIcon improvement={params.value} />
+                    <PassRateIcon tooltip={true} improvement={params.value} />
                 );
             },
         },
@@ -249,7 +250,7 @@ function JobTable(props) {
     };
 
     const requestSearch = (searchValue) => {
-        this.setState({ searchText: searchValue });
+        setSearchText(searchValue);
         const searchRegex = new RegExp(escapeRegExp(searchValue), 'i');
         const filteredRows = jobs.filter((row) => {
             return Object.keys(row).some((field) => {
