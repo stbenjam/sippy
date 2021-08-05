@@ -3,6 +3,7 @@ package installhtml
 import (
 	"encoding/json"
 	"fmt"
+
 	v1 "github.com/openshift/sippy/pkg/apis/sippy/v1"
 
 	"github.com/openshift/sippy/pkg/testgridanalysis/testidentification"
@@ -213,7 +214,7 @@ func (a testsByVariant) getTableJSON(
 
 	// now the overall install results by variant
 	if len(a.aggregationToOverallTestResult) > 0 {
-		results := make(map[string]v1.Test, 0)
+		results := make(map[string]v1.Test)
 		for _, variantName := range aggregationNames {
 			data := a.aggregationToOverallTestResult[variantName].toTest(variantName)
 			results[variantName] = data
@@ -224,7 +225,7 @@ func (a testsByVariant) getTableJSON(
 	for _, testName := range sets.StringKeySet(a.testNameToVariantToTestResult).List() {
 		testDisplayName := testNameToDisplayName(testName)
 		variantResults := a.testNameToVariantToTestResult[testName]
-		results := make(map[string]v1.Test, 0)
+		results := make(map[string]v1.Test)
 		for _, variantName := range aggregationNames {
 			if data, ok := variantResults[variantName]; ok {
 				results[variantName] = data.toTest(variantName)

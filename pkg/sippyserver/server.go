@@ -3,6 +3,12 @@ package sippyserver
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
+	"regexp"
+	"strconv"
+	"strings"
+
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/openshift/sippy/pkg/api"
 	sippyprocessingv1 "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
@@ -12,11 +18,6 @@ import (
 	"github.com/openshift/sippy/pkg/testgridanalysis/testgridconversion"
 	"github.com/openshift/sippy/pkg/testgridanalysis/testidentification"
 	"k8s.io/klog"
-	"net/http"
-	"os"
-	"regexp"
-	"strconv"
-	"strings"
 )
 
 func NewServer(
@@ -421,14 +422,12 @@ func (s *Server) jsonJobsReport(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Server) jsonVariantsReport(w http.ResponseWriter, req *http.Request) {
-	variant := req.URL.Query().Get("variant")
-
 	current, previous := s.variantsReport(w, req)
 	if current == nil {
 		return
 	}
 
-	api.PrintVariantsReport(w, variant, current.JobResults, previous.JobResults)
+	api.PrintVariantsReport(w, current.JobResults, previous.JobResults)
 }
 
 func (s *Server) Serve() {

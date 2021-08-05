@@ -2,8 +2,9 @@ package installhtml
 
 import (
 	"fmt"
-	"github.com/openshift/sippy/pkg/testgridanalysis/testidentification"
 	"strings"
+
+	"github.com/openshift/sippy/pkg/testgridanalysis/testidentification"
 
 	"github.com/openshift/sippy/pkg/util"
 
@@ -14,7 +15,7 @@ import (
 	sippyprocessingv1 "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
 )
 
-func InstallOperatorTests(format string, curr, prev sippyprocessingv1.TestReport) string {
+func InstallOperatorTests(format ResponseFormat, curr, prev sippyprocessingv1.TestReport) string {
 	dataForTestsByVariant := getDataForTestsByVariant(
 		curr, prev,
 		func(testResult sippyprocessingv1.TestResult) bool {
@@ -44,11 +45,11 @@ func InstallOperatorTests(format string, curr, prev sippyprocessingv1.TestReport
 
 	columnNames := append([]string{"All"}, variantColumns...)
 
-	if format == "json" {
+	if format == JSON {
 		return dataForTestsByVariant.getTableJSON("Install Rates by Operator", "Install Rates by Operator by Variant", columnNames, getOperatorFromTest)
-	} else {
-		return dataForTestsByVariant.getTableHTML("Install Rates by Operator", "InstallRatesByOperator", "Install Rates by Operator by Variant", columnNames, getOperatorFromTest)
 	}
+
+	return dataForTestsByVariant.getTableHTML("Install Rates by Operator", "InstallRatesByOperator", "Install Rates by Operator by Variant", columnNames, getOperatorFromTest)
 }
 
 func isInstallRelatedTest(testResult sippyprocessingv1.TestResult) bool {
@@ -79,4 +80,3 @@ func summaryInstallRelatedTests(curr, prev sippyprocessingv1.TestReport, numDays
 
 	return s
 }
-

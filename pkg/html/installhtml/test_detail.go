@@ -23,9 +23,9 @@ func TestDetailTests(format ResponseFormat, curr, prev sippyprocessingv1.TestRep
 
 	if format == JSON {
 		return dataForTestsByVariant.getTableJSON("Details for Tests", "Test Details by Variant", variants.List(), noChange)
-	} else {
-		return dataForTestsByVariant.getTableHTML("Details for Tests", "TestDetailByVariant", "Test Details by Variant", variants.List(), noChange)
 	}
+
+	return dataForTestsByVariant.getTableHTML("Details for Tests", "TestDetailByVariant", "Test Details by Variant", variants.List(), noChange)
 }
 
 func summaryTestDetailRelatedTests(curr, prev sippyprocessingv1.TestReport, testSubstrings []string, numDays int, release string) string {

@@ -424,6 +424,8 @@ func configureSippyServer(jobDetails []testgridv1.JobDetails, timestamp time.Tim
 		testgridconversion.NewOpenshiftSyntheticTestManager(),
 		testidentification.NewOpenshiftVariantManager(),
 		buganalysis.NewNoOpBugCache(),
+		nil,
+		nil,
 	)
 
 	// Refresh data and generate reports.

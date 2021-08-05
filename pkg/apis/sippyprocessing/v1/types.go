@@ -77,9 +77,9 @@ type TopLevelIndicators struct {
 
 // VariantHealth is used to report overall health of variants.
 type VariantHealth struct {
-	Success int `json:"success"`
+	Success  int `json:"success"`
 	Unstable int `json:"unstable"`
-	Failed int `json:"failed"`
+	Failed   int `json:"failed"`
 }
 
 // VariantResults

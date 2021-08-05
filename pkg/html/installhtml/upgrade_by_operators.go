@@ -49,9 +49,9 @@ func UpgradeOperatorTests(format string, curr, prev sippyprocessingv1.TestReport
 
 	if format == "json" {
 		return dataForTestsByVariant.getTableJSON("Upgrade Rates by Operator", "Upgrade Rates by Operator by Variant", columnNames, getOperatorFromTest)
-	} else {
-		return dataForTestsByVariant.getTableHTML("Upgrade Rates by Operator", "UpgradeRatesByOperator", "Upgrade Rates by Operator by Variant", columnNames, getOperatorFromTest)
 	}
+
+	return dataForTestsByVariant.getTableHTML("Upgrade Rates by Operator", "UpgradeRatesByOperator", "Upgrade Rates by Operator by Variant", columnNames, getOperatorFromTest)
 }
 
 func summaryUpgradeRelatedTests(curr, prev sippyprocessingv1.TestReport, numDays int, release string) string {

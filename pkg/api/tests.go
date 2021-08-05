@@ -1,16 +1,17 @@
 package api
 
 import (
+	"net/http"
+	"regexp"
+	gosort "sort"
+	"strconv"
+	"strings"
+
 	v1 "github.com/openshift/sippy/pkg/apis/sippy/v1"
 	v1sippyprocessing "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
 	"github.com/openshift/sippy/pkg/html/installhtml"
 	"github.com/openshift/sippy/pkg/testgridanalysis/testidentification"
 	"github.com/openshift/sippy/pkg/util"
-	"net/http"
-	"regexp"
-	"sort"
-	"strconv"
-	"strings"
 )
 
 func PrintTestsDetailsJSON(w http.ResponseWriter, req *http.Request, current, previous v1sippyprocessing.TestReport) {
@@ -63,18 +64,18 @@ func testFilter(req *http.Request, release string) []func(result v1sippyprocessi
 	return filter
 }
 
-type testsApiResult []v1.Test
+type testsAPIResult []v1.Test
 
-func (tests testsApiResult) sort(req *http.Request) testsApiResult {
+func (tests testsAPIResult) sort(req *http.Request) testsAPIResult {
 	sortBy := req.URL.Query().Get("sortBy")
 
 	switch sortBy {
 	case "regression":
-		sort.Slice(tests, func(i, j int) bool {
+		gosort.Slice(tests, func(i, j int) bool {
 			return tests[i].NetImprovement < tests[j].NetImprovement
 		})
 	case "improvement":
-		sort.Slice(tests, func(i, j int) bool {
+		gosort.Slice(tests, func(i, j int) bool {
 			return tests[i].NetImprovement > tests[j].NetImprovement
 		})
 	}
@@ -82,17 +83,17 @@ func (tests testsApiResult) sort(req *http.Request) testsApiResult {
 	return tests
 }
 
-func (tests testsApiResult) limit(req *http.Request) testsApiResult {
+func (tests testsAPIResult) limit(req *http.Request) testsAPIResult {
 	limit, _ := strconv.Atoi(req.URL.Query().Get("limit"))
-	if limit == 0 || len(tests) < limit  {
+	if limit == 0 || len(tests) < limit {
 		return tests
 	}
 
 	return tests[:limit]
 }
 
-func PrintTestsJSON(release string, w http.ResponseWriter, req *http.Request, current []v1sippyprocessing.FailingTestResult, previous []v1sippyprocessing.FailingTestResult) {
-	tests := testsApiResult{}
+func PrintTestsJSON(release string, w http.ResponseWriter, req *http.Request, current, previous []v1sippyprocessing.FailingTestResult) {
+	tests := testsAPIResult{}
 	filters := testFilter(req, release)
 
 buildTests:
@@ -106,8 +107,7 @@ buildTests:
 
 		testPrev := util.FindFailedTestResult(test.TestName, previous)
 
-		var row v1.Test
-		row = v1.Test{
+		row := v1.Test{
 			ID:                    idx,
 			Name:                  test.TestName,
 			CurrentSuccesses:      test.TestResultAcrossAllJobs.Successes,

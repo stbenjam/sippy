@@ -74,16 +74,16 @@ func convertVariantResultsToHealth(variants []sippyprocessingv1.VariantResults) 
 	result := sippyprocessingv1.VariantHealth{}
 
 	for _, variant := range variants {
-		if variant.VariantName == "never-stable" {
+		if variant.VariantName == "never-stable" || (variant.JobRunFailures+variant.JobRunSuccesses == 0) {
 			continue
 		}
 
 		if variant.JobRunPassPercentage >= 80 {
-			result.Success += 1
+			result.Success++
 		} else if variant.JobRunPassPercentage >= 60 {
-			result.Unstable += 1
+			result.Unstable++
 		} else {
-			result.Failed += 1
+			result.Failed++
 		}
 	}
 

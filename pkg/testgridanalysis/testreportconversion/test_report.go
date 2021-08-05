@@ -62,7 +62,7 @@ func PrepareTestReport(
 			Install:             install,
 			Upgrade:             upgrade,
 			FinalOperatorHealth: finalOperatorHealth,
-			Variant: variantHealth,
+			Variant:             variantHealth,
 		},
 
 		ByTest:        allTestResultsByName.toOrderedList(),

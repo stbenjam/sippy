@@ -97,7 +97,7 @@ type Test struct {
 type Job struct {
 	ID                             int     `json:"id"`
 	Name                           string  `json:"name"`
-	BriefName 					   string   `json:"brief_name"`
+	BriefName                      string  `json:"brief_name"`
 	CurrentPassPercentage          float64 `json:"current_pass_percentage"`
 	CurrentProjectedPassPercentage float64 `json:"current_projected_pass_percentage"`
 	CurrentRuns                    int     `json:"current_runs"`

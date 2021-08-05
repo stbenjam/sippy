@@ -1,14 +1,15 @@
 package api
 
 import (
+	"net/http"
+	"regexp"
+	gosort "sort"
+	"strconv"
+	"strings"
+
 	v1 "github.com/openshift/sippy/pkg/apis/sippy/v1"
 	v1sippyprocessing "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
 	"github.com/openshift/sippy/pkg/util"
-	"net/http"
-	"regexp"
-	"sort"
-	"strconv"
-	"strings"
 )
 
 func jobFilter(req *http.Request) func(result v1sippyprocessing.JobResult) bool {
@@ -43,18 +44,18 @@ func jobFilter(req *http.Request) func(result v1sippyprocessing.JobResult) bool 
 	}
 }
 
-type jobsApiResult []v1.Job
+type jobsAPIResult []v1.Job
 
-func (jobs jobsApiResult) sort(req *http.Request) jobsApiResult {
+func (jobs jobsAPIResult) sort(req *http.Request) jobsAPIResult {
 	sortBy := req.URL.Query().Get("sortBy")
 
 	switch sortBy {
 	case "regression":
-		sort.Slice(jobs, func(i, j int) bool {
+		gosort.Slice(jobs, func(i, j int) bool {
 			return jobs[i].NetImprovement < jobs[j].NetImprovement
 		})
 	case "improvement":
-		sort.Slice(jobs, func(i, j int) bool {
+		gosort.Slice(jobs, func(i, j int) bool {
 			return jobs[i].NetImprovement < jobs[j].NetImprovement
 		})
 	}
@@ -62,7 +63,7 @@ func (jobs jobsApiResult) sort(req *http.Request) jobsApiResult {
 	return jobs
 }
 
-func (jobs jobsApiResult) limit(req *http.Request) jobsApiResult {
+func (jobs jobsAPIResult) limit(req *http.Request) jobsAPIResult {
 	limit, _ := strconv.Atoi(req.URL.Query().Get("limit"))
 	if limit > 0 {
 		return jobs[:limit]
@@ -72,7 +73,7 @@ func (jobs jobsApiResult) limit(req *http.Request) jobsApiResult {
 }
 
 func PrintJobsReport(w http.ResponseWriter, req *http.Request, current, previous []v1sippyprocessing.JobResult) {
-	jobs := jobsApiResult{}
+	jobs := jobsAPIResult{}
 	filter := jobFilter(req)
 	briefName := regexp.MustCompile("periodic-ci-openshift-release-master-(ci|nightly)-[0-9]+.[0-9]+-")
 
@@ -85,7 +86,7 @@ func PrintJobsReport(w http.ResponseWriter, req *http.Request, current, previous
 		job := v1.Job{
 			ID:                             idx,
 			Name:                           jobResult.Name,
-			BriefName:						briefName.ReplaceAllString(jobResult.Name, ""),
+			BriefName:                      briefName.ReplaceAllString(jobResult.Name, ""),
 			CurrentPassPercentage:          jobResult.PassPercentage,
 			CurrentProjectedPassPercentage: jobResult.PassPercentageWithoutInfrastructureFailures,
 			CurrentRuns:                    jobResult.Failures + jobResult.Successes,

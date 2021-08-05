@@ -1,8 +1,9 @@
 package sippyserver
 
 import (
-	"github.com/openshift/sippy/pkg/api"
 	"net/http"
+
+	"github.com/openshift/sippy/pkg/api"
 
 	"github.com/openshift/sippy/pkg/html/installhtml"
 )

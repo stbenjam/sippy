@@ -1,12 +1,13 @@
 package api
 
 import (
+	"net/http"
+
 	sippyv1 "github.com/openshift/sippy/pkg/apis/sippy/v1"
 	sippyprocessingv1 "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
-	"net/http"
 )
 
-func PrintOverallReleaseHealth(w http.ResponseWriter, curr sippyprocessingv1.TestReport, prev sippyprocessingv1.TestReport) {
+func PrintOverallReleaseHealth(w http.ResponseWriter, curr, prev sippyprocessingv1.TestReport) {
 	type indicator struct {
 		Current  sippyv1.PassRate `json:"current"`
 		Previous sippyv1.PassRate `json:"previous"`
@@ -80,7 +81,7 @@ func PrintOverallReleaseHealth(w http.ResponseWriter, curr sippyprocessingv1.Tes
 	}
 
 	type variants struct {
-		Current  sippyprocessingv1.VariantHealth `json:"current"'`
+		Current  sippyprocessingv1.VariantHealth `json:"current"`
 		Previous sippyprocessingv1.VariantHealth `json:"previous"`
 	}
 

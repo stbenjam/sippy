@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	rice "github.com/GeertJohan/go.rice"
-	"log"
 	"os"
 	"regexp"
 	"strings"
+
+	rice "github.com/GeertJohan/go.rice"
 
 	"github.com/openshift/sippy/pkg/buganalysis"
 	"github.com/openshift/sippy/pkg/sippyserver"
@@ -192,12 +192,12 @@ func (o *Options) runServerMode() error {
 	// needs to be in main.go, so rice can find it when injecting the contents.
 	sippyNG, err := rice.FindBox("./sippy-ng/build")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	static, err := rice.FindBox("./static")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	server := sippyserver.NewServer(
