@@ -18,19 +18,27 @@ const useStyles = makeStyles((theme) => ({
     },
 }));
 
-export default function JobsDashboard(props) {
+export default function JobsDetail(props) {
     const classes = useStyles();
 
-    const [filter = null, setFilter] = useQueryParam("job", StringParam)
+    const [trigger, setTrigger] = React.useState(false)
+    const [filter, setFilter] = useQueryParam("job", StringParam)
     const [query, setQuery] = React.useState("")
-    const [jobs, setJobs] = React.useState([])
+    const [data, setData] = React.useState({ jobs: [] })
     const [isLoaded, setLoaded] = React.useState(false)
-    const [pageRendered, setPageRendered] = React.useState(false)
     const [fetchError, setFetchError] = React.useState("")
 
     useEffect(() => {
-        if (filter != null) {
-            fetch(process.env.REACT_APP_API_URL + '/api/jobs/testgrid?release=' + props.release + "&job=" + encodeURIComponent(filter))
+        setQuery(filter)
+
+
+        if (trigger || filter !== "") {
+            let urlQuery = ""
+            if (filter) {
+                urlQuery = "&filterBy=name&job=" + encodeURIComponent(filter)
+            }
+
+            fetch(process.env.REACT_APP_API_URL + '/api/jobs/details?release=' + props.release + urlQuery)
                 .then((response) => {
                     if (response.status !== 200) {
                         throw new Error("server returned " + response.status);
@@ -39,25 +47,24 @@ export default function JobsDashboard(props) {
                     return response.json();
                 })
                 .then(response => {
-                    let jobs = response.jobs
-                    jobs.sort((a, b) => a.name > b.name ? 1 : a.name < b.name ? -1 : 0);
-                    setJobs(jobs)
-                    console.log(jobs)
+                    setData(response)
                     setLoaded(true)
                 })
                 .catch(error => {
                     setFetchError(error.toString())
                     setLoaded(true)
+
                 })
         }
+
     }
-        , [filter]
+        , [filter, trigger, query]
     )
 
-    if (filter && !isLoaded) {
+    if (trigger && !isLoaded) {
         return (
             <Backdrop className={classes.backdrop} open={!isLoaded}>
-                Fetching live data...
+                Fetching data...
                 <CircularProgress color="inherit" />
             </Backdrop>
         );
@@ -69,9 +76,15 @@ export default function JobsDashboard(props) {
         )
     }
 
+    const updateFilter = (query) => {
+        setLoaded(false)
+        setTrigger(true)
+        setFilter(query)
+    }
+
     let filterSearch = (
         <Fragment>
-            <Typography>Please enter a search query, or just click search. It will take a while, this fetches live data from Prow.</Typography>
+            <Alert severity="warning">This page fetches a lot of data, it's better to search for the job you want. However, if you want to see it all, just click "search".</Alert><br />
             <Grid alignItems="stretch" style={{ display: "flex" }}>
                 <TextField
                     id="outlined-secondary"
@@ -81,33 +94,17 @@ export default function JobsDashboard(props) {
                     defaultValue={query}
                     onChange={(e) => setQuery(e.target.value)}
                 />&nbsp;&nbsp;
-                <Button variant="contained" color="secondary" onClick={() => setFilter(query)} >Search</Button>
+                <Button variant="contained" color="secondary" onClick={() => updateFilter(query)} >Search</Button>
             </Grid>
         </Fragment>
     )
 
-    if (jobs.length == 0) {
+    if (data.jobs.length == 0) {
         return filterSearch;
     }
 
-    let filterRegexp = new RegExp(filter);
-
-    let timestampBegin = 0;
-    let timestampEnd = 0;
-    for (let job of jobs) {
-        if (filter && !filterRegexp.test(job.name)) {
-            continue;
-        }
-
-        for (let ts of job.timestamps) {
-            if (timestampBegin == 0 || ts < timestampBegin) {
-                timestampBegin = ts;
-            }
-            if (timestampEnd == 0 || ts > timestampEnd) {
-                timestampEnd = ts;
-            }
-        }
-    }
+    let timestampBegin = data.start;
+    let timestampEnd = data.end;
 
     const msPerDay = 86400 * 1000;
     timestampBegin = Math.floor(timestampBegin / msPerDay) * msPerDay;
@@ -123,14 +120,9 @@ export default function JobsDashboard(props) {
     }
 
     let rows = [];
-    for (let job of jobs) {
-        if (filter && !filterRegexp.test(job.name)) {
-            continue;
-        }
-
+    for (let job of data.jobs) {
         let row = {
             name: job.name,
-            link: job.testgrid_url,
             results: []
         }
 
@@ -138,17 +130,17 @@ export default function JobsDashboard(props) {
         let i = 0;
         while (ts >= timestampBegin) {
             let day = [];
-            while (job.timestamps[i] >= ts) {
+            while (job.results[i] && job.results[i].timestamp >= ts) {
                 let result = {}
                 result.id = i;
-                result.text = job.results[i]
-                result.prowLink = 'https://prow.ci.openshift.org/view/gs/origin-ci-test/logs/' + job.name + '/' + job.build_ids[i];
-                result.className = "result result-" + job.results[i]
+                result.text = job.results[i].result
+                result.prowLink = job.results[i].url
+                result.className = "result result-" + result.text
                 day.push(result)
                 i++;
             }
-            ts -= msPerDay;
             row.results.push(day)
+            ts -= msPerDay;
         }
         rows.push(row)
     }

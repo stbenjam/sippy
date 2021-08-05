@@ -16,7 +16,7 @@ export default function JobDetailTable(props) {
             <br /><br />
             <div>
                 <span className="legend-item"><span className="results results-demo"><span className="result result-S">S</span></span> success</span>
-                <span className="legend-item"><span className="results results-demo"><span className="result result-F">F</span></span> failure (e2e tests)</span>
+                <span className="legend-item"><span className="results results-demo"><span className="result result-F">F</span></span> failure (e2e)</span>
                 <span className="legend-item"><span className="results results-demo"><span className="result result-f">f</span></span> failure (other tests)</span>
                 <span className="legend-item"><span className="results results-demo"><span className="result result-U">U</span></span> upgrade failure</span>
                 <span className="legend-item"><span className="results results-demo"><span className="result result-I">I</span></span> setup failure (installer)</span>
@@ -25,36 +25,38 @@ export default function JobDetailTable(props) {
                 <span className="legend-item"><span className="results results-demo"><span className="result result-R">R</span></span> running</span>
             </div>
 
-            <TableContainer component={Paper}>
-                <Table className="dashboard-table" aria-label="simple table">
-                    <TableHead>
-                        <TableRow>
-                            <TableCell className="col-name">Name</TableCell>
-                            {columns.map((column) => (
-                                <TableCell className="col-day">{column}</TableCell>
-                            ))}
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {rows.map((row) =>
-                            <TableRow key={"job-" + row.name} className="row-item">
-                                <TableCell component="th" scope="row" className="col-day">
-                                    <a href={row.link}>{row.name}</a>
-                                </TableCell>
-                                {row.results.map((days) =>
-                                    <TableCell className="col-day" key={"ts" + row.id}>
-                                        <div className="results">
-                                            {days.map((day) =>
-                                                <a key={day.id} className={day.className} href={day.prowLink} target="_blank">{day.text}</a>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                )}
+            <div class="view">
+                <TableContainer component="div" className="wrapper">
+                    <Table className="dashboard-table" aria-label="simple table">
+                        <TableHead>
+                            <TableRow>
+                                <TableCell className="col-name col-first">Name</TableCell>
+                                {columns.map((column) => (
+                                    <TableCell className="col-day">{column}</TableCell>
+                                ))}
                             </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+                        </TableHead>
+                        <TableBody>
+                            {rows.map((row) =>
+                                <TableRow key={"job-" + row.name} className="row-item">
+                                    <TableCell component="th" scope="row" className="col-name col-first">
+                                        <a href={row.link}>{row.name}</a>
+                                    </TableCell>
+                                    {row.results.map((days) =>
+                                        <TableCell className="col-day" key={"ts" + row.id}>
+                                            <div className="results">
+                                                {days.map((day) =>
+                                                    <a key={day.id} className={day.className} href={day.prowLink} target="_blank">{day.text}</a>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                    )}
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </div>
         </Fragment>
     );
 }

@@ -6,13 +6,26 @@ a:hover {
     color: #33f;
 }
 
+.wrapper {
+    position: relative;
+    overflow: auto;
+    border: 1px solid black;
+    white-space: nowrap;
+}
+
+.view {
+  margin: auto;
+  width: "100%";
+}
+  
 .dashboard-table {
     border: 1px solid black;
     margin-top: 0.5em;
-    table-layout: fixed;
 }
+
 .row-item {
     border: 1px solid black;
+    background-color: white;
 }
 .col-header {
     text-align: center;
@@ -21,14 +34,23 @@ a:hover {
     box-sizing: border-box;
     width: 100%;
 }
+
 .col-name {
-    width: 700px;
+    min-width: 500px;
+    width: 500px;
+    max-width: 500px;
+    overflow: hidden;
+    text-overflow: wrap;
+    left: 0px;
+    z-index: 1;
 }
+
 .col-day {
     border: 1px solid black;
-    width: 200px;
-    background: #eee;
+    opacity: 1;
+    z-index: 99;
 }
+
 .results {
     border: 1px solid black;
     display: flex;

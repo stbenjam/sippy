@@ -28,7 +28,7 @@ func PrepareTestReport(
 ) sippyprocessingv1.TestReport {
 
 	// allJobResults holds all the job results with all the test results.  It contains complete frequency information and
-	allJobResults := convertRawJobResultsToProcessedJobResults(rawData.JobResults, bugCache, bugzillaRelease)
+	allJobResults := convertRawJobResultsToProcessedJobResults(rawData, bugCache, bugzillaRelease)
 	allTestResultsByName := getTestResultsByName(allJobResults)
 
 	standardTestResultFilterFn := StandardTestResultFilter(minRuns, successThreshold)

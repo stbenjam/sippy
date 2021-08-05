@@ -406,30 +406,19 @@ func (s *Server) htmlVariantsReport(w http.ResponseWriter, req *http.Request) {
 	releasehtml.PrintVariantsReport(w, release, variant, current, previous, timestamp)
 }
 
-func (s *Server) jsonJobsTestgrid(w http.ResponseWriter, req *http.Request) {
-	reportName := req.URL.Query().Get("release")
-	jobFilterString := req.URL.Query().Get("jobFilter")
+func (s *Server) jsonJobsDetailsReport(w http.ResponseWriter, req *http.Request) {
+	release := req.URL.Query().Get("release")
+	reports := s.currTestReports
 
-	var jobFilter *regexp.Regexp
-	if len(jobFilterString) > 0 {
-		var err error
-		jobFilter, err = regexp.Compile(jobFilterString)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("jobFilter: %s", err), http.StatusBadRequest)
-			return
-		}
+	if release == "" {
+		generichtml.PrintStatusMessage(w, http.StatusBadRequest, "Please specify a release.")
 	}
 
-	dashboardCoordinates, found := s.reportNameToDashboardCoordinates(reportName)
-	if !found {
-		http.Error(w, fmt.Sprintf("release %s not found", reportName), http.StatusBadRequest)
-		return
+	if _, ok := reports[release]; !ok {
+		generichtml.PrintStatusMessage(w, http.StatusNotFound, fmt.Sprintf("Release %q not found.", release))
 	}
 
-	testGridJobDetails, lastUpdateTime := s.testReportGeneratorConfig.TestGridLoadingConfig.loadWithFilter(
-		dashboardCoordinates.TestGridDashboardNames, jobFilter)
-
-	api.PrintTestGridJobsReport(w, s.syntheticTestManager, testGridJobDetails, lastUpdateTime)
+	api.PrintJobDetailsReport(w, req, reports[release].CurrentPeriodReport.ByJob, reports[release].PreviousWeekReport.ByJob)
 }
 
 func (s *Server) jsonJobsReport(w http.ResponseWriter, req *http.Request) {
@@ -494,8 +483,8 @@ func (s *Server) Serve() {
 	serveMux.HandleFunc("/json", s.printJSONReport)
 
 	// New API's
+	serveMux.HandleFunc("/api/jobs/details", s.jsonJobsDetailsReport)
 	serveMux.HandleFunc("/api/jobs", s.jsonJobsReport)
-	serveMux.HandleFunc("/api/jobs/testgrid", s.jsonJobsTestgrid)
 
 	serveMux.HandleFunc("/api/install", s.jsonInstallReport)
 	serveMux.HandleFunc("/api/tests", s.jsonTestsReport)

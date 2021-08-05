@@ -18,6 +18,7 @@ import React, { Fragment, useEffect } from 'react';
 import { NumberParam, StringParam, useQueryParam } from 'use-query-params';
 import BugzillaDialog from './BugzillaDialog';
 import PassRateIcon from './PassRate/passRateIcon';
+import DirectionsRunIcon from '@material-ui/icons/DirectionsRun';
 
 function escapeRegExp(value) {
     return value.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
@@ -178,6 +179,19 @@ function JobTable(props) {
                 return (
                     <Tooltip title="TestGrid">
                         <Button style={{ justifyContent: "center" }} target="_blank" startIcon={<GridOn />} href={params.value} />
+                    </Tooltip>
+                );
+            },
+            hide: props.briefTable,
+        },
+        {
+            field: '',
+            headerName: ' ',
+            flex: 0.40,
+            renderCell: (params) => {
+                return (
+                    <Tooltip title="See detailed runs">
+                        <Button style={{ justifyContent: "center" }} startIcon={<DirectionsRunIcon />} href={"/jobs/" + props.release + "/detail?job=" + params.row.name} />
                     </Tooltip>
                 );
             },

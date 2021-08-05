@@ -146,18 +146,39 @@ type JobRunResult struct {
 	Succeeded          bool     `json:"succeeded"`
 }
 
+type JobStatus string
+
+const (
+	JobStatusSucceeded             JobStatus = "S"
+	JobStatusRunning               JobStatus = "R"
+	JobStatusInfrastructureFailure JobStatus = "N"
+	JobStatusInstallFailure        JobStatus = "I"
+	JobStatusUpgradeFailure        JobStatus = "U"
+	JobStatusTestFailure           JobStatus = "F"
+	JobStatusNoResults             JobStatus = "n"
+	JobStatusUnknown               JobStatus = "f"
+)
+
+type BuildResult struct {
+	Timestamp int       `json:"timestamp"`
+	Result    JobStatus `json:"result"`
+	URL       string    `json:"url"`
+}
+
 type JobResult struct {
-	Name                                        string       `json:"name"`
-	Variant                                     string       `json:"platform"`
-	Failures                                    int          `json:"failures"`
-	KnownFailures                               int          `json:"knownFailures"`
-	InfrastructureFailures                      int          `json:"infrastructureFailures"`
-	Successes                                   int          `json:"successes"`
-	PassPercentage                              float64      `json:"passPercentage"`
-	PassPercentageWithKnownFailures             float64      `json:"passPercentageWithKnownFailures"`
-	PassPercentageWithoutInfrastructureFailures float64      `json:"passPercentageWithoutInfrastructureFailures"`
-	TestGridURL                                 string       `json:"testGridURL"`
-	BugList                                     []bugsv1.Bug `json:"bugList"`
+	Name                                        string        `json:"name"`
+	Variant                                     string        `json:"platform"`
+	Failures                                    int           `json:"failures"`
+	KnownFailures                               int           `json:"knownFailures"`
+	InfrastructureFailures                      int           `json:"infrastructureFailures"`
+	Successes                                   int           `json:"successes"`
+	PassPercentage                              float64       `json:"passPercentage"`
+	PassPercentageWithKnownFailures             float64       `json:"passPercentageWithKnownFailures"`
+	PassPercentageWithoutInfrastructureFailures float64       `json:"passPercentageWithoutInfrastructureFailures"`
+	TestGridURL                                 string        `json:"testGridURL"`
+	BuildResults                                []BuildResult `json:"buildResults"`
+
+	BugList []bugsv1.Bug `json:"bugList"`
 	// AssociatedBugList are bugs that match the test/job, but do not match the target release
 	AssociatedBugList []bugsv1.Bug `json:"associatedBugList"`
 

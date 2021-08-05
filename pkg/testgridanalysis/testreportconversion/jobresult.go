@@ -61,11 +61,12 @@ func filterPertinentInfrequentJobResults(
 
 // convertRawJobResultsToProcessedJobResults performs no filtering
 func convertRawJobResultsToProcessedJobResults(
-	rawJobResults map[string]testgridanalysisapi.RawJobResult,
+	rawData testgridanalysisapi.RawData,
 	bugCache buganalysis.BugCache, // required to associate tests with bug
-	bugzillaRelease string, // required to limit bugs to those that apply to the release in question,
+	bugzillaRelease string,        // required to limit bugs to those that apply to the release in question,
 ) []sippyprocessingv1.JobResult {
 	jobs := []sippyprocessingv1.JobResult{}
+	rawJobResults := rawData.JobResults
 
 	for _, rawJobResult := range rawJobResults {
 		job := convertRawJobResultToProcessedJobResult(rawJobResult, bugCache, bugzillaRelease)
@@ -80,9 +81,8 @@ func convertRawJobResultsToProcessedJobResults(
 func convertRawJobResultToProcessedJobResult(
 	rawJobResult testgridanalysisapi.RawJobResult,
 	bugCache buganalysis.BugCache, // required to associate tests with bug
-	bugzillaRelease string, // required to limit bugs to those that apply to the release in question,
+	bugzillaRelease string,        // required to limit bugs to those that apply to the release in question,
 ) sippyprocessingv1.JobResult {
-
 	job := sippyprocessingv1.JobResult{
 		Name:              rawJobResult.JobName,
 		TestGridURL:       rawJobResult.TestGridJobURL,
@@ -91,7 +91,15 @@ func convertRawJobResultToProcessedJobResult(
 		AssociatedBugList: bugCache.ListAssociatedBugs(bugzillaRelease, rawJobResult.JobName, ""),
 	}
 
-	for _, rawJRR := range rawJobResult.JobRunResults {
+	for url, rawJRR := range rawJobResult.JobRunResults {
+		buildStatus := sippyprocessingv1.BuildResult{
+			URL:       url,
+			Timestamp: rawJRR.Timestamp,
+			Result:    rawJRR.OverallStatus,
+		}
+
+		job.BuildResults = append(job.BuildResults, buildStatus)
+
 		if rawJRR.Failed {
 			job.Failures++
 		} else if rawJRR.Succeeded {
@@ -108,6 +116,7 @@ func convertRawJobResultToProcessedJobResult(
 		if rawJRR.SetupStatus != testgridanalysisapi.Success && rawJRR.SetupStatus != testgridanalysisapi.Unknown {
 			job.InfrastructureFailures++
 		}
+
 	}
 
 	job.PassPercentage = percent(job.Successes, job.Failures)
