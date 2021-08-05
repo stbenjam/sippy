@@ -10,7 +10,7 @@ import bugzillaURL from './BugzillaUtils';
 
 export default function BugzillaDialog(props) {
     const bugTable = (bugs) => {
-        if(!bugs || bugs.length == 0) {
+        if(!bugs || bugs.length === 0) {
             return <Typography>None found</Typography>;
         }
 

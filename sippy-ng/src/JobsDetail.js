@@ -1,13 +1,7 @@
-import Table from '@material-ui/core/Table';
-import TableBody from '@material-ui/core/TableBody';
-import TableCell from '@material-ui/core/TableCell';
-import TableHead from '@material-ui/core/TableHead';
-import TableRow from '@material-ui/core/TableRow';
-import { Button, Grid, makeStyles, TableContainer, TextField, Typography } from '@material-ui/core';
-import React, { Suspense, Fragment, useEffect } from 'react';
-import { StringParam, useQueryParam } from 'use-query-params';
-import { Backdrop, CircularProgress, Paper } from '@material-ui/core';
+import { Backdrop, Button, CircularProgress, Grid, makeStyles, TextField } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
+import React, { Fragment, useEffect } from 'react';
+import { StringParam, useQueryParam } from 'use-query-params';
 import './JobDashboard.css';
 import JobDetailTable from './JobDetailTable';
 
@@ -70,7 +64,7 @@ export default function JobsDetail(props) {
         );
     }
 
-    if (fetchError != "") {
+    if (fetchError !== "") {
         return (
             <Alert severity="error">Failed to load data: {fetchError}</Alert>
         )
@@ -99,7 +93,7 @@ export default function JobsDetail(props) {
         </Fragment>
     )
 
-    if (data.jobs.length == 0) {
+    if (data.jobs.length === 0) {
         return filterSearch;
     }
 

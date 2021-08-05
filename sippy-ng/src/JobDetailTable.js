@@ -1,4 +1,4 @@
-import { Paper, TableContainer } from '@material-ui/core';
+import { TableContainer } from '@material-ui/core';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
@@ -46,7 +46,7 @@ export default function JobDetailTable(props) {
                                         <TableCell className="col-day" key={"ts" + row.id}>
                                             <div className="results">
                                                 {days.map((day) =>
-                                                    <a key={day.id} className={day.className} href={day.prowLink} target="_blank">{day.text}</a>
+                                                    <a key={day.id} className={day.className} href={day.prowLink} target="_blank" rel="noreferrer">{day.text}</a>
                                                 )}
                                             </div>
                                         </TableCell>

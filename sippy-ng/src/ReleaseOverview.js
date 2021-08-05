@@ -1,15 +1,14 @@
 import { Box, Card, Container, Tooltip, Typography } from '@material-ui/core';
 import Grid from '@material-ui/core/Grid';
 import { createTheme, makeStyles, useTheme } from '@material-ui/core/styles';
-import Alert from '@material-ui/lab/Alert';
-import React, { Fragment, useEffect } from 'react';
-import PassRateByVariant, { TOOLTIP as VariantToolTip } from './PassRate/passRateByVariant';
-import PassRateIcon from './PassRate/passRateIcon';
 import InfoIcon from '@material-ui/icons/Info';
+import Alert from '@material-ui/lab/Alert';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import JobTable from './JobTable';
-import TestTable from './TestTable';
+import PassRateIcon from './PassRate/passRateIcon';
 import SummaryCard from './SummaryCard';
+import TestTable from './TestTable';
 
 export const TOOLTIP = "Top level release indicators showing product health"
 export const REGRESSED_TOOLTIP = "Shows the most regressed items this week vs. last week, for those with more than 10 runs"

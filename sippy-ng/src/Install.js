@@ -1,10 +1,7 @@
-import { Container, Grid, Paper, Tab, Tabs, Typography } from '@material-ui/core';
+import { Grid, Paper, Tab, Tabs, Typography } from '@material-ui/core';
 import { Alert, TabContext } from '@material-ui/lab';
 import React, { useEffect } from 'react';
-import {
-    BrowserRouter as Router, Link, Redirect, Route, Switch, useRouteMatch
-} from "react-router-dom";
-import JobTable from './JobTable';
+import { Link, Redirect, Route, Switch, useRouteMatch } from "react-router-dom";
 import TestByVariantTable from './TestByVariantTable';
 import TestTable from './TestTable';
 

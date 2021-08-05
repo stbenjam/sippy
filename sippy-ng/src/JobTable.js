@@ -1,4 +1,4 @@
-import { Box, Button, Container, Hidden, Tooltip, Typography } from '@material-ui/core';
+import { Box, Button, Container, Tooltip, Typography } from '@material-ui/core';
 import IconButton from '@material-ui/core/IconButton';
 import { createTheme } from '@material-ui/core/styles';
 import TextField from '@material-ui/core/TextField';
@@ -7,18 +7,18 @@ import {
     GridToolbarDensitySelector,
     GridToolbarFilterButton
 } from '@material-ui/data-grid';
-import { BugReport, GridOn, Search } from '@material-ui/icons';
+import { BugReport, GridOn } from '@material-ui/icons';
 import ClearIcon from '@material-ui/icons/Clear';
+import DirectionsRunIcon from '@material-ui/icons/DirectionsRun';
 import SearchIcon from '@material-ui/icons/Search';
 import Alert from '@material-ui/lab/Alert';
 import { makeStyles, withStyles } from '@material-ui/styles';
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
-import React, { Fragment, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { NumberParam, StringParam, useQueryParam } from 'use-query-params';
 import BugzillaDialog from './BugzillaDialog';
 import PassRateIcon from './PassRate/passRateIcon';
-import DirectionsRunIcon from '@material-ui/icons/DirectionsRun';
 
 function escapeRegExp(value) {
     return value.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');

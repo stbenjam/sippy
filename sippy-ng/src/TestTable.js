@@ -1,4 +1,4 @@
-import { Box, Button, Container, Menu, MenuItem, Tooltip, Typography } from '@material-ui/core';
+import { Button, Container, Menu, MenuItem, Tooltip, Typography } from '@material-ui/core';
 import IconButton from '@material-ui/core/IconButton';
 import { createTheme, useTheme } from '@material-ui/core/styles';
 import TextField from '@material-ui/core/TextField';
@@ -15,7 +15,7 @@ import { makeStyles, withStyles } from '@material-ui/styles';
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import React, { Fragment, useEffect } from 'react';
-import { Link, Switch, Route } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ArrayParam, NumberParam, StringParam, useQueryParam } from 'use-query-params';
 import BugzillaDialog from './BugzillaDialog';
 import PassRateIcon from './PassRate/passRateIcon';
@@ -155,7 +155,6 @@ const styles = {
 
 function TestTable(props) {
     const { classes } = props;
-    const { theme } = useTheme();
 
     const columns = [
         {
@@ -221,7 +220,7 @@ function TestTable(props) {
             renderCell: (params) => {
                 return (
                     <Tooltip title={params.value.length + " linked bugs" + ", " + params.row.associated_bugs.length + " associated bugs"}>
-                        <Button style={{ color: params.value.length > 0 ? "black" : "silver" }} startIcon={<BugReport />} onClick={() => openBugzillaDialog(params.row)} />
+                        <Button style={{ color: (params.value.length > 0) ? "black" : "silver" }} startIcon={<BugReport />} onClick={() => openBugzillaDialog(params.row)} />
                     </Tooltip>
                 );
             },
@@ -360,7 +359,7 @@ function TestTable(props) {
         <Container size="xl">
             {title}
             <DataGrid
-                components={{ Toolbar: (filterBy === "install" || filterBy == "upgrade" || props.hideControls) ? "" : TestSearchToolbar }}
+                components={{ Toolbar: (filterBy === "install" || filterBy === "upgrade" || props.hideControls) ? "" : TestSearchToolbar }}
                 rows={rows}
                 columns={columns}
                 autoHeight={true}

@@ -30,7 +30,6 @@ import React, { Fragment, useEffect } from 'react';
 import {
   BrowserRouter as Router, Link, Route, Switch
 } from "react-router-dom";
-import Cookies from 'universal-cookie';
 import { QueryParamProvider } from 'use-query-params';
 import BugzillaSearch from './BugzillaSearch';
 import Install from './Install';
@@ -111,7 +110,6 @@ const lightMode = {
 };
 
 export default function App(props) {
-  const cookies = new Cookies();
   const classes = useStyles();
   const theme = useTheme();
 
