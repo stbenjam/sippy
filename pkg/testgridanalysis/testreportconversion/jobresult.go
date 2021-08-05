@@ -63,7 +63,7 @@ func filterPertinentInfrequentJobResults(
 func convertRawJobResultsToProcessedJobResults(
 	rawData testgridanalysisapi.RawData,
 	bugCache buganalysis.BugCache, // required to associate tests with bug
-	bugzillaRelease string,        // required to limit bugs to those that apply to the release in question,
+	bugzillaRelease string, // required to limit bugs to those that apply to the release in question,
 ) []sippyprocessingv1.JobResult {
 	jobs := []sippyprocessingv1.JobResult{}
 	rawJobResults := rawData.JobResults
@@ -81,7 +81,7 @@ func convertRawJobResultsToProcessedJobResults(
 func convertRawJobResultToProcessedJobResult(
 	rawJobResult testgridanalysisapi.RawJobResult,
 	bugCache buganalysis.BugCache, // required to associate tests with bug
-	bugzillaRelease string,        // required to limit bugs to those that apply to the release in question,
+	bugzillaRelease string, // required to limit bugs to those that apply to the release in question,
 ) sippyprocessingv1.JobResult {
 	job := sippyprocessingv1.JobResult{
 		Name:              rawJobResult.JobName,

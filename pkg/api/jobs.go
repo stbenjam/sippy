@@ -1,17 +1,16 @@
 package api
 
 import (
-	v1 "github.com/openshift/sippy/pkg/apis/sippy/v1"
-	v1sippyprocessing "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
-	"github.com/openshift/sippy/pkg/util"
 	"net/http"
 	"regexp"
 	gosort "sort"
 	"strconv"
 	"strings"
-)
 
-const failure string = "Failure"
+	v1 "github.com/openshift/sippy/pkg/apis/sippy/v1"
+	v1sippyprocessing "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
+	"github.com/openshift/sippy/pkg/util"
+)
 
 func jobFilter(req *http.Request) func(result v1sippyprocessing.JobResult) bool {
 	filterBy := req.URL.Query().Get("filterBy")
@@ -118,9 +117,9 @@ type jobDetail struct {
 }
 
 type jobDetailAPIResult struct {
-	Jobs []jobDetail `json:"jobs"`
-	Start   int                             `json:"start"`
-	End     int                             `json:"end"`
+	Jobs  []jobDetail `json:"jobs"`
+	Start int         `json:"start"`
+	End   int         `json:"end"`
 }
 
 func PrintJobDetailsReport(w http.ResponseWriter, req *http.Request, current, previous []v1sippyprocessing.JobResult) {
@@ -147,7 +146,7 @@ func PrintJobDetailsReport(w http.ResponseWriter, req *http.Request, current, pr
 		}
 
 		jobDetail := jobDetail{
-			Name: jobResult.Name,
+			Name:    jobResult.Name,
 			Results: buildResults,
 		}
 

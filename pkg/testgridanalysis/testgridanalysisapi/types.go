@@ -3,8 +3,9 @@
 package testgridanalysisapi
 
 import (
-	v1 "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
 	"regexp"
+
+	v1 "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
 )
 
 // 1. TestGrid contains jobs
