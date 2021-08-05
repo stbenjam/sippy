@@ -1,7 +1,6 @@
-import { CssBaseline, FormControlLabel, FormGroup, ListSubheader, MuiThemeProvider, Switch as ControlSwitch } from '@material-ui/core';
+import { CssBaseline, ListSubheader, MuiThemeProvider } from '@material-ui/core';
 import AppBar from '@material-ui/core/AppBar';
 import Collapse from '@material-ui/core/Collapse';
-import { yellow } from '@material-ui/core/colors';
 import Divider from '@material-ui/core/Divider';
 import Drawer from '@material-ui/core/Drawer';
 import IconButton from '@material-ui/core/IconButton';
@@ -21,10 +20,10 @@ import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import ExitToAppIcon from '@material-ui/icons/ExitToApp';
 import HomeIcon from '@material-ui/icons/Home';
 import InfoIcon from '@material-ui/icons/Info';
+import ListIcon from '@material-ui/icons/List';
 import MenuIcon from '@material-ui/icons/Menu';
 import NewReleasesIcon from '@material-ui/icons/NewReleases';
 import SearchIcon from '@material-ui/icons/Search';
-import SupervisedUserCircleIcon from '@material-ui/icons/SupervisedUserCircle';
 import Alert from '@material-ui/lab/Alert';
 import clsx from 'clsx';
 import React, { Fragment, useEffect } from 'react';
@@ -132,7 +131,7 @@ export default function App(props) {
         return response.json();
       })
       .then(json => {
-        if(json.releases) {
+        if (json.releases) {
           setReleases(json.releases);
         } else {
           throw new Error("no releases found");
@@ -251,7 +250,7 @@ export default function App(props) {
                         </ListItem>
                         <ListItem key={"release-jobs-" + index} component={Link} to={"/jobs/" + release} button className={classes.nested}>
                           <ListItemIcon>
-                            <SupervisedUserCircleIcon />
+                            <ListIcon />
                           </ListItemIcon>
                           <ListItemText primary="Jobs" />
                         </ListItem>
@@ -329,39 +328,39 @@ export default function App(props) {
                   <ReleaseOverview
                     key={"release-overview-" + props.match.params.release}
                     release={props.match.params.release} />
-                  }/>
+                } />
 
                 <Route path="/jobs/:release" render={(props) =>
                   <Jobs
                     key={"jobs-" + props.match.params.release}
                     title={"Job results for " + props.match.params.release}
                     release={props.match.params.release} />
-                  }/>
+                } />
 
                 <Route path="/tests/:release/details" render={(props) =>
                   <TestDetailTable
                     key={props.match.params.release}
                     release={props.match.params.release} />
-                    } />
+                } />
 
                 <Route path="/tests/:release" render={(props) =>
                   <TestTable
                     key={"tests-" + props.match.params.release}
                     title={"Test results for " + props.match.params.release}
                     release={props.match.params.release} />
-                    } />
+                } />
 
                 <Route path="/upgrade/:release" render={(props) =>
                   <Upgrades
                     key={"upgrades-" + props.match.params.release}
                     release={props.match.params.release} />
-                    } />
+                } />
 
                 <Route path="/install/:release" render={(props) =>
                   <Install
                     key={"install-" + props.match.params.release}
                     release={props.match.params.release} />
-                    } />
+                } />
 
                 <Route path="/">
                   {releases.length > 0 ? <ReleaseOverview key={releases[0]} release={releases[0]} /> : "Loading..."}
