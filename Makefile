@@ -1,4 +1,4 @@
-export PATH := ${HOME}/go/bin:${PATH}
+export PATH := ${HOME}/go/bin:/go/bin:${PATH}
 
 DEPS = npm go
 CHECK := $(foreach dep,$(DEPS),\
