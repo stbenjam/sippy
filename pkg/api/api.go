@@ -326,10 +326,11 @@ func PrintJSONReport(w http.ResponseWriter, req *http.Request, releaseReports ma
 		reportObjects[report.Release] = formatJSONReport(report, prevReport, numDays, jobTestCount)
 	}
 
-	respondWithJSON(w, reportObjects)
+	RespondWithJSON(http.StatusOK, w, reportObjects)
 }
 
-func respondWithJSON(w http.ResponseWriter, data interface{}) {
+func RespondWithJSON(statusCode int, w http.ResponseWriter, data interface{}) {
+	w.WriteHeader(statusCode)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
@@ -339,7 +340,6 @@ func respondWithJSON(w http.ResponseWriter, data interface{}) {
 	}
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, `{message: "could not marshal results: %s"}`, err)
 	}
 }

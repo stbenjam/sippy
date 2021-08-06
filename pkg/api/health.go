@@ -90,7 +90,7 @@ func PrintOverallReleaseHealth(w http.ResponseWriter, curr, prev sippyprocessing
 		Variants   variants             `json:"variants"`
 	}
 
-	respondWithJSON(w, health{
+	RespondWithJSON(http.StatusOK, w, health{
 		Indicators: indicators,
 		Variants: variants{
 			Current:  curr.TopLevelIndicators.Variant,

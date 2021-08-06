@@ -15,7 +15,7 @@ import (
 )
 
 func PrintTestsDetailsJSON(w http.ResponseWriter, req *http.Request, current, previous v1sippyprocessing.TestReport) {
-	respondWithJSON(w, installhtml.TestDetailTests(installhtml.JSON, current, previous, req.URL.Query()["test"]))
+	RespondWithJSON(http.StatusOK, w, installhtml.TestDetailTests(installhtml.JSON, current, previous, req.URL.Query()["test"]))
 }
 
 func testFilter(req *http.Request, release string) []func(result v1sippyprocessing.FailingTestResult) bool {
@@ -131,7 +131,7 @@ buildTests:
 		tests = append(tests, row)
 	}
 
-	respondWithJSON(w, tests.
+	RespondWithJSON(http.StatusOK, w, tests.
 		sort(req).
 		limit(req))
 }

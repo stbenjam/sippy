@@ -296,29 +296,21 @@ func (s *Server) detailed(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Server) jsonTestsReport(w http.ResponseWriter, req *http.Request) {
-	release := req.URL.Query().Get("release")
-	if _, ok := s.currTestReports[release]; !ok {
-		generichtml.PrintStatusMessage(w, http.StatusNotFound, fmt.Sprintf("Release %q not found.", release))
-		return
+	release := s.getReleaseOrFail(w, req)
+	if release != "" {
+		currTests := s.currTestReports[release].CurrentPeriodReport.ByTest
+		prevTests := s.currTestReports[release].PreviousWeekReport.ByTest
+		api.PrintTestsJSON(release, w, req, currTests, prevTests)
 	}
-
-	currTests := s.currTestReports[release].CurrentPeriodReport.ByTest
-	prevTests := s.currTestReports[release].PreviousWeekReport.ByTest
-
-	api.PrintTestsJSON(release, w, req, currTests, prevTests)
 }
 
 func (s *Server) jsonTestDetailsReport(w http.ResponseWriter, req *http.Request) {
-	release := req.URL.Query().Get("release")
-	if _, ok := s.currTestReports[release]; !ok {
-		generichtml.PrintStatusMessage(w, http.StatusNotFound, fmt.Sprintf("Release %q not found.", release))
-		return
+	release := s.getReleaseOrFail(w, req)
+	if release != "" {
+		currTests := s.currTestReports[release].CurrentPeriodReport
+		prevTests := s.currTestReports[release].PreviousWeekReport
+		api.PrintTestsDetailsJSON(w, req, currTests, prevTests)
 	}
-
-	currTests := s.currTestReports[release].CurrentPeriodReport
-	prevTests := s.currTestReports[release].PreviousWeekReport
-
-	api.PrintTestsDetailsJSON(w, req, currTests, prevTests)
 }
 
 func (s *Server) jsonReleasesReport(w http.ResponseWriter, req *http.Request) {
@@ -334,25 +326,16 @@ func (s *Server) jsonReleasesReport(w http.ResponseWriter, req *http.Request) {
 		response.Releases = append(response.Releases, release.ReportName)
 	}
 
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		generichtml.PrintStatusMessage(w, http.StatusInternalServerError, fmt.Sprintf("Could not find any releases: %s", err))
-	}
+	api.RespondWithJSON(http.StatusOK, w, response)
 }
 
 func (s *Server) jsonHealthReport(w http.ResponseWriter, req *http.Request) {
-	release := req.URL.Query().Get("release")
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	if _, ok := s.currTestReports[release]; !ok {
-		generichtml.PrintStatusMessage(w, http.StatusNotFound, fmt.Sprintf("Release %q not found.", release))
-		return
+	release := s.getReleaseOrFail(w, req)
+	if release != "" {
+		curr := s.currTestReports[release].CurrentPeriodReport
+		prev := s.currTestReports[release].PreviousWeekReport
+		api.PrintOverallReleaseHealth(w, curr, prev)
 	}
-
-	curr := s.currTestReports[release].CurrentPeriodReport
-	prev := s.currTestReports[release].PreviousWeekReport
-
-	api.PrintOverallReleaseHealth(w, curr, prev)
 }
 
 func (s *Server) variantsReport(w http.ResponseWriter, req *http.Request) (*sippyprocessingv1.VariantResults, *sippyprocessingv1.VariantResults) {
@@ -406,34 +389,45 @@ func (s *Server) htmlVariantsReport(w http.ResponseWriter, req *http.Request) {
 	releasehtml.PrintVariantsReport(w, release, variant, current, previous, timestamp)
 }
 
-func (s *Server) jsonJobsDetailsReport(w http.ResponseWriter, req *http.Request) {
+func (s *Server) getReleaseOrFail(w http.ResponseWriter, req *http.Request) string {
 	release := req.URL.Query().Get("release")
 	reports := s.currTestReports
 
 	if release == "" {
-		generichtml.PrintStatusMessage(w, http.StatusBadRequest, "Please specify a release.")
+		api.RespondWithJSON(http.StatusBadRequest, w, map[string]interface{}{
+			"code":   "400",
+			"detail": fmt.Sprintf("release is required"),
+		})
+		return release
 	}
 
 	if _, ok := reports[release]; !ok {
-		generichtml.PrintStatusMessage(w, http.StatusNotFound, fmt.Sprintf("Release %q not found.", release))
+		api.RespondWithJSON(http.StatusNotFound, w, map[string]interface{}{
+			"code":   "400",
+			"detail": fmt.Sprintf("release %q not found", release),
+		})
+		return ""
 	}
 
-	api.PrintJobDetailsReport(w, req, reports[release].CurrentPeriodReport.ByJob, reports[release].PreviousWeekReport.ByJob)
+	return release
+}
+
+func (s *Server) jsonJobsDetailsReport(w http.ResponseWriter, req *http.Request) {
+	reports := s.currTestReports
+
+	release := s.getReleaseOrFail(w, req)
+	if release != "" {
+		api.PrintJobDetailsReport(w, req, reports[release].CurrentPeriodReport.ByJob, reports[release].PreviousWeekReport.ByJob)
+	}
 }
 
 func (s *Server) jsonJobsReport(w http.ResponseWriter, req *http.Request) {
-	release := req.URL.Query().Get("release")
 	reports := s.currTestReports
 
-	if release == "" {
-		generichtml.PrintStatusMessage(w, http.StatusBadRequest, "Please specify a release.")
+	release := s.getReleaseOrFail(w, req)
+	if release != "" {
+		api.PrintJobsReport(w, req, reports[release].CurrentPeriodReport.ByJob, reports[release].PreviousWeekReport.ByJob)
 	}
-
-	if _, ok := reports[release]; !ok {
-		generichtml.PrintStatusMessage(w, http.StatusNotFound, fmt.Sprintf("Release %q not found.", release))
-	}
-
-	api.PrintJobsReport(w, req, reports[release].CurrentPeriodReport.ByJob, reports[release].PreviousWeekReport.ByJob)
 }
 
 func (s *Server) jsonVariantsReport(w http.ResponseWriter, req *http.Request) {

@@ -112,7 +112,7 @@ func PrintJobsReport(w http.ResponseWriter, req *http.Request, current, previous
 		jobs = append(jobs, job)
 	}
 
-	respondWithJSON(w, jobs.
+	RespondWithJSON(http.StatusOK, w, jobs.
 		sort(req).
 		limit(req))
 }
@@ -170,7 +170,7 @@ func PrintJobDetailsReport(w http.ResponseWriter, req *http.Request, current, pr
 		jobs = append(jobs, jobDetail)
 	}
 
-	respondWithJSON(w, jobDetailAPIResult{
+	RespondWithJSON(http.StatusOK, w, jobDetailAPIResult{
 		Jobs:  jobs,
 		Start: min,
 		End:   max,
