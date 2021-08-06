@@ -92,6 +92,7 @@ func (tests testsAPIResult) limit(req *http.Request) testsAPIResult {
 	return tests[:limit]
 }
 
+// PrintTestsJSON renders the list of matching tests.
 func PrintTestsJSON(release string, w http.ResponseWriter, req *http.Request, current, previous []v1sippyprocessing.FailingTestResult) {
 	tests := testsAPIResult{}
 	filters := testFilter(req, release)

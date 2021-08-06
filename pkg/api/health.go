@@ -7,6 +7,8 @@ import (
 	sippyprocessingv1 "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
 )
 
+// PrintOverallReleaseHealth gives a summarized status of the overall health, including
+// infrastructure, install, upgrade, and variant success rates.
 func PrintOverallReleaseHealth(w http.ResponseWriter, curr, prev sippyprocessingv1.TestReport) {
 	type indicator struct {
 		Current  sippyv1.PassRate `json:"current"`
