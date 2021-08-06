@@ -84,7 +84,7 @@ func PrintJobsReport(w http.ResponseWriter, req *http.Request, current, previous
 	for idx, jobResult := range current {
 		for _, filter := range filters {
 			if !filter(jobResult) {
-				return
+				continue
 			}
 		}
 
