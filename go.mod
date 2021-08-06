@@ -10,6 +10,6 @@ require (
 	github.com/spf13/cobra v0.0.6
 	github.com/valyala/fasttemplate v1.2.1 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
-	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
+	golang.org/x/sys v0.0.0-20210806184541-e5e7981a1069 // indirect
 	k8s.io/klog v1.0.0
 )

@@ -30,7 +30,7 @@ var (
 <body>
 <div class="container">
 <div align="right">
-	<p><a href="/sippy-ng">Try the beta of Sippy-NG</a></p>
+	<p><a href="/sippy-ng">Try out the new UI for Sippy</a></p>
 </div>
 `
 
