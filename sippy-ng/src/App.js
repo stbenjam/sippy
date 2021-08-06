@@ -1,4 +1,4 @@
-import { CssBaseline, ListSubheader, MuiThemeProvider } from '@material-ui/core';
+import { Backdrop, CircularProgress, CssBaseline, ListSubheader, MuiThemeProvider } from '@material-ui/core';
 import AppBar from '@material-ui/core/AppBar';
 import Collapse from '@material-ui/core/Collapse';
 import Divider from '@material-ui/core/Divider';
@@ -63,6 +63,10 @@ const useStyles = makeStyles((theme) => ({
       easing: theme.transitions.easing.easeOut,
       duration: theme.transitions.duration.enteringScreen,
     }),
+  },
+  backdrop: {
+    zIndex: theme.zIndex.drawer + 1,
+    color: '#fff',
   },
   menuButton: {
     marginRight: theme.spacing(2),
@@ -131,18 +135,19 @@ export default function App(props) {
       .then(json => {
         if (json.releases) {
           setReleases(json.releases);
+          setLoaded(true);
         } else {
           throw new Error("no releases found");
         }
       }).catch(error => {
         setFetchError("Could not retrieve releases, " + error)
+        setLoaded(true);
       })
   };
 
   useEffect(() => {
     if (!isLoaded) {
       fetchReleases();
-      setLoaded(true);
     }
   });
 
@@ -166,14 +171,22 @@ export default function App(props) {
     setOpen((prevState => ({ ...prevState, [id]: !prevState[id] })));
   };
 
-  if (fetchError !== "") {
+  if (!isLoaded) {
     return (
-      <Alert severity="error">{fetchError}</Alert>
-    )
+      <Backdrop className={classes.backdrop} open={!isLoaded}>
+        Fetching data...
+        <CircularProgress color="inherit" />
+      </Backdrop>
+    );
   }
 
-  if (!isLoaded) {
-    return <p>Loading...</p>
+  let landingPage = ""
+  if (fetchError !== "") {
+    landingPage = <Alert severity="error">{fetchError}</Alert>;
+  } else if (releases.length > 0) {
+    landingPage = <ReleaseOverview key={releases[0]} release={releases[0]} />
+  } else {
+    landingPage = "No data."
   }
 
   return (
@@ -361,7 +374,7 @@ export default function App(props) {
                 } />
 
                 <Route path="/">
-                  {releases.length > 0 ? <ReleaseOverview key={releases[0]} release={releases[0]} /> : "Loading..."}
+                  {landingPage}
                 </Route>
               </Switch>
             </main>

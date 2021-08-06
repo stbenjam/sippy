@@ -82,10 +82,11 @@ func PrintJobsReport(w http.ResponseWriter, req *http.Request, current, previous
 	briefName := regexp.MustCompile("periodic-ci-openshift-release-master-(ci|nightly)-[0-9]+.[0-9]+-")
 	filters := jobFilter(req)
 
+jobResultLoop:
 	for idx, jobResult := range current {
 		for _, filter := range filters {
 			if !filter(jobResult) {
-				continue
+				continue jobResultLoop
 			}
 		}
 
@@ -144,10 +145,11 @@ func PrintJobDetailsReport(w http.ResponseWriter, req *http.Request, current, pr
 	jobs := make([]jobDetail, 0)
 	filters := jobFilter(req)
 
+jobResultLoop:
 	for _, jobResult := range current {
 		for _, filter := range filters {
 			if !filter(jobResult) {
-				continue
+				continue jobResultLoop
 			}
 		}
 

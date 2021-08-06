@@ -1,11 +1,11 @@
-import { TableContainer } from '@material-ui/core';
+import { Box, TableContainer } from '@material-ui/core';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import React, { Fragment } from 'react';
-import './JobDashboard.css';
+import './JobDetailTable.css';
 
 export default function JobDetailTable(props) {
     const columns = props.columns
@@ -44,11 +44,9 @@ export default function JobDetailTable(props) {
                                     </TableCell>
                                     {row.results.map((days) =>
                                         <TableCell className="col-day" key={"ts" + row.id}>
-                                            <div className="results">
                                                 {days.map((day) =>
                                                     <a key={day.id} className={day.className} href={day.prowLink} target="_blank" rel="noreferrer">{day.text}</a>
                                                 )}
-                                            </div>
                                         </TableCell>
                                     )}
                                 </TableRow>

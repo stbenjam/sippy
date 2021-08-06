@@ -330,9 +330,9 @@ func PrintJSONReport(w http.ResponseWriter, req *http.Request, releaseReports ma
 }
 
 func RespondWithJSON(statusCode int, w http.ResponseWriter, data interface{}) {
-	w.WriteHeader(statusCode)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.WriteHeader(statusCode)
 
 	if jsonString, ok := data.(string); ok {
 		fmt.Fprint(w, jsonString)

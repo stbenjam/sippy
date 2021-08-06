@@ -2,7 +2,6 @@ import { Backdrop, Button, CircularProgress, Grid, makeStyles, TextField } from 
 import { Alert } from '@material-ui/lab';
 import React, { Fragment, useEffect } from 'react';
 import { StringParam, useQueryParam } from 'use-query-params';
-import './JobDashboard.css';
 import JobDetailTable from './JobDetailTable';
 
 const useStyles = makeStyles((theme) => ({
@@ -16,19 +15,17 @@ export default function JobsDetail(props) {
     const classes = useStyles();
 
     const [trigger, setTrigger] = React.useState(false)
-    const [filter, setFilter] = useQueryParam("job", StringParam)
+    const [filter = null, setFilter] = useQueryParam("job", StringParam)
     const [query, setQuery] = React.useState("")
     const [data, setData] = React.useState({ jobs: [] })
     const [isLoaded, setLoaded] = React.useState(false)
     const [fetchError, setFetchError] = React.useState("")
 
     useEffect(() => {
-        setQuery(filter)
-
-
-        if (trigger || filter !== "") {
+        if (trigger || filter.length > 0) {
             let urlQuery = ""
-            if (filter) {
+            if (filter.length > 0) {
+                setQuery(filter)
                 urlQuery = "&filterBy=name&job=" + encodeURIComponent(filter)
             }
 
@@ -47,12 +44,11 @@ export default function JobsDetail(props) {
                 .catch(error => {
                     setFetchError(error.toString())
                     setLoaded(true)
-
                 })
         }
 
     }
-        , [filter, trigger, query]
+        , [filter, trigger]
     )
 
     if (trigger && !isLoaded) {
@@ -78,7 +74,7 @@ export default function JobsDetail(props) {
 
     let filterSearch = (
         <Fragment>
-            <Alert severity="warning">This page fetches a lot of data, it's better to search for the job you want. However, if you want to see it all, just click "search".</Alert><br />
+            <Alert severity="warning">Use an empty search for all results, but this returns a lot of data -- it's better to use a filter.</Alert><br />
             <Grid alignItems="stretch" style={{ display: "flex" }}>
                 <TextField
                     id="outlined-secondary"
@@ -103,7 +99,6 @@ export default function JobsDetail(props) {
     const msPerDay = 86400 * 1000;
     timestampBegin = Math.floor(timestampBegin / msPerDay) * msPerDay;
     timestampEnd = Math.floor(timestampEnd / msPerDay) * msPerDay;
-
     let ts = timestampEnd;
     let columns = [];
     while (ts >= timestampBegin) {
@@ -113,29 +108,33 @@ export default function JobsDetail(props) {
         ts -= msPerDay;
     }
 
-    let rows = [];
+    let rows = []
     for (let job of data.jobs) {
         let row = {
             name: job.name,
             results: []
         }
 
-        let ts = timestampEnd;
-        let i = 0;
-        while (ts >= timestampBegin) {
-            let day = [];
-            while (job.results[i] && job.results[i].timestamp >= ts) {
-                let result = {}
-                result.id = i;
-                result.text = job.results[i].result
-                result.prowLink = job.results[i].url
-                result.className = "result result-" + result.text
-                day.push(result)
-                i++;
+        for (let today = timestampBegin, tomorrow = timestampBegin + msPerDay;
+            today <= timestampEnd;
+            today += msPerDay, tomorrow += msPerDay) {
+            let day = []
+
+            for (let i = 0; i < job.results.length; i++) {
+                if (job.results[i].timestamp >= today && job.results[i].timestamp < tomorrow) {
+                    let result = {}
+                    result.id = i;
+                    result.text = job.results[i].result
+                    result.prowLink = job.results[i].url
+                    result.className = "result result-" + result.text
+                    day.push(result)
+                    i++
+                }
             }
-            row.results.push(day)
-            ts -= msPerDay;
+
+            row.results.unshift(day)
         }
+
         rows.push(row)
     }
 

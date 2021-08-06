@@ -1,4 +1,4 @@
-import { Box, Button, Container, Tooltip, Typography } from '@material-ui/core';
+import { Backdrop, CircularProgress, Box, Button, Container, Tooltip, Typography } from '@material-ui/core';
 import IconButton from '@material-ui/core/IconButton';
 import { createTheme } from '@material-ui/core/styles';
 import TextField from '@material-ui/core/TextField';
@@ -293,8 +293,13 @@ function JobTable(props) {
         return <Alert severity="error">{fetchError}</Alert>;
     }
 
-    if (isLoaded === false) {
-        return "Loading..."
+    if (!isLoaded) {
+        return (
+            <Backdrop className={classes.backdrop} open={!isLoaded}>
+                Fetching data...
+                <CircularProgress color="inherit" />
+            </Backdrop>
+        );
     }
 
     if (jobs.length === 0) {
