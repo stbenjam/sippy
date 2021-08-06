@@ -396,7 +396,7 @@ func (s *Server) getReleaseOrFail(w http.ResponseWriter, req *http.Request) stri
 	if release == "" {
 		api.RespondWithJSON(http.StatusBadRequest, w, map[string]interface{}{
 			"code":   "400",
-			"detail": fmt.Sprintf("release is required"),
+			"detail": "release is required",
 		})
 		return release
 	}

@@ -62,7 +62,7 @@ func (jobs jobsAPIResult) sort(req *http.Request) jobsAPIResult {
 		})
 	case "improvement":
 		gosort.Slice(jobs, func(i, j int) bool {
-			return jobs[i].NetImprovement < jobs[j].NetImprovement
+			return jobs[i].NetImprovement > jobs[j].NetImprovement
 		})
 	}
 
