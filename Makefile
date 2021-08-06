@@ -1,3 +1,5 @@
+export PATH := ${HOME}/go/bin:${PATH}
+
 DEPS = npm go
 CHECK := $(foreach dep,$(DEPS),\
         $(if $(shell which $(dep)),"$(dep) found",$(error "Missing $(exec) in PATH")))
