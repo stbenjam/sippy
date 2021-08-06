@@ -1,11 +1,13 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"regexp"
 	gosort "sort"
 	"strconv"
 	"strings"
+	"time"
 
 	v1 "github.com/openshift/sippy/pkg/apis/sippy/v1"
 	v1sippyprocessing "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
@@ -139,11 +141,51 @@ func (jobs jobDetailAPIResult) limit(req *http.Request) jobDetailAPIResult {
 	return jobs
 }
 
+func getDateRange(req *http.Request) (*int64, *int64, error) {
+	startDate := req.URL.Query().Get("startDate")
+	endDate := req.URL.Query().Get("endDate")
+
+	if startDate == "" && endDate == "" {
+		return nil, nil, nil
+	}
+
+	if startDate != "" && endDate == "" {
+		return nil, nil, fmt.Errorf("end date is missing")
+	}
+
+	if startDate == "" && endDate != "" {
+		return nil, nil, fmt.Errorf("start date is missing")
+	}
+
+	startParsed, err := time.Parse(`2006-01-02`, startDate)
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid start date: %s", err)
+	}
+
+	endParsed, err := time.Parse(`2006-01-02`, endDate)
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid end date: %s", err)
+	}
+
+	startMillis := startParsed.UnixNano() / int64(time.Millisecond)
+	endMillis := endParsed.UnixNano() / int64(time.Millisecond)
+
+	return &startMillis, &endMillis, nil
+}
+
 // PrintJobDetailsReport renders the detailed list of runs for matching jobs.
 func PrintJobDetailsReport(w http.ResponseWriter, req *http.Request, current, previous []v1sippyprocessing.JobResult) {
 	var min, max int
 	jobs := make([]jobDetail, 0)
 	filters := jobFilter(req)
+
+	start, end, err := getDateRange(req)
+	if err != nil {
+		RespondWithJSON(http.StatusBadRequest, w, map[string]string{
+			"message": err.Error(),
+		})
+		return
+	}
 
 jobResultLoop:
 	for _, jobResult := range current {
@@ -155,7 +197,24 @@ jobResultLoop:
 
 		prevResult := util.FindJobResultForJobName(jobResult.Name, previous)
 
-		buildResults := append(jobResult.BuildResults, prevResult.BuildResults...)
+		// Filter by date
+		buildResults := make([]v1sippyprocessing.BuildResult, 0)
+		if start != nil && end != nil {
+			for _, result := range jobResult.BuildResults {
+				if (int64(result.Timestamp) > *start) && int64(result.Timestamp) < *end {
+					buildResults = append(buildResults, result)
+				}
+			}
+
+			for _, result := range prevResult.BuildResults {
+				if (int64(result.Timestamp) > *start) && int64(result.Timestamp) < *end {
+					buildResults = append(buildResults, result)
+				}
+			}
+		} else {
+			buildResults = append(jobResult.BuildResults, prevResult.BuildResults...)
+		}
+
 		for _, result := range buildResults {
 			if result.Timestamp < min || min == 0 {
 				min = result.Timestamp

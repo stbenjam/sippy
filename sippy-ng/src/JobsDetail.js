@@ -1,7 +1,7 @@
 import { Backdrop, Button, CircularProgress, Grid, makeStyles, TextField } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
 import React, { Fragment, useEffect } from 'react';
-import { StringParam, useQueryParam } from 'use-query-params';
+import { NumberParam, StringParam, useQueryParam } from 'use-query-params';
 import JobDetailTable from './JobDetailTable';
 
 const useStyles = makeStyles((theme) => ({
@@ -11,18 +11,24 @@ const useStyles = makeStyles((theme) => ({
     },
 }));
 
+const msPerDay = 86400 * 1000;
+
 export default function JobsDetail(props) {
     const classes = useStyles();
 
-    const [trigger, setTrigger] = React.useState(false)
-    const [filter = null, setFilter] = useQueryParam("job", StringParam)
+    const [trigger, setTrigger] = React.useState(0)
     const [query, setQuery] = React.useState("")
     const [data, setData] = React.useState({ jobs: [] })
     const [isLoaded, setLoaded] = React.useState(false)
     const [fetchError, setFetchError] = React.useState("")
 
+    const [filter = null, setFilter] = useQueryParam("job", StringParam)
+
+    const [startDate, setStartDate] = React.useState("")
+    const [endDate, setEndDate] = React.useState("")
+
     useEffect(() => {
-        if (trigger || filter.length > 0) {
+        if (trigger > 0 || (filter && filter.length > 0)) {
             let urlQuery = ""
             if (filter.length > 0) {
                 setQuery(filter)
@@ -39,6 +45,8 @@ export default function JobsDetail(props) {
                 })
                 .then(response => {
                     setData(response)
+                    setStartDate(new Date(Math.floor(response.start / msPerDay) * msPerDay))
+                    setEndDate(new Date(Math.floor(response.end / msPerDay) * msPerDay))
                     setLoaded(true)
                 })
                 .catch(error => {
@@ -68,9 +76,11 @@ export default function JobsDetail(props) {
 
     const updateFilter = (query) => {
         setLoaded(false)
-        setTrigger(true)
+        setTrigger(trigger + 1)
+        console.log("Here")
         setFilter(query)
     }
+
 
     let filterSearch = (
         <Fragment>
@@ -83,7 +93,8 @@ export default function JobsDetail(props) {
                     color="secondary"
                     defaultValue={query}
                     onChange={(e) => setQuery(e.target.value)}
-                />&nbsp;&nbsp;
+                /> &nbsp;&nbsp;
+
                 <Button variant="contained" color="secondary" onClick={() => updateFilter(query)} >Search</Button>
             </Grid>
         </Fragment>
@@ -93,12 +104,9 @@ export default function JobsDetail(props) {
         return filterSearch;
     }
 
-    let timestampBegin = data.start;
-    let timestampEnd = data.end;
+    let timestampBegin = new Date(startDate).getTime()
+    let timestampEnd = new Date(endDate).getTime()
 
-    const msPerDay = 86400 * 1000;
-    timestampBegin = Math.floor(timestampBegin / msPerDay) * msPerDay;
-    timestampEnd = Math.floor(timestampEnd / msPerDay) * msPerDay;
     let ts = timestampEnd;
     let columns = [];
     while (ts >= timestampBegin) {
