@@ -16,6 +16,7 @@ import { makeStyles, withStyles } from '@material-ui/styles';
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import React, { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { NumberParam, StringParam, useQueryParam } from 'use-query-params';
 import BugzillaDialog from './BugzillaDialog';
 import PassRateIcon from './PassRate/passRateIcon';
@@ -191,7 +192,7 @@ function JobTable(props) {
             renderCell: (params) => {
                 return (
                     <Tooltip title="See detailed runs">
-                        <Button style={{ justifyContent: "center" }} startIcon={<DirectionsRunIcon />} href={"/jobs/" + props.release + "/detail?job=" + params.row.name} />
+                        <Button style={{ justifyContent: "center" }} startIcon={<DirectionsRunIcon />} component={Link} to={"/jobs/" + props.release + "/detail?job=" + params.row.name} />
                     </Tooltip>
                 );
             },

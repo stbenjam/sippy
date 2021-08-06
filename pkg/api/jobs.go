@@ -65,7 +65,7 @@ func (jobs jobsAPIResult) sort(req *http.Request) jobsAPIResult {
 
 func (jobs jobsAPIResult) limit(req *http.Request) jobsAPIResult {
 	limit, _ := strconv.Atoi(req.URL.Query().Get("limit"))
-	if limit > 0 {
+	if limit > 0 && len(jobs) >= limit {
 		return jobs[:limit]
 	}
 
