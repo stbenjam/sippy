@@ -12,36 +12,40 @@ import (
 	"github.com/openshift/sippy/pkg/util"
 )
 
-func jobFilter(req *http.Request) func(result v1sippyprocessing.JobResult) bool {
-	filterBy := req.URL.Query().Get("filterBy")
+func jobFilter(req *http.Request) []func(result v1sippyprocessing.JobResult) bool {
+	filterBy := req.URL.Query()["filterBy"]
 	runs, _ := strconv.Atoi(req.URL.Query().Get("runs"))
 	job := req.URL.Query().Get("job")
 
-	switch filterBy {
-	case "name":
-		return func(jobResult v1sippyprocessing.JobResult) bool {
-			return strings.Contains(jobResult.Name, job)
+	filters := make([]func(result v1sippyprocessing.JobResult) bool, 0)
+
+	for _, filterName := range filterBy {
+		switch filterName {
+		case "name":
+			filters = append(filters, func(jobResult v1sippyprocessing.JobResult) bool {
+				return strings.Contains(jobResult.Name, job)
+			})
+		case "upgrade":
+			filters = append(filters, func(jobResult v1sippyprocessing.JobResult) bool {
+				return strings.Contains(jobResult.Name, "-upgrade-")
+			})
+		case "runs":
+			filters = append(filters, func(jobResult v1sippyprocessing.JobResult) bool {
+				return (jobResult.Failures + jobResult.Successes) >= runs
+			})
+		case "hasBug":
+			filters = append(filters, func(jobResult v1sippyprocessing.JobResult) bool {
+				return len(jobResult.BugList) > 0
+			})
+		case "noBug":
+			filters = append(filters, func(jobResult v1sippyprocessing.JobResult) bool {
+				return len(jobResult.BugList) == 0
+			})
+		default:
 		}
-	case "upgrade":
-		return func(jobResult v1sippyprocessing.JobResult) bool {
-			return strings.Contains(jobResult.Name, "-upgrade-")
-		}
-	case "runs":
-		return func(jobResult v1sippyprocessing.JobResult) bool {
-			return (jobResult.Failures + jobResult.Successes) >= runs
-		}
-	case "hasBug":
-		return func(jobResult v1sippyprocessing.JobResult) bool {
-			return len(jobResult.BugList) > 0
-		}
-	case "noBug":
-		return func(jobResult v1sippyprocessing.JobResult) bool {
-			return len(jobResult.BugList) == 0
-		}
-	default:
-		// Unfiltered
-		return nil
 	}
+
+	return filters
 }
 
 type jobsAPIResult []v1.Job
@@ -74,12 +78,14 @@ func (jobs jobsAPIResult) limit(req *http.Request) jobsAPIResult {
 
 func PrintJobsReport(w http.ResponseWriter, req *http.Request, current, previous []v1sippyprocessing.JobResult) {
 	jobs := jobsAPIResult{}
-	filter := jobFilter(req)
 	briefName := regexp.MustCompile("periodic-ci-openshift-release-master-(ci|nightly)-[0-9]+.[0-9]+-")
+	filters := jobFilter(req)
 
 	for idx, jobResult := range current {
-		if filter != nil && !filter(jobResult) {
-			continue
+		for _, filter := range filters {
+			if !filter(jobResult) {
+				return
+			}
 		}
 
 		prevResult := util.FindJobResultForJobName(jobResult.Name, previous)
@@ -122,14 +128,25 @@ type jobDetailAPIResult struct {
 	End   int         `json:"end"`
 }
 
+func (jobs jobDetailAPIResult) limit(req *http.Request) jobDetailAPIResult {
+	limit, _ := strconv.Atoi(req.URL.Query().Get("limit"))
+	if limit > 0 && len(jobs.Jobs) >= limit {
+		jobs.Jobs = jobs.Jobs[:limit]
+	}
+
+	return jobs
+}
+
 func PrintJobDetailsReport(w http.ResponseWriter, req *http.Request, current, previous []v1sippyprocessing.JobResult) {
 	var min, max int
 	jobs := make([]jobDetail, 0)
-	filter := jobFilter(req)
+	filters := jobFilter(req)
 
 	for _, jobResult := range current {
-		if filter != nil && !filter(jobResult) {
-			continue
+		for _, filter := range filters {
+			if !filter(jobResult) {
+				continue
+			}
 		}
 
 		prevResult := util.FindJobResultForJobName(jobResult.Name, previous)
@@ -157,5 +174,5 @@ func PrintJobDetailsReport(w http.ResponseWriter, req *http.Request, current, pr
 		Jobs:  jobs,
 		Start: min,
 		End:   max,
-	})
+	}.limit(req))
 }
