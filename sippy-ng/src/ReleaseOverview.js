@@ -69,10 +69,8 @@ export default function ReleaseOverview(props) {
     }
 
     useEffect(() => {
-        if (!isLoaded) {
-            fetchData();
-        }
-    }, []);
+        fetchData();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (fetchError !== "") {
         return <Alert severity="error">{fetchError}</Alert>;
@@ -111,7 +109,7 @@ export default function ReleaseOverview(props) {
         <div className="{classes.root}" style={{ padding: 20 }}>
             <Container maxWidth="lg">
                 <Typography variant="h4" gutterBottom className={classes.title}>CI Release {props.release} Health Summary</Typography>
-                <Grid container spacing={3} xs={12} alignItems="stretch">
+                <Grid container spacing={3} alignItems="stretch">
                     <Grid item xs={12} style={{ display: 'flex' }}>
                         <Typography variant="h5">
                             Top Level Release Indicators

@@ -1,8 +1,7 @@
-import { Box, Card, CardContent, Tooltip, Typography } from '@material-ui/core';
+import { Card, CardContent, Tooltip, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import PassRateIcon from './PassRate/passRateIcon';
 import { PieChart } from 'react-minimal-pie-chart';
 
 const useStyles = makeStyles({
@@ -25,7 +24,7 @@ export default function SummaryCard(props) {
     useEffect(() => {
         let data = []
 
-        if (props.flakes != 0) {
+        if (props.flakes !== 0) {
             data.push({
                 title: "Flakes",
                 value: props.flakes,
@@ -46,16 +45,14 @@ export default function SummaryCard(props) {
         })
 
         setCurrentData(data)
-}, [])
+}, [props])
 
     let header = props.name
     if (props.link !== undefined) {
         header = <Link to={props.link}>{props.name}</Link>
     }
 
-    header = <Typography variant="h6">{header}</Typography>;
-
-    if(props.tooltip != "") {
+    if(props.tooltip !== "") {
         header =  (
             <Tooltip title={props.tooltip}>
                 {header}

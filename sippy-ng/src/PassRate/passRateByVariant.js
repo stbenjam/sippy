@@ -11,7 +11,6 @@ import TableRow from '@material-ui/core/TableRow';
 import KeyboardArrowDownIcon from '@material-ui/icons/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@material-ui/icons/KeyboardArrowUp';
 import { Alert } from '@material-ui/lab';
-import PropTypes from 'prop-types';
 import React, { Fragment, useEffect } from 'react';
 import VariantTable from '../VariantTable';
 import PassRateIcon from './passRateIcon';
@@ -58,23 +57,6 @@ function Row(props) {
     );
 }
 
-Row.propTypes = {
-    row: PropTypes.shape({
-        variant: PropTypes.string.isRequired,
-        current: PropTypes.number.isRequired,
-        previous: PropTypes.number.isRequired,
-        jobs: PropTypes.arrayOf(
-            PropTypes.shape({
-                name: PropTypes.string.isRequired,
-                bugLink: PropTypes.string.isRequired,
-                current: PropTypes.number.isRequired,
-                previous: PropTypes.number.isRequired,
-            }),
-        ).isRequired,
-    }).isRequired,
-};
-
-
 export default function PassRateByVariant(props) {
     const theme = useTheme();
 
@@ -109,10 +91,8 @@ export default function PassRateByVariant(props) {
     }
 
     useEffect(() => {
-        if (!isLoaded) {
-            fetchData();
-        }
-    }, [fetchData, isLoaded]);
+        fetchData();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (fetchError !== "") {
         return <Alert severity="error">{fetchError}</Alert>;

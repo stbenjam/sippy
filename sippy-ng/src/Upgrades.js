@@ -2,7 +2,7 @@ import { Container, Grid, Paper, Tab, Tabs, Typography } from '@material-ui/core
 import { Alert, TabContext } from '@material-ui/lab';
 import React, { useEffect } from 'react';
 import {
-    BrowserRouter as Router, Link, Redirect, Route, Switch, useRouteMatch
+    Link, Redirect, Route, Switch, useRouteMatch
 } from "react-router-dom";
 import JobTable from './JobTable';
 import TestByVariantTable from './TestByVariantTable';
@@ -32,10 +32,8 @@ export default function Upgrades(props) {
     }
 
     useEffect(() => {
-        if (!isLoaded) {
-            fetchData();
-        }
-    }, []);
+        fetchData();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (fetchError !== "") {
         return <Alert severity="error">Failed to load data, {fetchError}</Alert>;

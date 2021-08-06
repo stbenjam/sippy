@@ -1,7 +1,7 @@
 import { Backdrop, Button, CircularProgress, Grid, makeStyles, TextField } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
 import React, { Fragment, useEffect } from 'react';
-import { NumberParam, StringParam, useQueryParam } from 'use-query-params';
+import { StringParam, useQueryParam } from 'use-query-params';
 import JobDetailTable from './JobDetailTable';
 
 const useStyles = makeStyles((theme) => ({
@@ -56,7 +56,7 @@ export default function JobsDetail(props) {
         }
 
     }
-        , [filter, trigger]
+        , [filter, trigger, props]
     )
 
     if (trigger && !isLoaded) {

@@ -6,7 +6,7 @@ import { ArrayParam, useQueryParam, withDefault } from 'use-query-params';
 import TestByVariantTable from './TestByVariantTable';
 
 export default function TestDetailTable(props) {
-    const [names, setNames] = useQueryParam("test", withDefault(ArrayParam, []))
+    const [names] = useQueryParam("test", withDefault(ArrayParam, []))
 
     const [fetchError, setFetchError] = React.useState("")
     const [isLoaded, setLoaded] = React.useState(false)
@@ -33,10 +33,8 @@ export default function TestDetailTable(props) {
     }
 
     useEffect(() => {
-        if (!isLoaded) {
-            fetchData();
-        }
-    }, []);
+        fetchData();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (fetchError !== "") {
         return <Alert severity="error">Failed to load data, {fetchError}</Alert>;

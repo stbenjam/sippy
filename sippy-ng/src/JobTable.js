@@ -111,13 +111,13 @@ function JobTable(props) {
     const [jobs, setJobs] = React.useState([])
     const [rows, setRows] = React.useState([])
 
-    const [searchText, setSearchText] = useQueryParam("search", StringParam)
-    const [filterBy = props.filterBy, setFilterBy] = useQueryParam("filterBy", StringParam)
-    const [sortBy = props.sortBy, sortSortBy] = useQueryParam("sortBy", StringParam)
-    const [limit = props.limit, setLimit] = useQueryParam("limit", NumberParam)
+    const [searchText, setSearchText] = React.useState("")
+    const [filterBy = props.filterBy] = useQueryParam("filterBy", StringParam)
+    const [sortBy = props.sortBy] = useQueryParam("sortBy", StringParam)
+    const [limit = props.limit] = useQueryParam("limit", NumberParam)
     const [runs = props.runs] = useQueryParam("runs", NumberParam)
 
-    const [job = "", setJob] = useQueryParam("job", StringParam)
+    const [job = ""] = useQueryParam("job", StringParam)
 
     const [isBugzillaDialogOpen, setBugzillaDialogOpen] = React.useState(false)
     const [jobDetails, setJobDetails] = React.useState({ bugs: [] })
@@ -204,7 +204,7 @@ function JobTable(props) {
             flex: 0.40,
             renderCell: (params) => {
                 return (
-                    <Tooltip title={params.value.length + " linked bugs" + ", " + params.row.associated_bugs.length + " associated bugs"}>
+                    <Tooltip title={params.value.length + " linked bugs," + params.row.associated_bugs.length + " associated bugs"}>
                         <Button style={{ justifyContent: "center", color: params.value.length > 0 ? "black" : "silver" }} startIcon={<BugReport />} onClick={() => openBugzillaDialog(params.row)} />
                     </Tooltip>
                 );
@@ -277,7 +277,7 @@ function JobTable(props) {
 
     useEffect(() => {
         fetchData();
-    }, [filterBy]);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const pageTitle = () => {
         if (props.title) {
@@ -328,6 +328,7 @@ function JobTable(props) {
                     toolbar: {
                         onChange: (event) => requestSearch(event.target.value),
                         clearSearch: () => requestSearch(''),
+                        value: searchText,
                     },
                 }}
 

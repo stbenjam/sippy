@@ -1,6 +1,6 @@
 import { Button, Container, Menu, MenuItem, Tooltip, Typography } from '@material-ui/core';
 import IconButton from '@material-ui/core/IconButton';
-import { createTheme, useTheme } from '@material-ui/core/styles';
+import { createTheme } from '@material-ui/core/styles';
 import TextField from '@material-ui/core/TextField';
 import {
     DataGrid,
@@ -219,7 +219,7 @@ function TestTable(props) {
             flex: 0.50,
             renderCell: (params) => {
                 return (
-                    <Tooltip title={params.value.length + " linked bugs" + ", " + params.row.associated_bugs.length + " associated bugs"}>
+                    <Tooltip title={params.value.length + " linked bugs," + params.row.associated_bugs.length + " associated bugs"}>
                         <Button style={{ color: (params.value.length > 0) ? "black" : "silver" }} startIcon={<BugReport />} onClick={() => openBugzillaDialog(params.row)} />
                     </Tooltip>
                 );
@@ -249,13 +249,13 @@ function TestTable(props) {
     const [rows, setRows] = React.useState([])
     const [selectedTests, setSelectedTests] = React.useState([])
 
-    const [runs = props.runs, setRuns] = useQueryParam("runs", NumberParam)
+    const [runs = props.runs] = useQueryParam("runs", NumberParam)
     const [filterBy = props.filterBy, setFilterBy] = useQueryParam("filterBy", ArrayParam)
-    const [sortBy = props.sortBy, setSortBy] = useQueryParam("sortBy", StringParam)
-    const [limit = props.limit, setLimit] = useQueryParam("limit, StringParam")
+    const [sortBy = props.sortBy] = useQueryParam("sortBy", StringParam)
+    const [limit = props.limit] = useQueryParam("limit, StringParam")
 
     const [searchText, setSearchText] = useQueryParam("searchText", StringParam)
-    const [testNames = [], setTestNames] = useQueryParam("test", ArrayParam)
+    const [testNames = []] = useQueryParam("test", ArrayParam)
 
     const fetchData = () => {
         let queryString = ""
@@ -303,7 +303,7 @@ function TestTable(props) {
 
     useEffect(() => {
         fetchData()
-    }, [filterBy])
+    }, [filterBy]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const requestSearch = (searchValue) => {
         setSearchText(searchValue)
@@ -348,6 +348,8 @@ function TestTable(props) {
                 return "Filtered by curated TRT tests";
             case "runs":
                 return "> " + runs + " runs";
+            default:
+                return ""
         }
     }
 

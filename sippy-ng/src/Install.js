@@ -28,11 +28,10 @@ export default function Install(props) {
             });
     }
 
+
     useEffect(() => {
-        if (!isLoaded) {
-            fetchData();
-        }
-    }, []);
+        fetchData();
+    });
 
     if (fetchError !== "") {
         return <Alert severity="error">Failed to load data, {fetchError}</Alert>;
