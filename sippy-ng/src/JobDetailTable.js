@@ -44,8 +44,12 @@ export default function JobDetailTable(props) {
                                     </TableCell>
                                     {row.results.map((days) =>
                                         <TableCell className="col-day" key={"ts" + row.id}>
-                                                {days.map((day) =>
-                                                    <a key={day.id} className={day.className} href={day.prowLink} target="_blank" rel="noreferrer">{day.text}</a>
+                                            {
+                                                days.map((day, index) =>
+                                                    <Fragment>
+                                                        {index % 5 === 0 ? <br /> : ""}
+                                                        <a key={day.id} className={day.className} href={day.prowLink} target="_blank" rel="noreferrer">{day.text}</a>
+                                                    </Fragment>
                                                 )}
                                         </TableCell>
                                     )}
@@ -55,6 +59,6 @@ export default function JobDetailTable(props) {
                     </Table>
                 </TableContainer>
             </div>
-        </Fragment>
+        </Fragment >
     );
 }

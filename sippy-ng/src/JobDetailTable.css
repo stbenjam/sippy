@@ -52,6 +52,7 @@ a:hover {
     border: 1px solid black;
     opacity: 1;
     z-index: 99;
+    vertical-align: top;
 }
 
 .results {
