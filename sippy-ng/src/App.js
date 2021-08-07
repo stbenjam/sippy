@@ -39,6 +39,7 @@ import logo from "./sippy.svg";
 import TestDetailTable from './TestDetailTable';
 import TestTable from './TestTable';
 import Upgrades from './Upgrades';
+import './App.css';
 
 const drawerWidth = 240;
 
@@ -231,7 +232,7 @@ export default function App(props) {
                   {theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
                 </IconButton>
               </div>
-              <img src={logo} height="100" alt="CIPI (Continuous Integration Private Investigator) aka Sippy." />
+              <img className="App-logo" src={logo} alt="CIPI (Continuous Integration Private Investigator) aka Sippy." />
               <Divider />
               <List>
                 <ListItem button component={Link} to="/" key="Home">
