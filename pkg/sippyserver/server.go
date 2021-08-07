@@ -395,16 +395,16 @@ func (s *Server) getReleaseOrFail(w http.ResponseWriter, req *http.Request) stri
 
 	if release == "" {
 		api.RespondWithJSON(http.StatusBadRequest, w, map[string]interface{}{
-			"code":   "400",
-			"detail": "release is required",
+			"code":    "400",
+			"message": "release is required",
 		})
 		return release
 	}
 
 	if _, ok := reports[release]; !ok {
 		api.RespondWithJSON(http.StatusNotFound, w, map[string]interface{}{
-			"code":   "400",
-			"detail": fmt.Sprintf("release %q not found", release),
+			"code":    "404",
+			"message": fmt.Sprintf("release %q not found", release),
 		})
 		return ""
 	}
