@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/openshift/sippy/pkg/api"
@@ -318,10 +319,18 @@ func (s *Server) jsonReleasesReport(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	type jsonResponse struct {
-		Releases []string `json:"releases"`
+		Releases    []string  `json:"releases"`
+		LastUpdated time.Time `json:"last_updated"`
 	}
 
 	response := jsonResponse{}
+	if len(s.dashboardCoordinates) > 0 {
+		firstReport := s.dashboardCoordinates[0].ReportName
+		if report, ok := s.currTestReports[firstReport]; ok {
+			response.LastUpdated = report.CurrentPeriodReport.Timestamp
+		}
+	}
+
 	for _, release := range s.dashboardCoordinates {
 		response.Releases = append(response.Releases, release.ReportName)
 	}

@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	sippyv1 "github.com/openshift/sippy/pkg/apis/sippy/v1"
 	sippyprocessingv1 "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
@@ -88,15 +89,17 @@ func PrintOverallReleaseHealth(w http.ResponseWriter, curr, prev sippyprocessing
 	}
 
 	type health struct {
-		Indicators map[string]indicator `json:"indicators"`
-		Variants   variants             `json:"variants"`
+		Indicators  map[string]indicator `json:"indicators"`
+		Variants    variants             `json:"variants"`
+		LastUpdated time.Time            `json:"last_updated"`
 	}
 
 	RespondWithJSON(http.StatusOK, w, health{
 		Indicators: indicators,
+		LastUpdated: curr.Timestamp,
 		Variants: variants{
-			Current:  curr.TopLevelIndicators.Variant,
-			Previous: prev.TopLevelIndicators.Variant,
+			Current:     curr.TopLevelIndicators.Variant,
+			Previous:    prev.TopLevelIndicators.Variant,
 		},
 	})
 }

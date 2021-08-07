@@ -92,7 +92,6 @@ export default function ReleaseOverview(props) {
 
     const variantCaption = (variant) => {
         let total = variant.success + variant.unstable + variant.failed
-        console.log(variant.flaked)
 
         let success = variant.success / total * 100
         let flaked = variant.unstable / total * 100

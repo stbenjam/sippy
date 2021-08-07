@@ -1,4 +1,4 @@
-import { Backdrop, CircularProgress, CssBaseline, ListSubheader, MuiThemeProvider } from '@material-ui/core';
+import { Backdrop, CircularProgress, CssBaseline, Grid, ListSubheader, MuiThemeProvider, Tooltip } from '@material-ui/core';
 import AppBar from '@material-ui/core/AppBar';
 import Collapse from '@material-ui/core/Collapse';
 import Divider from '@material-ui/core/Divider';
@@ -118,6 +118,8 @@ export default function App(props) {
   const classes = useStyles();
   const theme = useTheme();
 
+
+  const [lastUpdated, setLastUpdated] = React.useState(0);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [isLoaded, setLoaded] = React.useState(false);
   const [open, setOpen] = React.useState({});
@@ -136,6 +138,7 @@ export default function App(props) {
       .then(json => {
         if (json.releases) {
           setReleases(json.releases);
+          setLastUpdated(new Date(json.last_updated));
           setLoaded(true);
         } else {
           throw new Error("no releases found");
@@ -181,6 +184,28 @@ export default function App(props) {
     );
   }
 
+  const getLastUpdated = () => {
+    const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
+    let millisAgo = lastUpdated.getTime() - Date.now()
+
+    let minute = 1000 * 60; // Milliseconds in a minute
+    let hour = 60 * minute; // Milliseconds in an hour
+
+    if (Math.abs(millisAgo) < hour) {
+      return (
+        <Fragment>
+          {rtf.format(Math.round(millisAgo / minute), "minutes")}
+        </Fragment>
+      );
+    } else {
+      return (
+        <Fragment>
+          {rtf.format(Math.round(millisAgo / hour), "hours")}
+        </Fragment>
+      );
+    }
+  }
+
   let landingPage = ""
   if (fetchError !== "") {
     landingPage = <Alert severity="error">{fetchError}</Alert>;
@@ -213,7 +238,9 @@ export default function App(props) {
                 >
                   <MenuIcon />
                 </IconButton>
-                <Typography variant="h6" className={classes.title}>Sippy</Typography>
+                <Grid container xs={12} justifyContent="space-between" alignItems="center">
+                  <Typography variant="h6" className={classes.title}>Sippy</Typography><Fragment>Last updated {getLastUpdated()}</Fragment>
+                </Grid>
               </Toolbar>
             </AppBar>
 

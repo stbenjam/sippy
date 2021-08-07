@@ -42,8 +42,8 @@ export default function JobDetailTable(props) {
                                     <TableCell component="th" scope="row" className="col-name col-first">
                                         <a href={row.link}>{row.name}</a>
                                     </TableCell>
-                                    {row.results.map((days) =>
-                                        <TableCell className="col-day" key={"ts" + row.id}>
+                                    {row.results.map((days, idx) =>
+                                        <TableCell className="col-day" key={"ts-" + idx} style={{verticalAlign: "top"}}>
                                             {
                                                 days.map((day, index) =>
                                                     <Fragment>

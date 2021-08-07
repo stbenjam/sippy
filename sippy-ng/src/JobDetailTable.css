@@ -45,14 +45,13 @@ a:hover {
     overflow: hidden;
     text-overflow: wrap;
     left: 0px;
-    z-index: 1;
 }
 
 .col-day {
     border: 1px solid black;
     opacity: 1;
-    z-index: 99;
     vertical-align: top;
+    display: inline-block;
 }
 
 .results {
