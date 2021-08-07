@@ -4,11 +4,12 @@
 
 .App-logo {
   height: 10vmin;
+  margin-bottom: 10px;
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .App-logo:hover {
-    animation: App-logo-spin infinite 7s linear;
+    animation: App-logo-spin infinite 1s linear;
   }
 }
 
@@ -20,7 +21,17 @@
   from {
     transform: rotate(0deg);
   }
-  to {
-    transform: rotate(360deg);
+  25% {
+    transform: rotate(15deg);
   }
+  50% {
+    transform: rotate(0deg);
+  }
+  75% {
+    transform: rotate(-15deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+
 }
