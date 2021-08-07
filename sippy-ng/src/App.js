@@ -1,4 +1,4 @@
-import { Backdrop, CircularProgress, CssBaseline, Grid, ListSubheader, MuiThemeProvider, Tooltip } from '@material-ui/core';
+import { Backdrop, CircularProgress, CssBaseline, Grid, ListSubheader, MuiThemeProvider } from '@material-ui/core';
 import AppBar from '@material-ui/core/AppBar';
 import Collapse from '@material-ui/core/Collapse';
 import Divider from '@material-ui/core/Divider';
@@ -31,6 +31,7 @@ import {
   BrowserRouter as Router, Link, Route, Switch
 } from "react-router-dom";
 import { QueryParamProvider } from 'use-query-params';
+import './App.css';
 import BugzillaSearch from './BugzillaSearch';
 import Install from './Install';
 import Jobs from './Jobs';
@@ -39,7 +40,6 @@ import logo from "./sippy.svg";
 import TestDetailTable from './TestDetailTable';
 import TestTable from './TestTable';
 import Upgrades from './Upgrades';
-import './App.css';
 
 const drawerWidth = 240;
 
