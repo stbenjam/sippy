@@ -17,7 +17,7 @@ test:
 
 lint:
 	golangci-lint run ./...
-	cd sippy-ng; npx eslint .
+	cd sippy-ng; npm install; npx eslint .
 
 clean:
 	rm -f sippy

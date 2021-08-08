@@ -9,5 +9,5 @@ import (
 
 // PrintUpgradeJSONReport reports on the success/fail of operator upgrades.
 func PrintUpgradeJSONReport(w http.ResponseWriter, req *http.Request, report, prevReport sippyprocessingv1.TestReport, numDays int, release string) {
-	RespondWithJSON(http.StatusOK, w, installhtml.UpgradeOperatorTests("json", report, prevReport))
+	RespondWithJSON(http.StatusOK, w, installhtml.UpgradeOperatorTests(installhtml.JSON, report, prevReport))
 }

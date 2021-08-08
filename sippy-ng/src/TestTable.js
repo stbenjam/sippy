@@ -402,7 +402,7 @@ TestTable.defaultProps = {
 
 TestTable.propTypes = {
   briefTable: PropTypes.bool,
-  filterBy: PropTypes.string,
+  filterBy: PropTypes.array,
   hideControls: PropTypes.bool,
   limit: PropTypes.number,
   pageSize: PropTypes.number,

@@ -97,8 +97,8 @@ SummaryCard.propTypes = {
   flakes: PropTypes.number,
   success: PropTypes.number,
   fail: PropTypes.number,
-  caption: PropTypes.string,
+  caption: PropTypes.object,
   tooltip: PropTypes.string,
   name: PropTypes.string,
-  link: PropTypes.link
+  link: PropTypes.string
 }

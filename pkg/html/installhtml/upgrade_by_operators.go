@@ -14,7 +14,7 @@ import (
 	"github.com/openshift/sippy/pkg/util/sets"
 )
 
-func UpgradeOperatorTests(format string, curr, prev sippyprocessingv1.TestReport) string {
+func UpgradeOperatorTests(format ResponseFormat, curr, prev sippyprocessingv1.TestReport) string {
 	dataForTestsByVariant := getDataForTestsByVariant(
 		curr, prev,
 		isUpgradeRelatedTest,

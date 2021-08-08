@@ -81,7 +81,7 @@ func (jobs jobsAPIResult) limit(req *http.Request) jobsAPIResult {
 // PrintJobsReport renders a filtered summary of matching jobs.
 func PrintJobsReport(w http.ResponseWriter, req *http.Request, current, previous []v1sippyprocessing.JobResult) {
 	jobs := jobsAPIResult{}
-	briefName := regexp.MustCompile("periodic-ci-openshift-release-master-(ci|nightly)-[0-9]+.[0-9]+-")
+	briefName := regexp.MustCompile("periodic-ci-openshift-(multiarch|release)-master-(ci|nightly)-[0-9]+.[0-9]+-")
 	filters := jobFilter(req)
 
 jobResultLoop:
