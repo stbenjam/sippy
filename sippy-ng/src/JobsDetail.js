@@ -2,6 +2,7 @@ import { Backdrop, Button, CircularProgress, Grid, makeStyles, TextField } from 
 import { Alert } from '@material-ui/lab';
 import React, { Fragment, useEffect } from 'react';
 import { StringParam, useQueryParam } from 'use-query-params';
+import FilterBox from './FilterBox';
 import JobDetailTable from './JobDetailTable';
 
 const useStyles = makeStyles((theme) => ({
@@ -74,10 +75,9 @@ export default function JobsDetail(props) {
         )
     }
 
-    const updateFilter = (query) => {
+    const updateFilter = () => {
         setLoaded(false)
         setTrigger(trigger + 1)
-        console.log("Here")
         setFilter(query)
     }
 
@@ -85,18 +85,7 @@ export default function JobsDetail(props) {
     let filterSearch = (
         <Fragment>
             <Alert severity="warning">Use an empty search for all results, but this returns a lot of data -- it's better to use a filter.</Alert><br />
-            <Grid alignItems="stretch" style={{ display: "flex" }}>
-                <TextField
-                    id="outlined-secondary"
-                    label="Filter"
-                    variant="outlined"
-                    color="secondary"
-                    defaultValue={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                /> &nbsp;&nbsp;
-
-                <Button variant="contained" color="secondary" onClick={() => updateFilter(query)} >Search</Button>
-            </Grid>
+            <FilterBox value={query} setValue={setQuery} action={updateFilter} />
         </Fragment>
     )
 

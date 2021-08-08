@@ -37,8 +37,8 @@ import Install from './Install';
 import Jobs from './Jobs';
 import ReleaseOverview from './ReleaseOverview';
 import logo from "./sippy.svg";
-import TestDetailTable from './TestDetailTable';
-import TestTable from './TestTable';
+import TestsDetail from './TestsDetail';
+import Tests from './Tests';
 import Upgrades from './Upgrades';
 
 const drawerWidth = 240;
@@ -177,10 +177,7 @@ export default function App(props) {
 
   if (!isLoaded) {
     return (
-      <Backdrop className={classes.backdrop} open={!isLoaded}>
-        Fetching data...
-        <CircularProgress color="inherit" />
-      </Backdrop>
+      <Typography>Loading...</Typography>
     );
   }
 
@@ -376,16 +373,9 @@ export default function App(props) {
                     release={props.match.params.release} />
                 } />
 
-                <Route path="/tests/:release/details" render={(props) =>
-                  <TestDetailTable
-                    key={props.match.params.release}
-                    release={props.match.params.release} />
-                } />
-
                 <Route path="/tests/:release" render={(props) =>
-                  <TestTable
+                  <Tests
                     key={"tests-" + props.match.params.release}
-                    title={"Test results for " + props.match.params.release}
                     release={props.match.params.release} />
                 } />
 

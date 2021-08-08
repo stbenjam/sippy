@@ -149,6 +149,10 @@ export default function TestByVariantTable(props) {
         );
     }
 
+    if(props.data.column_names.length === 0) {
+        return <Typography variant="h6" style={{marginTop: 50}}>No per-variant data found.</Typography>
+    }
+
     return (
         <Fragment>
             {pageTitle}

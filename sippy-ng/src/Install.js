@@ -1,7 +1,9 @@
 import { Grid, Paper, Tab, Tabs, Typography } from '@material-ui/core';
 import { Alert, TabContext } from '@material-ui/lab';
 import React, { useEffect } from 'react';
+import { Fragment } from 'react';
 import { Link, Redirect, Route, Switch, useRouteMatch } from "react-router-dom";
+import SimpleBreadcrumbs from './SimpleBreadcrumbs';
 import TestByVariantTable from './TestByVariantTable';
 import TestTable from './TestTable';
 
@@ -42,36 +44,39 @@ export default function Install(props) {
     };
 
     return (
-        <Route
-            path="/"
-            render={({ location }) => (
-                <TabContext value={path}>
-                    <Typography align="center" variant="h4">
-                        Install health for {props.release}
-                    </Typography>
-                    <Grid container justifyContent="center" width="60%" style={{ margin: 20 }}>
-                        <Paper>
-                            <Tabs
-                                value={location.pathname.substring(location.pathname.lastIndexOf('/') + 1)}
-                                indicatorColor="primary"
-                                textColor="primary"
-                            >
-                                <Tab label="Install rates by operator" value="operators" component={Link} to={url + "/operators"} />
-                                <Tab label="Install related tests" value="tests" component={Link} to={url + "/tests"} />
-                            </Tabs>
-                        </Paper>
-                    </Grid>
-                    <Switch>
-                        <Route path={path + "/operators"}>
-                            <TestByVariantTable colorScale={[90,100]} data={data} />
-                        </Route>
-                        <Route path={path + "/tests"}>
-                            <TestTable release={props.release} filterBy="install" />
-                        </Route>
-                        <Redirect from="/" to={url + "/operators"} />
-                    </Switch>
-                </TabContext>
-            )}
-        />
+        <Fragment>
+            <SimpleBreadcrumbs release={props.release} currentPage="Install" />
+            <Route
+                path="/"
+                render={({ location }) => (
+                    <TabContext value={path}>
+                        <Typography align="center" variant="h4">
+                            Install health for {props.release}
+                        </Typography>
+                        <Grid container justifyContent="center" width="60%" style={{ margin: 20 }}>
+                            <Paper>
+                                <Tabs
+                                    value={location.pathname.substring(location.pathname.lastIndexOf('/') + 1)}
+                                    indicatorColor="primary"
+                                    textColor="primary"
+                                >
+                                    <Tab label="Install rates by operator" value="operators" component={Link} to={url + "/operators"} />
+                                    <Tab label="Install related tests" value="tests" component={Link} to={url + "/tests"} />
+                                </Tabs>
+                            </Paper>
+                        </Grid>
+                        <Switch>
+                            <Route path={path + "/operators"}>
+                                <TestByVariantTable colorScale={[90, 100]} data={data} />
+                            </Route>
+                            <Route path={path + "/tests"}>
+                                <TestTable release={props.release} filterBy="install" />
+                            </Route>
+                            <Redirect from="/" to={url + "/operators"} />
+                        </Switch>
+                    </TabContext>
+                )}
+            />
+        </Fragment>
     );
 }

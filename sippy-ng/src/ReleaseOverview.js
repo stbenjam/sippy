@@ -4,9 +4,11 @@ import { createTheme, makeStyles, useTheme } from '@material-ui/core/styles';
 import InfoIcon from '@material-ui/icons/Info';
 import Alert from '@material-ui/lab/Alert';
 import React, { useEffect } from 'react';
+import { Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import JobTable from './JobTable';
 import PassRateIcon from './PassRate/passRateIcon';
+import SimpleBreadcrumbs from './SimpleBreadcrumbs';
 import SummaryCard from './SummaryCard';
 import TestTable from './TestTable';
 
@@ -105,150 +107,153 @@ export default function ReleaseOverview(props) {
     }
 
     return (
-        <div className="{classes.root}" style={{ padding: 20 }}>
-            <Container maxWidth="lg">
-                <Typography variant="h4" gutterBottom className={classes.title}>CI Release {props.release} Health Summary</Typography>
-                <Grid container spacing={3} alignItems="stretch">
-                    <Grid item xs={12} style={{ display: 'flex' }}>
-                        <Typography variant="h5">
-                            Top Level Release Indicators
-                            <Tooltip title={TOOLTIP}>
-                                <InfoIcon />
-                            </Tooltip>
-                        </Typography>
-                    </Grid>
-                    <Grid item xs={3}>
-                        <SummaryCard
-                            backgroundColor={cardBackground(data.indicators.infrastructure.current.percentage)}
-                            name="Infrastructure"
-                            link={"/tests/" + props.release + "/details?test=[sig-sippy] infrastructure should work"}
-                            success={data.indicators.infrastructure.current.percentage}
-                            fail={100 - data.indicators.infrastructure.current.percentage}
-                            caption={indicatorCaption(data.indicators.infrastructure)}
-                            tooltip="How often we get to the point of running the installer. This is judged by whether a kube-apiserver is available, it's not perfect, but it's very close."
-                        />
-                    </Grid>
-                    <Grid item xs={3}>
-                        <SummaryCard
-                            backgroundColor={cardBackground(data.indicators.install.current.percentage)}
-                            name="Install" link={"/install/" + props.release}
-                            success={data.indicators.install.current.percentage}
-                            fail={100 - data.indicators.install.current.percentage}
-                            caption={indicatorCaption(data.indicators.install)}
-                            tooltip="How often the install completes successfully."
-                        />
-                    </Grid>
-                    <Grid item xs={3}>
-                        <SummaryCard
-                            backgroundColor={cardBackground(data.indicators.upgrade.current.percentage)}
-                            name="Upgrade" link={"/upgrade/" + props.release}
-                            success={data.indicators.upgrade.current.percentage}
-                            fail={100 - data.indicators.upgrade.current.percentage}
-                            caption={indicatorCaption(data.indicators.upgrade)}
-                            tooltip="How often an upgrade that is started completes successfully."
-                        />
-                    </Grid>
-
-                    <Grid item xs={3}>
-                        <SummaryCard
-                            backgroundColor={cardBackground(data.variants.current.success / (data.variants.current.unstable + data.variants.current.flaked + data.variants.current.success))}
-                            name="Variants" link={"/jobs/" + props.release + "/variant"}
-                            success={data.variants.current.success}
-                            fail={data.variants.current.failed}
-                            flakes={data.variants.current.unstable}
-                            caption={variantCaption(data.variants.current)}
-                            tooltip="Overall health of variants excluding never-stable. Success is greater than 80% pass, unstable is greater than 60%, and anything else is considered failed."
-                        />
-                    </Grid>
-
-                    <Grid item xs={6}>
-                        <Card enhancement="5" style={{ textAlign: 'center' }}>
-                            <Typography component={Link} to={"/tests/" + props.release + "?sortBy=regression&filterBy=runs&runs=10"} style={{ textAlign: 'center' }} variant="h5">
-                                Most regressed tests
-                                <Tooltip title={REGRESSED_TOOLTIP}>
+        <Fragment>
+            <SimpleBreadcrumbs release={props.release} />
+            <div className="{classes.root}" style={{ padding: 20 }}>
+                <Container maxWidth="lg">
+                    <Typography variant="h4" gutterBottom className={classes.title}>CI Release {props.release} Health Summary</Typography>
+                    <Grid container spacing={3} alignItems="stretch">
+                        <Grid item xs={12} style={{ display: 'flex' }}>
+                            <Typography variant="h5">
+                                Top Level Release Indicators
+                                <Tooltip title={TOOLTIP}>
                                     <InfoIcon />
                                 </Tooltip>
                             </Typography>
+                        </Grid>
+                        <Grid item xs={3}>
+                            <SummaryCard
+                                backgroundColor={cardBackground(data.indicators.infrastructure.current.percentage)}
+                                name="Infrastructure"
+                                link={"/tests/" + props.release + "/details?test=[sig-sippy] infrastructure should work"}
+                                success={data.indicators.infrastructure.current.percentage}
+                                fail={100 - data.indicators.infrastructure.current.percentage}
+                                caption={indicatorCaption(data.indicators.infrastructure)}
+                                tooltip="How often we get to the point of running the installer. This is judged by whether a kube-apiserver is available, it's not perfect, but it's very close."
+                            />
+                        </Grid>
+                        <Grid item xs={3}>
+                            <SummaryCard
+                                backgroundColor={cardBackground(data.indicators.install.current.percentage)}
+                                name="Install" link={"/install/" + props.release}
+                                success={data.indicators.install.current.percentage}
+                                fail={100 - data.indicators.install.current.percentage}
+                                caption={indicatorCaption(data.indicators.install)}
+                                tooltip="How often the install completes successfully."
+                            />
+                        </Grid>
+                        <Grid item xs={3}>
+                            <SummaryCard
+                                backgroundColor={cardBackground(data.indicators.upgrade.current.percentage)}
+                                name="Upgrade" link={"/upgrade/" + props.release}
+                                success={data.indicators.upgrade.current.percentage}
+                                fail={100 - data.indicators.upgrade.current.percentage}
+                                caption={indicatorCaption(data.indicators.upgrade)}
+                                tooltip="How often an upgrade that is started completes successfully."
+                            />
+                        </Grid>
 
-                            <TestTable
-                                hideControls={true}
-                                sortBy="regression"
-                                limit={10}
-                                filterBy="runs"
-                                runs={10}
-                                pageSize={5}
-                                briefTable={true}
-                                release={props.release} />
+                        <Grid item xs={3}>
+                            <SummaryCard
+                                backgroundColor={cardBackground(data.variants.current.success / (data.variants.current.unstable + data.variants.current.flaked + data.variants.current.success))}
+                                name="Variants" link={"/jobs/" + props.release + "/variant"}
+                                success={data.variants.current.success}
+                                fail={data.variants.current.failed}
+                                flakes={data.variants.current.unstable}
+                                caption={variantCaption(data.variants.current)}
+                                tooltip="Overall health of variants excluding never-stable. Success is greater than 80% pass, unstable is greater than 60%, and anything else is considered failed."
+                            />
+                        </Grid>
 
-                        </Card>
+                        <Grid item xs={6}>
+                            <Card enhancement="5" style={{ textAlign: 'center' }}>
+                                <Typography component={Link} to={"/tests/" + props.release + "?sortBy=regression&filterBy=runs&runs=10"} style={{ textAlign: 'center' }} variant="h5">
+                                    Most regressed tests
+                                    <Tooltip title={REGRESSED_TOOLTIP}>
+                                        <InfoIcon />
+                                    </Tooltip>
+                                </Typography>
+
+                                <TestTable
+                                    hideControls={true}
+                                    sortBy="regression"
+                                    limit={10}
+                                    filterBy="runs"
+                                    runs={10}
+                                    pageSize={5}
+                                    briefTable={true}
+                                    release={props.release} />
+
+                            </Card>
+                        </Grid>
+
+                        <Grid item xs={6}>
+                            <Card enhancement="5" style={{ textAlign: 'center' }}>
+                                <Typography component={Link} to={"/jobs/" + props.release + "?sortBy=regression&filterBy=runs&runs=10"} style={{ textAlign: 'center' }} variant="h5">
+                                    Most regressed jobs
+                                    <Tooltip title={REGRESSED_TOOLTIP}>
+                                        <InfoIcon />
+                                    </Tooltip>
+                                </Typography>
+
+                                <JobTable
+                                    hideControls={true}
+                                    sortBy="regression"
+                                    limit={10}
+                                    filterBy="runs"
+                                    runs={10}
+                                    pageSize={5}
+                                    release={props.release}
+                                    briefTable={true} />
+
+                            </Card>
+                        </Grid>
+
+                        <Grid item xs={6}>
+                            <Card enhancement="5" style={{ textAlign: 'center' }}>
+                                <Typography component={Link} to={"/tests/" + props.release + "?filterBy=runs&filterBy=noBug&runs=10"} style={{ textAlign: 'center' }} variant="h5">
+                                    Top failing tests without a bug
+                                    <Tooltip title={NOBUG_TOOLTIP}>
+                                        <InfoIcon />
+                                    </Tooltip>
+                                </Typography>
+
+                                <TestTable
+                                    hideControls={true}
+                                    filterBy={["noBug", "runs"]}
+                                    runs={10}
+                                    limit={10}
+                                    pageSize={5}
+                                    briefTable={true}
+                                    release={props.release} />
+
+                            </Card>
+                        </Grid>
+
+                        <Grid item xs={6}>
+                            <Card enhancement="5" style={{ textAlign: 'center' }}>
+                                <Typography component={Link} to={"/tests/" + props.release + "?filterBy=runs&filterBy=trt&runs=10"} style={{ textAlign: 'center' }} variant="h5">
+                                    Curated by TRT
+                                    <Tooltip title={TRT_TOOLTIP}>
+                                        <InfoIcon />
+                                    </Tooltip>
+                                </Typography>
+
+                                <TestTable
+                                    hideControls={true}
+                                    filterBy={["trt", "runs"]}
+                                    runs={10}
+                                    limit={10}
+                                    pageSize={5}
+                                    briefTable={true}
+                                    release={props.release} />
+
+                            </Card>
+                        </Grid>
+
                     </Grid>
-
-                    <Grid item xs={6}>
-                        <Card enhancement="5" style={{ textAlign: 'center' }}>
-                            <Typography component={Link} to={"/jobs/" + props.release + "?sortBy=regression&filterBy=runs&runs=10"} style={{ textAlign: 'center' }} variant="h5">
-                                Most regressed jobs
-                                <Tooltip title={REGRESSED_TOOLTIP}>
-                                    <InfoIcon />
-                                </Tooltip>
-                            </Typography>
-
-                            <JobTable
-                                hideControls={true}
-                                sortBy="regression"
-                                limit={10}
-                                filterBy="runs"
-                                runs={10}
-                                pageSize={5}
-                                release={props.release}
-                                briefTable={true} />
-
-                        </Card>
-                    </Grid>
-
-                    <Grid item xs={6}>
-                        <Card enhancement="5" style={{ textAlign: 'center' }}>
-                            <Typography component={Link} to={"/tests/" + props.release + "?filterBy=runs&filterBy=noBug&runs=10"} style={{ textAlign: 'center' }} variant="h5">
-                                Top failing tests without a bug
-                                <Tooltip title={NOBUG_TOOLTIP}>
-                                    <InfoIcon />
-                                </Tooltip>
-                            </Typography>
-
-                            <TestTable
-                                hideControls={true}
-                                filterBy={["noBug", "runs"]}
-                                runs={10}
-                                limit={10}
-                                pageSize={5}
-                                briefTable={true}
-                                release={props.release} />
-
-                        </Card>
-                    </Grid>
-
-                    <Grid item xs={6}>
-                        <Card enhancement="5" style={{ textAlign: 'center' }}>
-                            <Typography component={Link} to={"/tests/" + props.release + "?filterBy=runs&filterBy=trt&runs=10"} style={{ textAlign: 'center' }} variant="h5">
-                               Curated by TRT 
-                                <Tooltip title={TRT_TOOLTIP}>
-                                    <InfoIcon />
-                                </Tooltip>
-                            </Typography>
-
-                            <TestTable
-                                hideControls={true}
-                                filterBy={["trt", "runs"]}
-                                runs={10}
-                                limit={10}
-                                pageSize={5}
-                                briefTable={true}
-                                release={props.release} />
-
-                        </Card>
-                    </Grid>
-
-                </Grid>
-            </Container>
-        </div>
+                </Container>
+            </div>
+        </Fragment>
     );
 }

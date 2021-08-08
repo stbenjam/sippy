@@ -7,7 +7,7 @@ import {
     GridToolbarDensitySelector,
     GridToolbarFilterButton
 } from '@material-ui/data-grid';
-import { Bookmark, BugReport, Search } from '@material-ui/icons';
+import { Bookmark, BugReport, Details, Search } from '@material-ui/icons';
 import ClearIcon from '@material-ui/icons/Clear';
 import SearchIcon from '@material-ui/icons/Search';
 import Alert from '@material-ui/lab/Alert';
@@ -19,6 +19,8 @@ import { Link } from 'react-router-dom';
 import { ArrayParam, NumberParam, StringParam, useQueryParam } from 'use-query-params';
 import BugzillaDialog from './BugzillaDialog';
 import PassRateIcon from './PassRate/passRateIcon';
+import SimpleBreadcrumbs from './SimpleBreadcrumbs';
+import ControlPointIcon from '@material-ui/icons/ControlPoint';
 
 function escapeRegExp(value) {
     return value.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
@@ -160,10 +162,10 @@ function TestTable(props) {
         {
             field: 'name',
             headerName: 'Name',
-            flex: 3,
+            flex: 4,
             renderCell: (params) => (
                 <Tooltip title={params.value}>
-                    <p>{params.value}</p>
+                    <Link to={"/tests/" + props.release + "/details?test=" + params.row.name}>{params.value}</Link>
                 </Tooltip>
             ),
         },
@@ -205,7 +207,7 @@ function TestTable(props) {
         {
             field: 'link',
             headerName: ' ',
-            flex: 0.50,
+            flex: 0.30,
             renderCell: (params) => {
                 return (
                     <Button target="_blank" startIcon={<Search />} href={"https://search.ci.openshift.org/?search=" + encodeURIComponent(params.row.name) + "&maxAge=336h&context=1&type=bug%2Bjunit&name=&excludeName=&maxMatches=5&maxBytes=20971520&groupBy=job"} />
@@ -216,7 +218,7 @@ function TestTable(props) {
         {
             field: 'bugs',
             headerName: ' ',
-            flex: 0.50,
+            flex: 0.30,
             renderCell: (params) => {
                 return (
                     <Tooltip title={params.value.length + " linked bugs," + params.row.associated_bugs.length + " associated bugs"}>
@@ -224,7 +226,7 @@ function TestTable(props) {
                     </Tooltip>
                 );
             },
-            sortComparator: (v1, v2, param1, param2) => 
+            sortComparator: (v1, v2, param1, param2) =>
                 param1.value.length - param2.value.length
             ,
             hide: props.briefTable,
@@ -324,11 +326,6 @@ function TestTable(props) {
         return "Loading..."
     }
 
-    let title = ""
-    if (props.title !== undefined) {
-        title = <Typography variant="h4">{props.title}</Typography>
-    }
-
     const createTestNameQuery = () => {
         const selectedIDs = new Set(selectedTests)
         let tests = rows.filter((row) =>
@@ -357,9 +354,9 @@ function TestTable(props) {
         <Button component={Link} to={"/tests/" + props.release + "/details?" + createTestNameQuery()} variant="contained" color="primary" style={{ margin: 10 }}>Get Details</Button>
     );
 
+
     return (
         <Container size="xl">
-            {title}
             <DataGrid
                 components={{ Toolbar: (filterBy === "install" || filterBy === "upgrade" || props.hideControls) ? "" : TestSearchToolbar }}
                 rows={rows}
@@ -391,6 +388,7 @@ function TestTable(props) {
             />
 
             {props.hideControls ? "" : detailsButton}
+
 
             <BugzillaDialog item={testDetails} isOpen={isBugzillaDialogOpen} close={closeBugzillaDialog} />
         </Container>
