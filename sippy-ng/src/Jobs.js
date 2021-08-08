@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types'
 import { Container, Grid, Paper, Tab, Tabs, Typography } from '@material-ui/core'
 import { TabContext } from '@material-ui/lab'
 import React, { Fragment } from 'react'
@@ -56,4 +57,8 @@ export default function Jobs (props) {
             />
         </Fragment>
   )
+}
+
+Jobs.propTypes = {
+  release: PropTypes.string.isRequired
 }

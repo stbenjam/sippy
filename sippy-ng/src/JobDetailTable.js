@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types'
 import { TableContainer } from '@material-ui/core'
 import Table from '@material-ui/core/Table'
 import TableBody from '@material-ui/core/TableBody'
@@ -31,8 +32,8 @@ export default function JobDetailTable (props) {
                         <TableHead>
                             <TableRow>
                                 <TableCell className="col-name col-first">Name</TableCell>
-                                {columns.map((column) => (
-                                    <TableCell className="col-day">{column}</TableCell>
+                                {columns.map((column, idx) => (
+                                    <TableCell key={'job-column' + idx} className="col-day">{column}</TableCell>
                                 ))}
                             </TableRow>
                         </TableHead>
@@ -42,12 +43,12 @@ export default function JobDetailTable (props) {
                                     <TableCell component="th" scope="row" className="col-name col-first">
                                         <a href={row.link}>{row.name}</a>
                                     </TableCell>
-                                    {row.results.map((days, idx) =>
-                                        <TableCell className="col-day" key={'ts-' + idx} style={{ verticalAlign: 'top' }}>
+                                    {row.results.map((days, index) =>
+                                        <TableCell className="col-day" key={'ts-' + index} style={{ verticalAlign: 'top' }}>
                                             {
-                                                days.map((day, index) =>
-                                                    <Fragment>
-                                                        {index % 5 === 0 ? <br /> : ''}
+                                                days.map((day, dayidx) =>
+                                                    <Fragment key={`day-${index}-${dayidx}`}>
+                                                        {dayidx % 5 === 0 ? <br /> : ''}
                                                         <a key={day.id} className={day.className} href={day.prowLink} target="_blank" rel="noreferrer">{day.text}</a>
                                                     </Fragment>
                                                 )}
@@ -61,4 +62,9 @@ export default function JobDetailTable (props) {
             </div>
         </Fragment >
   )
+}
+
+JobDetailTable.propTypes = {
+  columns: PropTypes.array,
+  rows: PropTypes.object
 }

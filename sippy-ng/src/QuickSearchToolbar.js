@@ -75,5 +75,6 @@ export default function QuickSearchToolbar (props) {
 QuickSearchToolbar.propTypes = {
   clearSearch: PropTypes.func.isRequired,
   onChange: PropTypes.func.isRequired,
-  value: PropTypes.string.isRequired
+  value: PropTypes.string.isRequired,
+  toolbar: PropTypes.object
 }

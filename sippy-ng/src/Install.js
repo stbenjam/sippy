@@ -1,7 +1,7 @@
 import { Grid, Paper, Tab, Tabs, Typography } from '@material-ui/core'
 import { Alert, TabContext } from '@material-ui/lab'
 import React, { useEffect, Fragment } from 'react'
-
+import PropTypes from 'prop-types'
 import { Link, Redirect, Route, Switch, useRouteMatch } from 'react-router-dom'
 import SimpleBreadcrumbs from './SimpleBreadcrumbs'
 import TestByVariantTable from './TestByVariantTable'
@@ -78,4 +78,8 @@ export default function Install (props) {
             />
         </Fragment>
   )
+}
+
+Install.propTypes = {
+  release: PropTypes.string
 }

@@ -1,6 +1,7 @@
 import { Container, Grid, Paper, Tab, Tabs, Typography } from '@material-ui/core'
 import { TabContext } from '@material-ui/lab'
 import React, { Fragment } from 'react'
+import PropTypes from 'prop-types'
 
 import {
   Link, Route, Switch, useRouteMatch
@@ -51,4 +52,8 @@ export default function Tests (props) {
             />
         </Fragment>
   )
+}
+
+Tests.propTypes = {
+  release: PropTypes.string
 }

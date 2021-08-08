@@ -1,3 +1,4 @@
+import { PropTypes } from 'prop-types'
 import Collapse from '@material-ui/core/Collapse'
 import IconButton from '@material-ui/core/IconButton'
 import Paper from '@material-ui/core/Paper'
@@ -57,6 +58,12 @@ function Row (props) {
   )
 }
 
+Row.propTypes = {
+  row: PropTypes.object.isRequired,
+  release: PropTypes.string.isRequired,
+  bgColor: PropTypes.string
+}
+
 export default function PassRateByVariant (props) {
   const theme = useTheme()
 
@@ -92,7 +99,7 @@ export default function PassRateByVariant (props) {
 
   useEffect(() => {
     fetchData()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   if (fetchError !== '') {
     return <Alert severity="error">{fetchError}</Alert>
@@ -122,4 +129,8 @@ export default function PassRateByVariant (props) {
             </Table>
         </TableContainer>
   )
+}
+
+PassRateByVariant.propTypes = {
+  release: PropTypes.string.isRequired
 }

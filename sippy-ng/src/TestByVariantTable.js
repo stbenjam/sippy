@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types'
 import { Tooltip, Typography } from '@material-ui/core'
 import FormControlLabel from '@material-ui/core/FormControlLabel'
 import FormGroup from '@material-ui/core/FormGroup'
@@ -10,7 +11,6 @@ import TableHead from '@material-ui/core/TableHead'
 import TableRow from '@material-ui/core/TableRow'
 import HelpOutlineIcon from '@material-ui/icons/HelpOutline'
 import { scale } from 'chroma-js'
-import PropTypes from 'prop-types'
 import React, { Fragment } from 'react'
 import { BooleanParam, useQueryParam } from 'use-query-params'
 import PassRateIcon from './PassRate/passRateIcon'
@@ -35,6 +35,11 @@ function PassRateCompare (props) {
             {previous.toFixed(2)}%
         </Fragment>
   )
+}
+
+PassRateCompare.propTypes = {
+  previous: PropTypes.number,
+  current: PropTypes.number
 }
 
 function Cell (props) {
@@ -85,10 +90,10 @@ function Row (props) {
   return (
         <Fragment>
             <TableRow className={classes.root}>
-                <TableCell>{testName}</TableCell>
+                <TableCell key={testName}>{testName}</TableCell>
                 {
-                    columnNames.map((column) =>
-                        <Cell colorScale={props.colorScale} showFull={props.showFull} result={results[column]}></Cell>
+                    columnNames.map((column, idx) =>
+                        <Cell key={'testName-' + idx} colorScale={props.colorScale} showFull={props.showFull} result={results[column]}></Cell>
                     )}
             </TableRow>
         </Fragment>
@@ -96,8 +101,12 @@ function Row (props) {
 }
 
 Row.propTypes = {
+  results: PropTypes.object,
+  columnNames: PropTypes.array.isRequired,
+  testName: PropTypes.string.isRequired,
+  colorScale: PropTypes.array.isRequired,
+  showFull: PropTypes.bool,
   row: PropTypes.shape({
-    colorScale: PropTypes.array.isRequired,
     variant: PropTypes.string.isRequired,
     current: PropTypes.number.isRequired,
     previous: PropTypes.number.isRequired,
@@ -162,8 +171,8 @@ export default function TestByVariantTable (props) {
                                 />
                             </FormGroup>
                         </TableCell>
-                        {props.data.column_names.map((column) =>
-                            <TableCell width={cellWidth}>{column}</TableCell>
+                        {props.data.column_names.map((column, idx) =>
+                            <TableCell key={'column' + '-' + idx} width={cellWidth}>{column}</TableCell>
                         )}
                     </TableRow>
                 </TableHead>
@@ -179,4 +188,16 @@ export default function TestByVariantTable (props) {
 
 TestByVariantTable.defaultProps = {
   colorScale: [60, 100]
+}
+
+TestByVariantTable.propTypes = {
+  columnNames: PropTypes.array,
+  current: PropTypes.number,
+  data: PropTypes.object,
+  previous: PropTypes.number,
+  release: PropTypes.string.isRequired,
+  results: PropTypes.object,
+  testName: PropTypes.string,
+  title: PropTypes.string,
+  colorScale: PropTypes.array
 }

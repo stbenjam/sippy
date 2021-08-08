@@ -1,4 +1,5 @@
-import { Button, Container, Menu, MenuItem, Tooltip, Typography } from '@material-ui/core'
+
+import { Button, Container, Menu, MenuItem, Tooltip } from '@material-ui/core'
 import IconButton from '@material-ui/core/IconButton'
 import { createTheme } from '@material-ui/core/styles'
 import TextField from '@material-ui/core/TextField'
@@ -7,7 +8,7 @@ import {
   GridToolbarDensitySelector,
   GridToolbarFilterButton
 } from '@material-ui/data-grid'
-import { Bookmark, BugReport, Details, Search } from '@material-ui/icons'
+import { Bookmark, BugReport, Search } from '@material-ui/icons'
 import ClearIcon from '@material-ui/icons/Clear'
 import SearchIcon from '@material-ui/icons/Search'
 import Alert from '@material-ui/lab/Alert'
@@ -19,8 +20,6 @@ import { Link } from 'react-router-dom'
 import { ArrayParam, NumberParam, StringParam, useQueryParam } from 'use-query-params'
 import BugzillaDialog from './BugzillaDialog'
 import PassRateIcon from './PassRate/passRateIcon'
-import SimpleBreadcrumbs from './SimpleBreadcrumbs'
-import ControlPointIcon from '@material-ui/icons/ControlPoint'
 
 function escapeRegExp (value) {
   return value.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')
@@ -94,6 +93,12 @@ function FilterMenu (props) {
   )
 }
 
+FilterMenu.propTypes = {
+  initialFilter: PropTypes.string,
+  requestFilter: PropTypes.string,
+  classes: PropTypes.object
+}
+
 function TestSearchToolbar (props) {
   const classes = useStyles()
 
@@ -132,7 +137,9 @@ function TestSearchToolbar (props) {
 TestSearchToolbar.propTypes = {
   clearSearch: PropTypes.func.isRequired,
   onChange: PropTypes.func.isRequired,
-  value: PropTypes.string.isRequired
+  value: PropTypes.string.isRequired,
+  initialFilter: PropTypes.string,
+  requestFilter: PropTypes.string
 }
 
 const styles = {
@@ -257,17 +264,17 @@ function TestTable (props) {
     let queryString = ''
     if (filterBy) {
       if (Array.isArray(filterBy)) {
-        filterBy.forEach((filter) =>
+        filterBy.forEach((filter) => {
           queryString += '&filterBy=' + encodeURIComponent(filter)
-        )
+        })
       } else {
         queryString += '&filterBy=' + encodeURIComponent(filterBy)
       }
     }
 
-    testNames.forEach((test) =>
+    testNames.forEach((test) => {
       queryString += '&test=' + encodeURIComponent(test)
-    )
+    })
 
     if (runs) {
       queryString += '&runs=' + encodeURIComponent(runs)
@@ -299,7 +306,7 @@ function TestTable (props) {
 
   useEffect(() => {
     fetchData()
-  }, [filterBy]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filterBy])
 
   const requestSearch = (searchValue) => {
     setSearchText(searchValue)
@@ -393,4 +400,15 @@ TestTable.defaultProps = {
   briefTable: false
 }
 
+TestTable.propTypes = {
+  briefTable: PropTypes.bool,
+  filterBy: PropTypes.string,
+  hideControls: PropTypes.bool,
+  limit: PropTypes.number,
+  pageSize: PropTypes.number,
+  release: PropTypes.string.isRequired,
+  runs: PropTypes.number,
+  sortBy: PropTypes.string,
+  classes: PropTypes.object
+}
 export default withStyles(styles)(TestTable)

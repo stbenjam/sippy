@@ -1,4 +1,4 @@
-import { Backdrop, CircularProgress, CssBaseline, Grid, ListSubheader, MuiThemeProvider } from '@material-ui/core'
+import { CssBaseline, Grid, ListSubheader, MuiThemeProvider } from '@material-ui/core'
 import AppBar from '@material-ui/core/AppBar'
 import Collapse from '@material-ui/core/Collapse'
 import Divider from '@material-ui/core/Divider'
@@ -37,7 +37,6 @@ import Install from './Install'
 import Jobs from './Jobs'
 import ReleaseOverview from './ReleaseOverview'
 import logo from './sippy.svg'
-import TestsDetail from './TestsDetail'
 import Tests from './Tests'
 import Upgrades from './Upgrades'
 
@@ -269,8 +268,8 @@ export default function App (props) {
                 }
               >
                 {releases.map((release, index) => (
-                  <Fragment>
-                    <ListItem key={'release-' + index} button onClick={() => handleClick(index)}>
+                  <Fragment key={'section-release-' + index}>
+                    <ListItem key={'item-release-' + index} button onClick={() => handleClick(index)}>
                       {open[index] ? <ExpandLess /> : <ExpandMore />}
                       <ListItemText primary={release} />
                     </ListItem>
@@ -352,6 +351,7 @@ export default function App (props) {
             >
               <div className={classes.drawerHeader} />
 
+              {/* eslint-disable react/prop-types */}
               <Switch>
                 <Route path="/about">
                   <p>Hello, world!</p>
@@ -392,6 +392,7 @@ export default function App (props) {
                   {landingPage}
                 </Route>
               </Switch>
+              {/* eslint-enable react/prop-types */}
             </main>
           </div>
         </QueryParamProvider>

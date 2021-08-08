@@ -115,5 +115,8 @@ BugzillaDialog.defaultProps = {
 
 BugzillaDialog.propTypes = {
   item: PropTypes.object,
-  associatedBugs: PropTypes.array
+  associatedBugs: PropTypes.array,
+  classes: PropTypes.object,
+  isOpen: PropTypes.bool,
+  close: PropTypes.func
 }

@@ -4,7 +4,7 @@ import { createTheme, makeStyles, useTheme } from '@material-ui/core/styles'
 import InfoIcon from '@material-ui/icons/Info'
 import Alert from '@material-ui/lab/Alert'
 import React, { useEffect, Fragment } from 'react'
-
+import PropTypes from 'prop-types'
 import { Link } from 'react-router-dom'
 import JobTable from './JobTable'
 import PassRateIcon from './PassRate/passRateIcon'
@@ -71,7 +71,7 @@ export default function ReleaseOverview (props) {
 
   useEffect(() => {
     fetchData()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   if (fetchError !== '') {
     return <Alert severity="error">{fetchError}</Alert>
@@ -255,4 +255,8 @@ export default function ReleaseOverview (props) {
             </div>
         </Fragment>
   )
+}
+
+ReleaseOverview.propTypes = {
+  release: PropTypes.string.isRequired
 }

@@ -100,7 +100,8 @@ function JobSearchToolbar (props) {
 
 JobSearchToolbar.propTypes = {
   clearSearch: PropTypes.func.isRequired,
-  onChange: PropTypes.func.isRequired
+  onChange: PropTypes.func.isRequired,
+  value: PropTypes.string
 }
 
 function JobTable (props) {
@@ -274,7 +275,7 @@ function JobTable (props) {
 
   useEffect(() => {
     fetchData()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   const pageTitle = () => {
     if (props.title) {
@@ -339,6 +340,19 @@ JobTable.defaultProps = {
   hideControls: false,
   pageSize: 25,
   briefTable: false
+}
+
+JobTable.propTypes = {
+  briefTable: PropTypes.bool,
+  classes: PropTypes.object,
+  filterBy: PropTypes.string,
+  limit: PropTypes.number,
+  pageSize: PropTypes.number,
+  release: PropTypes.string.isRequired,
+  runs: PropTypes.number,
+  sortBy: PropTypes.string,
+  title: PropTypes.string,
+  hideControls: PropTypes.bool
 }
 
 export default withStyles(styles)(JobTable)

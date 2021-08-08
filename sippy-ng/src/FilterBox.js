@@ -1,9 +1,6 @@
-import { Button, Grid, TextField, Tooltip } from '@material-ui/core'
-import { Info } from '@material-ui/icons'
-import { Alert } from '@material-ui/lab'
-import React, { Fragment, useEffect } from 'react'
-import { ArrayParam, useQueryParam, withDefault } from 'use-query-params'
-import TestByVariantTable from './TestByVariantTable'
+import { Button, Grid, TextField } from '@material-ui/core'
+import React, { Fragment } from 'react'
+import PropTypes from 'prop-types'
 
 export default function FilterBox (props) {
   const [formError, setFormError] = React.useState(false)
@@ -33,4 +30,11 @@ export default function FilterBox (props) {
             </Grid>
         </Fragment>
   )
+}
+
+FilterBox.propTypes = {
+  value: PropTypes.string,
+  required: PropTypes.bool,
+  action: PropTypes.func,
+  setValue: PropTypes.func
 }

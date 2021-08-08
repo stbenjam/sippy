@@ -1,4 +1,5 @@
-import { Backdrop, Button, CircularProgress, Grid, makeStyles, TextField } from '@material-ui/core'
+import { PropTypes } from 'prop-types'
+import { Backdrop, CircularProgress, makeStyles } from '@material-ui/core'
 import { Alert } from '@material-ui/lab'
 import React, { Fragment, useEffect } from 'react'
 import { StringParam, useQueryParam } from 'use-query-params'
@@ -82,7 +83,7 @@ export default function JobsDetail (props) {
 
   const filterSearch = (
         <Fragment>
-            <Alert severity="warning">Use an empty search for all results, but this returns a lot of data -- it's better to use a filter.</Alert><br />
+            <Alert severity="warning">Use an empty search for all results, but this returns a lot of data -- it&apos;s better to use a filter.</Alert><br />
             <FilterBox value={query} setValue={setQuery} action={updateFilter} />
         </Fragment>
   )
@@ -139,4 +140,8 @@ export default function JobsDetail (props) {
             <JobDetailTable rows={rows} columns={columns} />
         </Fragment>
   )
+}
+
+JobsDetail.propTypes = {
+  release: PropTypes.string.isRequired
 }

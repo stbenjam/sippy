@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types'
+
 import { Container, Grid, Paper, Tab, Tabs, Typography } from '@material-ui/core'
 import { Alert, TabContext } from '@material-ui/lab'
 import React, { useEffect, Fragment } from 'react'
@@ -35,7 +37,7 @@ export default function Upgrades (props) {
 
   useEffect(() => {
     fetchData()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   if (fetchError !== '') {
     return <Alert severity="error">Failed to load data, {fetchError}</Alert>
@@ -87,4 +89,8 @@ export default function Upgrades (props) {
         />
         </Fragment>
   )
+}
+
+Upgrades.propTypes = {
+  release: PropTypes.string.isRequired
 }

@@ -1,4 +1,5 @@
 import { Card, CardContent, Tooltip, Typography } from '@material-ui/core'
+import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
@@ -90,4 +91,14 @@ SummaryCard.defaultProps = {
   fail: 0,
   caption: '',
   tooltip: ''
+}
+
+SummaryCard.propTypes = {
+  flakes: PropTypes.number,
+  success: PropTypes.number,
+  fail: PropTypes.number,
+  caption: PropTypes.string,
+  tooltip: PropTypes.string,
+  name: PropTypes.string,
+  link: PropTypes.link
 }

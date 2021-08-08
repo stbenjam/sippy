@@ -1,10 +1,10 @@
-import { Backdrop, Button, CircularProgress, Grid, makeStyles, TextField, Tooltip } from '@material-ui/core'
-import { Info, SettingsSystemDaydreamSharp } from '@material-ui/icons'
+import { Backdrop, CircularProgress, makeStyles } from '@material-ui/core'
 import { Alert } from '@material-ui/lab'
 import React, { Fragment, useEffect } from 'react'
 import { ArrayParam, useQueryParam, withDefault } from 'use-query-params'
 import FilterBox from './FilterBox'
 import TestByVariantTable from './TestByVariantTable'
+import PropTypes from 'prop-types'
 
 const useStyles = makeStyles((theme) => ({
   backdrop: {
@@ -46,7 +46,7 @@ export default function TestsDetails (props) {
 
   useEffect(() => {
     fetchData()
-  }, [names]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [names])
 
   if (fetchError !== '') {
     return <Alert severity="error">Failed to load data, {fetchError}</Alert>
@@ -86,4 +86,8 @@ export default function TestsDetails (props) {
             <TestByVariantTable release={props.release} data={data} />
         </Fragment>
   )
+}
+
+TestsDetails.propTypes = {
+  release: PropTypes.string.isRequired
 }

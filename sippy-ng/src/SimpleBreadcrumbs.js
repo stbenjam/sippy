@@ -2,6 +2,7 @@ import React from 'react'
 import Typography from '@material-ui/core/Typography'
 import Breadcrumbs from '@material-ui/core/Breadcrumbs'
 import { Link } from 'react-router-dom'
+import PropTypes from 'prop-types'
 
 export default function SimpleBreadcrumbs (props) {
   return (
@@ -12,4 +13,9 @@ export default function SimpleBreadcrumbs (props) {
       {props.currentPage ? <Typography>{props.currentPage}</Typography> : ''}
     </Breadcrumbs>
   )
+}
+
+SimpleBreadcrumbs.propTypes = {
+  release: PropTypes.string.isRequired,
+  currentPage: PropTypes.string
 }
