@@ -1,18 +1,18 @@
-import { Container, Grid, Paper, Tab, Tabs, Typography } from '@material-ui/core';
-import { TabContext } from '@material-ui/lab';
-import React from 'react';
-import { Fragment } from 'react';
+import { Container, Grid, Paper, Tab, Tabs, Typography } from '@material-ui/core'
+import { TabContext } from '@material-ui/lab'
+import React, { Fragment } from 'react'
+
 import {
-    Link, Route, Switch, useRouteMatch
-} from "react-router-dom";
-import SimpleBreadcrumbs from './SimpleBreadcrumbs';
-import TestTable from './TestTable';
-import TestDetails from './TestsDetail';
+  Link, Route, Switch, useRouteMatch
+} from 'react-router-dom'
+import SimpleBreadcrumbs from './SimpleBreadcrumbs'
+import TestTable from './TestTable'
+import TestDetails from './TestsDetail'
 
-export default function Tests(props) {
-    let { path, url } = useRouteMatch();
+export default function Tests (props) {
+  const { path, url } = useRouteMatch()
 
-    return (
+  return (
         <Fragment>
             <SimpleBreadcrumbs release={props.release} currentPage="Tests" />
 
@@ -31,13 +31,13 @@ export default function Tests(props) {
                                     textColor="primary"
                                 >
                                     <Tab label="All tests" value={props.release} component={Link} to={url} />
-                                    <Tab label="Tests by variant" value="details" component={Link} to={url + "/details"} />
+                                    <Tab label="Tests by variant" value="details" component={Link} to={url + '/details'} />
                                 </Tabs>
                             </Paper>
                         </Grid>
                         <Container size="xl">
                             <Switch>
-                                <Route path={path + "/details"}>
+                                <Route path={path + '/details'}>
                                     <TestDetails release={props.release} />
                                 </Route>
 
@@ -50,5 +50,5 @@ export default function Tests(props) {
                 )}
             />
         </Fragment>
-    );
+  )
 }

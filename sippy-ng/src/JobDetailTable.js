@@ -1,17 +1,17 @@
-import { TableContainer } from '@material-ui/core';
-import Table from '@material-ui/core/Table';
-import TableBody from '@material-ui/core/TableBody';
-import TableCell from '@material-ui/core/TableCell';
-import TableHead from '@material-ui/core/TableHead';
-import TableRow from '@material-ui/core/TableRow';
-import React, { Fragment } from 'react';
-import './JobDetailTable.css';
+import { TableContainer } from '@material-ui/core'
+import Table from '@material-ui/core/Table'
+import TableBody from '@material-ui/core/TableBody'
+import TableCell from '@material-ui/core/TableCell'
+import TableHead from '@material-ui/core/TableHead'
+import TableRow from '@material-ui/core/TableRow'
+import React, { Fragment } from 'react'
+import './JobDetailTable.css'
 
-export default function JobDetailTable(props) {
-    const columns = props.columns
-    const rows = props.rows
+export default function JobDetailTable (props) {
+  const columns = props.columns
+  const rows = props.rows
 
-    return (
+  return (
         <Fragment>
             <br /><br />
             <div>
@@ -25,7 +25,7 @@ export default function JobDetailTable(props) {
                 <span className="legend-item"><span className="results results-demo"><span className="result result-R">R</span></span> running</span>
             </div>
 
-            <div class="view">
+            <div className="view">
                 <TableContainer component="div" className="wrapper">
                     <Table className="dashboard-table" aria-label="simple table">
                         <TableHead>
@@ -38,16 +38,16 @@ export default function JobDetailTable(props) {
                         </TableHead>
                         <TableBody>
                             {rows.map((row) =>
-                                <TableRow key={"job-" + row.name} className="row-item">
+                                <TableRow key={'job-' + row.name} className="row-item">
                                     <TableCell component="th" scope="row" className="col-name col-first">
                                         <a href={row.link}>{row.name}</a>
                                     </TableCell>
                                     {row.results.map((days, idx) =>
-                                        <TableCell className="col-day" key={"ts-" + idx} style={{verticalAlign: "top"}}>
+                                        <TableCell className="col-day" key={'ts-' + idx} style={{ verticalAlign: 'top' }}>
                                             {
                                                 days.map((day, index) =>
                                                     <Fragment>
-                                                        {index % 5 === 0 ? <br /> : ""}
+                                                        {index % 5 === 0 ? <br /> : ''}
                                                         <a key={day.id} className={day.className} href={day.prowLink} target="_blank" rel="noreferrer">{day.text}</a>
                                                     </Fragment>
                                                 )}
@@ -60,5 +60,5 @@ export default function JobDetailTable(props) {
                 </TableContainer>
             </div>
         </Fragment >
-    );
+  )
 }

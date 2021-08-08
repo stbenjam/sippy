@@ -1,41 +1,41 @@
-import Collapse from '@material-ui/core/Collapse';
-import IconButton from '@material-ui/core/IconButton';
-import Paper from '@material-ui/core/Paper';
-import { makeStyles, useTheme } from '@material-ui/core/styles';
-import Table from '@material-ui/core/Table';
-import TableBody from '@material-ui/core/TableBody';
-import TableCell from '@material-ui/core/TableCell';
-import TableContainer from '@material-ui/core/TableContainer';
-import TableHead from '@material-ui/core/TableHead';
-import TableRow from '@material-ui/core/TableRow';
-import KeyboardArrowDownIcon from '@material-ui/icons/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@material-ui/icons/KeyboardArrowUp';
-import { Alert } from '@material-ui/lab';
-import React, { Fragment, useEffect } from 'react';
-import VariantTable from '../VariantTable';
-import PassRateIcon from './passRateIcon';
+import Collapse from '@material-ui/core/Collapse'
+import IconButton from '@material-ui/core/IconButton'
+import Paper from '@material-ui/core/Paper'
+import { makeStyles, useTheme } from '@material-ui/core/styles'
+import Table from '@material-ui/core/Table'
+import TableBody from '@material-ui/core/TableBody'
+import TableCell from '@material-ui/core/TableCell'
+import TableContainer from '@material-ui/core/TableContainer'
+import TableHead from '@material-ui/core/TableHead'
+import TableRow from '@material-ui/core/TableRow'
+import KeyboardArrowDownIcon from '@material-ui/icons/KeyboardArrowDown'
+import KeyboardArrowUpIcon from '@material-ui/icons/KeyboardArrowUp'
+import { Alert } from '@material-ui/lab'
+import React, { Fragment, useEffect } from 'react'
+import VariantTable from '../VariantTable'
+import PassRateIcon from './passRateIcon'
 
 const useRowStyles = makeStyles({
-    root: {
-        '& > *': {
-            borderBottom: 'unset',
-            color: 'black',
-        },
-    },
-});
+  root: {
+    '& > *': {
+      borderBottom: 'unset',
+      color: 'black'
+    }
+  }
+})
 
-export const TOOLTIP = "Aggregation of all job runs for a given variant, sorted by passing rate percentage.  Variants at the top of this list have unreliable CI jobs or the product is unreliable in those variants.  The pass rate in parenthesis is the pass rate for jobs that started to run the installer and got at least the bootstrap kube-apiserver up and running."
+export const TOOLTIP = 'Aggregation of all job runs for a given variant, sorted by passing rate percentage.  Variants at the top of this list have unreliable CI jobs or the product is unreliable in those variants.  The pass rate in parenthesis is the pass rate for jobs that started to run the installer and got at least the bootstrap kube-apiserver up and running.'
 
-function Row(props) {
-    const { row } = props;
-    const [open, setOpen] = React.useState(false);
-    const classes = useRowStyles();
+function Row (props) {
+  const { row } = props
+  const [open, setOpen] = React.useState(false)
+  const classes = useRowStyles()
 
-    return (
+  return (
         <Fragment>
-            <TableRow className={classes.root} style={{backgroundColor: props.bgColor}}>
+            <TableRow className={classes.root} style={{ backgroundColor: props.bgColor }}>
                 <TableCell>
-                    <IconButton style={{color: "black"}} aria-label="expand row" size="small" onClick={() => setOpen(!open)}>
+                    <IconButton style={{ color: 'black' }} aria-label="expand row" size="small" onClick={() => setOpen(!open)}>
                         {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
                     </IconButton>
                 </TableCell>
@@ -54,55 +54,55 @@ function Row(props) {
                 </TableCell>
             </TableRow>
         </Fragment>
-    );
+  )
 }
 
-export default function PassRateByVariant(props) {
-    const theme = useTheme();
+export default function PassRateByVariant (props) {
+  const theme = useTheme()
 
-    const [jobs, setJobs] = React.useState([])
-    const [isLoaded, setLoaded] = React.useState(false)
-    const [fetchError, setFetchError] = React.useState("")
+  const [jobs, setJobs] = React.useState([])
+  const [isLoaded, setLoaded] = React.useState(false)
+  const [fetchError, setFetchError] = React.useState('')
 
-    let rowBackground = (percent) => {
-        if (percent > 90) {
-            return theme.palette.success.light;
-        } else if (percent > 60) {
-            return theme.palette.warning.light;
-        } else {
-            return theme.palette.error.light;
+  const rowBackground = (percent) => {
+    if (percent > 90) {
+      return theme.palette.success.light
+    } else if (percent > 60) {
+      return theme.palette.warning.light
+    } else {
+      return theme.palette.error.light
+    }
+  }
+
+  const fetchData = () => {
+    fetch(process.env.REACT_APP_API_URL + '/json?release=' + props.release)
+      .then((response) => {
+        if (response.status !== 200) {
+          throw new Error('server returned ' + response.status)
         }
-    }
+        return response.json()
+      })
+      .then(json => {
+        setJobs(json[props.release].jobPassRateByVariant)
+        setLoaded(true)
+      }).catch(error => {
+        setFetchError('Could not retrieve release ' + props.release + ', ' + error)
+      })
+  }
 
-    let fetchData = () => {
-        fetch(process.env.REACT_APP_API_URL + '/json?release=' + props.release)
-            .then((response) => {
-                if (response.status !== 200) {
-                    throw new Error("server returned " + response.status);
-                }
-                return response.json();
-            })
-            .then(json => {
-                setJobs(json[props.release].jobPassRateByVariant)
-                setLoaded(true)
-            }).catch(error => {
-                setFetchError("Could not retrieve release " + props.release + ", " + error);
-            });
-    }
+  useEffect(() => {
+    fetchData()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-    useEffect(() => {
-        fetchData();
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  if (fetchError !== '') {
+    return <Alert severity="error">{fetchError}</Alert>
+  }
 
-    if (fetchError !== "") {
-        return <Alert severity="error">{fetchError}</Alert>;
-    }
+  if (!isLoaded) {
+    return 'Loading...'
+  }
 
-    if (!isLoaded) {
-        return "Loading..."
-    }
-
-    return (
+  return (
         <TableContainer component={Paper}>
             <Table aria-label="collapsible table">
                 <TableHead>
@@ -121,5 +121,5 @@ export default function PassRateByVariant(props) {
                 </TableBody>
             </Table>
         </TableContainer>
-    );
+  )
 }

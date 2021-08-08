@@ -1,26 +1,26 @@
-import PropTypes from 'prop-types';
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import TextField from '@material-ui/core/TextField';
-import React, { Fragment } from 'react';
+import PropTypes from 'prop-types'
+import Button from '@material-ui/core/Button'
+import Dialog from '@material-ui/core/Dialog'
+import DialogActions from '@material-ui/core/DialogActions'
+import DialogContent from '@material-ui/core/DialogContent'
+import DialogContentText from '@material-ui/core/DialogContentText'
+import DialogTitle from '@material-ui/core/DialogTitle'
+import TextField from '@material-ui/core/TextField'
+import React, { Fragment } from 'react'
 
-export default function BugzillaSearch(props) {
-    const [query, setQuery] = React.useState("")
+export default function BugzillaSearch (props) {
+  const [query, setQuery] = React.useState('')
 
-    let bugzillaDialogQuery = (f) => {
-        setQuery(f.target.value)
-    };
+  const bugzillaDialogQuery = (f) => {
+    setQuery(f.target.value)
+  }
 
-    let handleBugzillaQuery = (f) => {
-        window.open('https://bugzilla.redhat.com/buglist.cgi?query_format=specific&order=Importance&no_redirect=1&bug_status=__open__&product=OpenShift+Container+Platform&content=' + encodeURIComponent(query));
-        props.close()
-    };
+  const handleBugzillaQuery = (f) => {
+    window.open('https://bugzilla.redhat.com/buglist.cgi?query_format=specific&order=Importance&no_redirect=1&bug_status=__open__&product=OpenShift+Container+Platform&content=' + encodeURIComponent(query))
+    props.close()
+  }
 
-    return (
+  return (
         <Fragment>
             <Dialog open={props.isOpen} onClose={props.close} aria-labelledby="form-dialog-title">
                 <DialogTitle id="form-dialog-title">Search Bugzilla</DialogTitle>
@@ -48,11 +48,11 @@ export default function BugzillaSearch(props) {
                 </DialogActions>
             </Dialog>
         </Fragment>
-    );
+  )
 }
 
 BugzillaSearch.propTypes = {
-    open: PropTypes.func.isRequired,
-    close: PropTypes.func.isRequired,
-    isOpen: PropTypes.bool.isRequired,
-};
+  open: PropTypes.func.isRequired,
+  close: PropTypes.func.isRequired,
+  isOpen: PropTypes.bool.isRequired
+}

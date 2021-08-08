@@ -1,19 +1,19 @@
-import { Container, Grid, Paper, Tab, Tabs, Typography } from '@material-ui/core';
-import { TabContext } from '@material-ui/lab';
-import React from 'react';
-import { Fragment } from 'react';
+import { Container, Grid, Paper, Tab, Tabs, Typography } from '@material-ui/core'
+import { TabContext } from '@material-ui/lab'
+import React, { Fragment } from 'react'
+
 import {
-    Link, Route, Switch, useRouteMatch
-} from "react-router-dom";
-import SimpleBreadcrumbs from './SimpleBreadcrumbs';
-import JobsDetail from './JobsDetail';
-import JobTable from './JobTable';
-import PassRateByVariant from './PassRate/passRateByVariant';
+  Link, Route, Switch, useRouteMatch
+} from 'react-router-dom'
+import SimpleBreadcrumbs from './SimpleBreadcrumbs'
+import JobsDetail from './JobsDetail'
+import JobTable from './JobTable'
+import PassRateByVariant from './PassRate/passRateByVariant'
 
-export default function Jobs(props) {
-    let { path, url } = useRouteMatch();
+export default function Jobs (props) {
+  const { path, url } = useRouteMatch()
 
-    return (
+  return (
         <Fragment>
             <SimpleBreadcrumbs release={props.release} currentPage="Jobs" />
             <Route
@@ -31,18 +31,18 @@ export default function Jobs(props) {
                                     textColor="primary"
                                 >
                                     <Tab label="All jobs" value={props.release} component={Link} to={url} />
-                                    <Tab label="Jobs by variant" value="variant" component={Link} to={url + "/variant"} />
-                                    <Tab label="Job runs" value="detail" component={Link} to={url + "/detail"} />
+                                    <Tab label="Jobs by variant" value="variant" component={Link} to={url + '/variant'} />
+                                    <Tab label="Job runs" value="detail" component={Link} to={url + '/detail'} />
                                 </Tabs>
                             </Paper>
                         </Grid>
                         <Container size="xl">
                             <Switch>
-                                <Route path={path + "/variant"}>
+                                <Route path={path + '/variant'}>
                                     <PassRateByVariant release={props.release} />
                                 </Route>
 
-                                <Route path={path + "/detail"}>
+                                <Route path={path + '/detail'}>
                                     <JobsDetail release={props.release} />
                                 </Route>
 
@@ -55,5 +55,5 @@ export default function Jobs(props) {
                 )}
             />
         </Fragment>
-    );
+  )
 }

@@ -1,20 +1,20 @@
-import { Button, Divider, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from '@material-ui/core';
-import Dialog from '@material-ui/core/Dialog';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import { Close, Info } from '@material-ui/icons';
-import PropTypes from 'prop-types';
-import React, { Fragment } from 'react';
-import bugzillaURL from './BugzillaUtils';
+import { Button, Divider, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from '@material-ui/core'
+import Dialog from '@material-ui/core/Dialog'
+import DialogContent from '@material-ui/core/DialogContent'
+import DialogContentText from '@material-ui/core/DialogContentText'
+import DialogTitle from '@material-ui/core/DialogTitle'
+import { Close, Info } from '@material-ui/icons'
+import PropTypes from 'prop-types'
+import React, { Fragment } from 'react'
+import bugzillaURL from './BugzillaUtils'
 
-export default function BugzillaDialog(props) {
-    const bugTable = (bugs) => {
-        if(!bugs || bugs.length === 0) {
-            return <Typography>None found</Typography>;
-        }
+export default function BugzillaDialog (props) {
+  const bugTable = (bugs) => {
+    if (!bugs || bugs.length === 0) {
+      return <Typography>None found</Typography>
+    }
 
-        return (
+    return (
             <TableContainer component={Paper} style={{ marginTop: 20 }}>
                 <Table className={props.classes.table} size="small" aria-label="bug-table">
                     <TableHead>
@@ -51,14 +51,14 @@ export default function BugzillaDialog(props) {
                     </TableBody>
                 </Table>
             </TableContainer>
-        );
-    };
+    )
+  }
 
-    return (
+  return (
         <Fragment>
             <Dialog
                 scroll="paper"
-                style={{ verticalAlign: "top" }}
+                style={{ verticalAlign: 'top' }}
                 maxWidth="md"
                 fullWidth={true}
                 open={props.isOpen}
@@ -93,7 +93,6 @@ export default function BugzillaDialog(props) {
 
                         {bugTable(props.item.associated_bugs)}
 
-
                         <Button target="_blank" href={bugzillaURL(props.item)} variant="contained" color="primary" style={{ marginTop: 20 }}>
                             Open a new bug
                         </Button>
@@ -101,20 +100,20 @@ export default function BugzillaDialog(props) {
                 </DialogContent>
             </Dialog>
         </Fragment >
-    );
+  )
 }
 
 BugzillaDialog.defaultProps = {
+  bugs: [],
+  item: {
+    name: '',
     bugs: [],
-    item: {
-        name: "",
-        bugs: [],
-        associated_bugs: [],
-    },
-    classes: {},
+    associated_bugs: []
+  },
+  classes: {}
 }
 
 BugzillaDialog.propTypes = {
-    item: PropTypes.object,
-    associatedBugs: PropTypes.array,
-};
+  item: PropTypes.object,
+  associatedBugs: PropTypes.array
+}

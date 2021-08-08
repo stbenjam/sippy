@@ -1,51 +1,51 @@
-import { Container, Grid, Paper, Tab, Tabs, Typography } from '@material-ui/core';
-import { Alert, TabContext } from '@material-ui/lab';
-import React, { useEffect } from 'react';
-import { Fragment } from 'react';
+import { Container, Grid, Paper, Tab, Tabs, Typography } from '@material-ui/core'
+import { Alert, TabContext } from '@material-ui/lab'
+import React, { useEffect, Fragment } from 'react'
+
 import {
-    Link, Redirect, Route, Switch, useRouteMatch
-} from "react-router-dom";
-import JobTable from './JobTable';
-import SimpleBreadcrumbs from './SimpleBreadcrumbs';
-import TestByVariantTable from './TestByVariantTable';
-import TestTable from './TestTable';
+  Link, Redirect, Route, Switch, useRouteMatch
+} from 'react-router-dom'
+import JobTable from './JobTable'
+import SimpleBreadcrumbs from './SimpleBreadcrumbs'
+import TestByVariantTable from './TestByVariantTable'
+import TestTable from './TestTable'
 
-export default function Upgrades(props) {
-    let { path, url } = useRouteMatch();
+export default function Upgrades (props) {
+  const { path, url } = useRouteMatch()
 
-    const [fetchError, setFetchError] = React.useState("")
-    const [isLoaded, setLoaded] = React.useState(false)
-    const [data, setData] = React.useState({})
+  const [fetchError, setFetchError] = React.useState('')
+  const [isLoaded, setLoaded] = React.useState(false)
+  const [data, setData] = React.useState({})
 
-    let fetchData = () => {
-        fetch(process.env.REACT_APP_API_URL + '/api/upgrade?release=' + props.release)
-            .then((response) => {
-                if (response.status !== 200) {
-                    throw new Error("server returned " + response.status);
-                }
-                return response.json();
-            })
-            .then(json => {
-                setData(json)
-                setLoaded(true)
-            }).catch(error => {
-                setFetchError("Could not retrieve release " + props.release + ", " + error);
-            });
-    }
+  const fetchData = () => {
+    fetch(process.env.REACT_APP_API_URL + '/api/upgrade?release=' + props.release)
+      .then((response) => {
+        if (response.status !== 200) {
+          throw new Error('server returned ' + response.status)
+        }
+        return response.json()
+      })
+      .then(json => {
+        setData(json)
+        setLoaded(true)
+      }).catch(error => {
+        setFetchError('Could not retrieve release ' + props.release + ', ' + error)
+      })
+  }
 
-    useEffect(() => {
-        fetchData();
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    fetchData()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-    if (fetchError !== "") {
-        return <Alert severity="error">Failed to load data, {fetchError}</Alert>;
-    }
+  if (fetchError !== '') {
+    return <Alert severity="error">Failed to load data, {fetchError}</Alert>
+  }
 
-    if (!isLoaded) {
-        return <p>Loading...</p>
-    };
+  if (!isLoaded) {
+    return <p>Loading...</p>
+  };
 
-    return (
+  return (
         <Fragment>
             <SimpleBreadcrumbs release={props.release} currentPage="Upgrades" />
             <Route
@@ -62,29 +62,29 @@ export default function Upgrades(props) {
                                     indicatorColor="primary"
                                     textColor="primary"
                                 >
-                                    <Tab label="Upgrade rates by operator" value="operators" component={Link} to={url + "/operators"} />
-                                    <Tab label="Upgrade related tests" value="tests" component={Link} to={url + "/tests"} />
-                                    <Tab label="Upgrade jobs" value="jobs" component={Link} to={url + "/jobs"} />
+                                    <Tab label="Upgrade rates by operator" value="operators" component={Link} to={url + '/operators'} />
+                                    <Tab label="Upgrade related tests" value="tests" component={Link} to={url + '/tests'} />
+                                    <Tab label="Upgrade jobs" value="jobs" component={Link} to={url + '/jobs'} />
                                 </Tabs>
                             </Paper>
                         </Grid>
                         <Switch>
-                            <Route path={path + "/operators"}>
+                            <Route path={path + '/operators'}>
                                 <TestByVariantTable colorScale={[90, 100]} data={data} />
                             </Route>
-                            <Route path={path + "/tests"}>
+                            <Route path={path + '/tests'}>
                                 <TestTable release={props.release} filterBy="upgrade" />
                             </Route>
-                            <Route path={path + "/jobs"}>
+                            <Route path={path + '/jobs'}>
                                 <Container size="xl">
                                     <JobTable release={props.release} filterBy="upgrade" />
                                 </Container>
                             </Route>
-                            <Redirect from="/" to={url + "/operators"} />
+                            <Redirect from="/" to={url + '/operators'} />
                         </Switch>
                     </TabContext>
-            )}
+                )}
         />
         </Fragment>
-            );
+  )
 }

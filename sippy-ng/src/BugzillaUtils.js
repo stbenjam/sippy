@@ -1,12 +1,12 @@
-export default function bugzillaURL(item) {
-    let title = item.name
-    let titleEncoded = encodeURIComponent(title)
-    let url = `https://search.ci.openshift.org/?maxAge=168h&context=1&type=bug%2Bjunit&name=&maxMatches=5&maxBytes=20971520&groupBy=job&search=${titleEncoded}`
-    if (item.test_grid_url) {
-        url = item.test_grid_url
-    }
+export default function bugzillaURL (item) {
+  const title = item.name
+  const titleEncoded = encodeURIComponent(title)
+  let url = `https://search.ci.openshift.org/?maxAge=168h&context=1&type=bug%2Bjunit&name=&maxMatches=5&maxBytes=20971520&groupBy=job&search=${titleEncoded}`
+  if (item.test_grid_url) {
+    url = item.test_grid_url
+  }
 
-    let bugText = encodeURIComponent(`
+  const bugText = encodeURIComponent(`
 ${title}
 
 is failing frequently in CI, see:
@@ -17,5 +17,5 @@ FIXME: Replace this paragraph with a particular job URI from the search results 
 FIXME: Provide a snippet of the test failure or error from the job log
 `)
 
-    return `https://bugzilla.redhat.com/enter_bug.cgi?classification=Red%20Hat&product=OpenShift%20Container%20Platform&cf_internal_whiteboard=buildcop&short_desc=${titleEncoded}&comment=${bugText}&version=4.9&cc=sippy@dptools.openshift.org`
+  return `https://bugzilla.redhat.com/enter_bug.cgi?classification=Red%20Hat&product=OpenShift%20Container%20Platform&cf_internal_whiteboard=buildcop&short_desc=${titleEncoded}&comment=${bugText}&version=4.9&cc=sippy@dptools.openshift.org`
 }

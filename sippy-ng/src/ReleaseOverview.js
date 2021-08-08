@@ -1,112 +1,111 @@
-import { Box, Card, Container, Tooltip, Typography } from '@material-ui/core';
-import Grid from '@material-ui/core/Grid';
-import { createTheme, makeStyles, useTheme } from '@material-ui/core/styles';
-import InfoIcon from '@material-ui/icons/Info';
-import Alert from '@material-ui/lab/Alert';
-import React, { useEffect } from 'react';
-import { Fragment } from 'react';
-import { Link } from 'react-router-dom';
-import JobTable from './JobTable';
-import PassRateIcon from './PassRate/passRateIcon';
-import SimpleBreadcrumbs from './SimpleBreadcrumbs';
-import SummaryCard from './SummaryCard';
-import TestTable from './TestTable';
+import { Box, Card, Container, Tooltip, Typography } from '@material-ui/core'
+import Grid from '@material-ui/core/Grid'
+import { createTheme, makeStyles, useTheme } from '@material-ui/core/styles'
+import InfoIcon from '@material-ui/icons/Info'
+import Alert from '@material-ui/lab/Alert'
+import React, { useEffect, Fragment } from 'react'
 
-export const TOOLTIP = "Top level release indicators showing product health"
-export const REGRESSED_TOOLTIP = "Shows the most regressed items this week vs. last week, for those with more than 10 runs"
-export const NOBUG_TOOLTIP = "Shows the list of tests ordered by least successful and without a bug, for those with more than 10 runs"
-export const TRT_TOOLTIP = "Shows a curated list of tests selected by the TRT team"
+import { Link } from 'react-router-dom'
+import JobTable from './JobTable'
+import PassRateIcon from './PassRate/passRateIcon'
+import SimpleBreadcrumbs from './SimpleBreadcrumbs'
+import SummaryCard from './SummaryCard'
+import TestTable from './TestTable'
 
+export const TOOLTIP = 'Top level release indicators showing product health'
+export const REGRESSED_TOOLTIP = 'Shows the most regressed items this week vs. last week, for those with more than 10 runs'
+export const NOBUG_TOOLTIP = 'Shows the list of tests ordered by least successful and without a bug, for those with more than 10 runs'
+export const TRT_TOOLTIP = 'Shows a curated list of tests selected by the TRT team'
 
-const defaultTheme = createTheme();
+const defaultTheme = createTheme()
 const useStyles = makeStyles(
-    (theme) => ({
-        root: {
-            flexGrow: 1,
-        },
-        card: {
-            minWidth: 275,
-            alignContent: "center",
-            margin: "auto",
-        },
-        title: {
-            textAlign: "center",
-        },
-    }),
-    { defaultTheme },
-);
-
-export default function ReleaseOverview(props) {
-    const classes = useStyles();
-    const theme = useTheme();
-
-    const [fetchError, setFetchError] = React.useState("")
-    const [isLoaded, setLoaded] = React.useState(false)
-    const [data, setData] = React.useState({})
-
-    let fetchData = () => {
-        fetch(process.env.REACT_APP_API_URL + '/api/health?release=' + props.release)
-            .then((response) => {
-                if (response.status !== 200) {
-                    throw new Error("server returned " + response.status);
-                }
-                return response.json();
-            })
-            .then(json => {
-                setData(json)
-                setLoaded(true)
-            }).catch(error => {
-                setFetchError("Could not retrieve release " + props.release + ", " + error);
-            });
+  (theme) => ({
+    root: {
+      flexGrow: 1
+    },
+    card: {
+      minWidth: 275,
+      alignContent: 'center',
+      margin: 'auto'
+    },
+    title: {
+      textAlign: 'center'
     }
+  }),
+  { defaultTheme }
+)
 
-    let cardBackground = (percent) => {
-        if (percent > 90) {
-            return theme.palette.success.light;
-        } else if (percent > 60) {
-            return theme.palette.warning.light;
-        } else {
-            return theme.palette.error.light;
+export default function ReleaseOverview (props) {
+  const classes = useStyles()
+  const theme = useTheme()
+
+  const [fetchError, setFetchError] = React.useState('')
+  const [isLoaded, setLoaded] = React.useState(false)
+  const [data, setData] = React.useState({})
+
+  const fetchData = () => {
+    fetch(process.env.REACT_APP_API_URL + '/api/health?release=' + props.release)
+      .then((response) => {
+        if (response.status !== 200) {
+          throw new Error('server returned ' + response.status)
         }
+        return response.json()
+      })
+      .then(json => {
+        setData(json)
+        setLoaded(true)
+      }).catch(error => {
+        setFetchError('Could not retrieve release ' + props.release + ', ' + error)
+      })
+  }
+
+  const cardBackground = (percent) => {
+    if (percent > 90) {
+      return theme.palette.success.light
+    } else if (percent > 60) {
+      return theme.palette.warning.light
+    } else {
+      return theme.palette.error.light
     }
+  }
 
-    useEffect(() => {
-        fetchData();
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    fetchData()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-    if (fetchError !== "") {
-        return <Alert severity="error">{fetchError}</Alert>;
-    }
+  if (fetchError !== '') {
+    return <Alert severity="error">{fetchError}</Alert>
+  }
 
-    if (!isLoaded) {
-        return "Loading..."
-    }
+  if (!isLoaded) {
+    return 'Loading...'
+  }
 
-    const indicatorCaption = (indicator) => {
-        return (
+  const indicatorCaption = (indicator) => {
+    return (
             <Box component="h3">
                 {indicator.current.percentage.toFixed(0)} % ({indicator.current.runs} runs)&nbsp;
                 <PassRateIcon improvement={indicator.current.percentage - indicator.previous.percentage} /> &nbsp;
                 {indicator.previous.percentage.toFixed(0)}% ({indicator.previous.runs} runs)
             </Box>
-        );
-    }
+    )
+  }
 
-    const variantCaption = (variant) => {
-        let total = variant.success + variant.unstable + variant.failed
+  const variantCaption = (variant) => {
+    const total = variant.success + variant.unstable + variant.failed
 
-        let success = variant.success / total * 100
-        let flaked = variant.unstable / total * 100
-        let failed = variant.failed / total * 100
+    const success = variant.success / total * 100
+    const flaked = variant.unstable / total * 100
+    const failed = variant.failed / total * 100
 
-        return (
+    return (
             <Box component="h3">
                 {success.toFixed(0)}% success, {flaked.toFixed(0)}% unstable, {failed.toFixed(0)}% failed
             </Box>
-        );
-    }
+    )
+  }
 
-    return (
+  return (
         <Fragment>
             <SimpleBreadcrumbs release={props.release} />
             <div className="{classes.root}" style={{ padding: 20 }}>
@@ -125,7 +124,7 @@ export default function ReleaseOverview(props) {
                             <SummaryCard
                                 backgroundColor={cardBackground(data.indicators.infrastructure.current.percentage)}
                                 name="Infrastructure"
-                                link={"/tests/" + props.release + "/details?test=[sig-sippy] infrastructure should work"}
+                                link={'/tests/' + props.release + '/details?test=[sig-sippy] infrastructure should work'}
                                 success={data.indicators.infrastructure.current.percentage}
                                 fail={100 - data.indicators.infrastructure.current.percentage}
                                 caption={indicatorCaption(data.indicators.infrastructure)}
@@ -135,7 +134,7 @@ export default function ReleaseOverview(props) {
                         <Grid item xs={3}>
                             <SummaryCard
                                 backgroundColor={cardBackground(data.indicators.install.current.percentage)}
-                                name="Install" link={"/install/" + props.release}
+                                name="Install" link={'/install/' + props.release}
                                 success={data.indicators.install.current.percentage}
                                 fail={100 - data.indicators.install.current.percentage}
                                 caption={indicatorCaption(data.indicators.install)}
@@ -145,7 +144,7 @@ export default function ReleaseOverview(props) {
                         <Grid item xs={3}>
                             <SummaryCard
                                 backgroundColor={cardBackground(data.indicators.upgrade.current.percentage)}
-                                name="Upgrade" link={"/upgrade/" + props.release}
+                                name="Upgrade" link={'/upgrade/' + props.release}
                                 success={data.indicators.upgrade.current.percentage}
                                 fail={100 - data.indicators.upgrade.current.percentage}
                                 caption={indicatorCaption(data.indicators.upgrade)}
@@ -156,7 +155,7 @@ export default function ReleaseOverview(props) {
                         <Grid item xs={3}>
                             <SummaryCard
                                 backgroundColor={cardBackground(data.variants.current.success / (data.variants.current.unstable + data.variants.current.flaked + data.variants.current.success))}
-                                name="Variants" link={"/jobs/" + props.release + "/variant"}
+                                name="Variants" link={'/jobs/' + props.release + '/variant'}
                                 success={data.variants.current.success}
                                 fail={data.variants.current.failed}
                                 flakes={data.variants.current.unstable}
@@ -167,7 +166,7 @@ export default function ReleaseOverview(props) {
 
                         <Grid item xs={6}>
                             <Card enhancement="5" style={{ textAlign: 'center' }}>
-                                <Typography component={Link} to={"/tests/" + props.release + "?sortBy=regression&filterBy=runs&runs=10"} style={{ textAlign: 'center' }} variant="h5">
+                                <Typography component={Link} to={'/tests/' + props.release + '?sortBy=regression&filterBy=runs&runs=10'} style={{ textAlign: 'center' }} variant="h5">
                                     Most regressed tests
                                     <Tooltip title={REGRESSED_TOOLTIP}>
                                         <InfoIcon />
@@ -189,7 +188,7 @@ export default function ReleaseOverview(props) {
 
                         <Grid item xs={6}>
                             <Card enhancement="5" style={{ textAlign: 'center' }}>
-                                <Typography component={Link} to={"/jobs/" + props.release + "?sortBy=regression&filterBy=runs&runs=10"} style={{ textAlign: 'center' }} variant="h5">
+                                <Typography component={Link} to={'/jobs/' + props.release + '?sortBy=regression&filterBy=runs&runs=10'} style={{ textAlign: 'center' }} variant="h5">
                                     Most regressed jobs
                                     <Tooltip title={REGRESSED_TOOLTIP}>
                                         <InfoIcon />
@@ -211,7 +210,7 @@ export default function ReleaseOverview(props) {
 
                         <Grid item xs={6}>
                             <Card enhancement="5" style={{ textAlign: 'center' }}>
-                                <Typography component={Link} to={"/tests/" + props.release + "?filterBy=runs&filterBy=noBug&runs=10"} style={{ textAlign: 'center' }} variant="h5">
+                                <Typography component={Link} to={'/tests/' + props.release + '?filterBy=runs&filterBy=noBug&runs=10'} style={{ textAlign: 'center' }} variant="h5">
                                     Top failing tests without a bug
                                     <Tooltip title={NOBUG_TOOLTIP}>
                                         <InfoIcon />
@@ -220,7 +219,7 @@ export default function ReleaseOverview(props) {
 
                                 <TestTable
                                     hideControls={true}
-                                    filterBy={["noBug", "runs"]}
+                                    filterBy={['noBug', 'runs']}
                                     runs={10}
                                     limit={10}
                                     pageSize={5}
@@ -232,7 +231,7 @@ export default function ReleaseOverview(props) {
 
                         <Grid item xs={6}>
                             <Card enhancement="5" style={{ textAlign: 'center' }}>
-                                <Typography component={Link} to={"/tests/" + props.release + "?filterBy=runs&filterBy=trt&runs=10"} style={{ textAlign: 'center' }} variant="h5">
+                                <Typography component={Link} to={'/tests/' + props.release + '?filterBy=runs&filterBy=trt&runs=10'} style={{ textAlign: 'center' }} variant="h5">
                                     Curated by TRT
                                     <Tooltip title={TRT_TOOLTIP}>
                                         <InfoIcon />
@@ -241,7 +240,7 @@ export default function ReleaseOverview(props) {
 
                                 <TestTable
                                     hideControls={true}
-                                    filterBy={["trt", "runs"]}
+                                    filterBy={['trt', 'runs']}
                                     runs={10}
                                     limit={10}
                                     pageSize={5}
@@ -255,5 +254,5 @@ export default function ReleaseOverview(props) {
                 </Container>
             </div>
         </Fragment>
-    );
+  )
 }
