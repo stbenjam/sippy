@@ -1,0 +1,5 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`LastUpdated shows hours when > an hour 1`] = `undefined`;
+
+exports[`LastUpdated shows minutes when < an hour 1`] = `undefined`;

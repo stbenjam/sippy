@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PassRateIcon renders tooltip 1`] = `undefined`;
+
+exports[`PassRateIcon shows down arrow for regression 1`] = `undefined`;
+
+exports[`PassRateIcon shows sync icon for nearly no change 1`] = `undefined`;
+
+exports[`PassRateIcon shows up arrow for improvement 1`] = `undefined`;
