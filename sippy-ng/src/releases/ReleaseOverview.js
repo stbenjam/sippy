@@ -11,7 +11,7 @@ import PassRateIcon from '../components/PassRateIcon'
 import SimpleBreadcrumbs from '../components/SimpleBreadcrumbs'
 import SummaryCard from '../components/SummaryCard'
 import TestTable from '../tests/TestTable'
-import { INFRASTRUCTURE_THRESHOLDS, INSTALL_THRESHOLDS, UPGRADE_THRESHOLDS, VARIANT_THRESHOLDS } from '../constants'
+import { INFRASTRUCTURE_THRESHOLDS, INSTALL_THRESHOLDS, BOOKMARKS, UPGRADE_THRESHOLDS, VARIANT_THRESHOLDS } from '../constants'
 
 export const TOOLTIP = 'Top level release indicators showing product health'
 export const REGRESSED_TOOLTIP = 'Shows the most regressed items this week vs. last week, for those with more than 10 runs'
@@ -161,7 +161,7 @@ export default function ReleaseOverview (props) {
 
                         <Grid item md={6} sm={12}>
                             <Card enhancement="5" style={{ textAlign: 'center' }}>
-                                <Typography component={Link} to={'/tests/' + props.release + '?sortBy=regression&filterBy=runs&runs=10'} style={{ textAlign: 'center' }} variant="h5">
+                                <Typography component={Link} to={'/tests/' + props.release + '?sortField=net_improvement&sort=asc&filters=' + encodeURIComponent(JSON.stringify({ items: [BOOKMARKS.RUN_10] }))} style={{ textAlign: 'center' }} variant="h5">
                                     Most regressed tests
                                     <Tooltip title={REGRESSED_TOOLTIP}>
                                         <InfoIcon />
@@ -170,10 +170,12 @@ export default function ReleaseOverview (props) {
 
                                 <TestTable
                                     hideControls={true}
-                                    sortBy="regression"
+                                    sortField="net_improvement"
+                                    sort="asc"
                                     limit={10}
-                                    filterBy={['runs']}
-                                    runs={10}
+                                    filterModel={{
+                                      items: [BOOKMARKS.RUN_10]
+                                    }}
                                     pageSize={5}
                                     briefTable={true}
                                     release={props.release} />
@@ -214,10 +216,12 @@ export default function ReleaseOverview (props) {
 
                                 <TestTable
                                     hideControls={true}
-                                    sortBy="regression"
+                                    sortField="net_improvement"
+                                    sort="asc"
                                     limit={10}
-                                    filterBy={['runs']}
-                                    runs={1}
+                                    filterModel={{
+                                      items: [BOOKMARKS.RUN_1]
+                                    }}
                                     pageSize={5}
                                     period="twoDay"
                                     release={props.release}
@@ -236,10 +240,12 @@ export default function ReleaseOverview (props) {
 
                                 <JobTable
                                     hideControls={true}
-                                    sortBy="regression"
+                                    sortField="net_improvement"
+                                    sort="asc"
                                     limit={10}
-                                    filterBy={['runs']}
-                                    runs={1}
+                                    filterModel={{
+                                      items: [BOOKMARKS.RUN_1]
+                                    }}
                                     pageSize={5}
                                     period="twoDay"
                                     release={props.release}
@@ -258,8 +264,11 @@ export default function ReleaseOverview (props) {
 
                                 <TestTable
                                     hideControls={true}
-                                    filterBy={['noBug', 'runs']}
-                                    runs={10}
+                                    sortField="net_improvement"
+                                    sort="asc"
+                                    filterModel={{
+                                      items: [BOOKMARKS.RUN_10, BOOKMARKS.NO_LINKED_BUG]
+                                    }}
                                     limit={10}
                                     pageSize={5}
                                     briefTable={true}
