@@ -56,14 +56,34 @@ func briefName(job string) string {
 
 func jobResultToAPI(id int, current, previous *v1sippyprocessing.JobResult) apitype.Job {
 	job := apitype.Job{
-		ID:                             id,
-		Name:                           current.Name,
-		Variants:                       current.Variants,
-		BriefName:                      briefName(current.Name),
+		ID:        id,
+		Name:      current.Name,
+		Variants:  current.Variants,
+		BriefName: briefName(current.Name),
+
+		GCSBucketName:               current.GCSBucketName,
+		GCSJobHistoryLocationPrefix: current.GCSJobHistoryLocationPrefix,
+		Topology:                    current.Topology,
+		Network:                     current.Network,
+		IPMode:                      current.IPMode,
+
 		CurrentPassPercentage:          current.PassPercentage,
 		CurrentProjectedPassPercentage: current.PassPercentageWithoutInfrastructureFailures,
 		CurrentRuns:                    current.Failures + current.Successes,
 	}
+	runs := make([]string, 0)
+	if current.RunsUpgrade != nil && *current.RunsUpgrade {
+		runs = append(runs, "upgrade")
+	}
+
+	if current.RunsE2EParallel != nil && *current.RunsE2EParallel {
+		runs = append(runs, "parallel")
+	}
+
+	if current.RunsE2ESerial != nil && *current.RunsE2ESerial {
+		runs = append(runs, "serial")
+	}
+	job.TestSuites = runs
 
 	if previous != nil {
 		job.PreviousPassPercentage = previous.PassPercentage

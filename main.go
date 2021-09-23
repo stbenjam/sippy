@@ -8,6 +8,9 @@ import (
 	"regexp"
 	"strings"
 
+	bigqueryhelpers "github.com/openshift/sippy/pkg/bigqueryanalysis/helpers"
+	"github.com/openshift/sippy/pkg/testgridanalysis/testgridhelpers"
+
 	v1 "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
 
 	rice "github.com/GeertJohan/go.rice"
@@ -15,7 +18,6 @@ import (
 	"github.com/openshift/sippy/pkg/buganalysis"
 	"github.com/openshift/sippy/pkg/sippyserver"
 	"github.com/openshift/sippy/pkg/testgridanalysis/testgridconversion"
-	"github.com/openshift/sippy/pkg/testgridanalysis/testgridhelpers"
 	"github.com/openshift/sippy/pkg/testgridanalysis/testidentification"
 	"github.com/openshift/sippy/pkg/util/sets"
 	"github.com/spf13/cobra"
@@ -175,6 +177,7 @@ func (o *Options) Run() error {
 			dashboards = append(dashboards, dashboardCoordinate.TestGridDashboardNames...)
 		}
 		testgridhelpers.DownloadData(dashboards, o.JobFilter, o.FetchData)
+		bigqueryhelpers.DownloadData(o.OpenshiftReleases, o.FetchData)
 		return nil
 	}
 
