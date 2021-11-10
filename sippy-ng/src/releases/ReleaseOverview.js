@@ -1,19 +1,6 @@
 import { ArrowBack, ArrowForward } from '@material-ui/icons'
-import {
-  BOOKMARKS,
-  INFRASTRUCTURE_THRESHOLDS,
-  INSTALL_THRESHOLDS,
-  TEST_THRESHOLDS,
-  UPGRADE_THRESHOLDS,
-} from '../constants'
-import {
-  Box,
-  Button,
-  Card,
-  Container,
-  Tooltip,
-  Typography,
-} from '@material-ui/core'
+import { BOOKMARKS } from '../constants'
+import { Button, Card, Container, Tooltip, Typography } from '@material-ui/core'
 import { createTheme, makeStyles } from '@material-ui/core/styles'
 import { hourFilter, JobStackedChart } from '../jobs/JobStackedChart'
 import { Link } from 'react-router-dom'
@@ -31,6 +18,8 @@ import InfoIcon from '@material-ui/icons/Info'
 import JobTable from '../jobs/JobTable'
 import PropTypes from 'prop-types'
 import React, { Fragment, useEffect } from 'react'
+import ReleasePayloadAcceptance from './ReleasePayloadAcceptance'
+import ReleasePayloadTable from './ReleasePayloadTable'
 import SimpleBreadcrumbs from '../components/SimpleBreadcrumbs'
 import TestTable from '../tests/TestTable'
 import TopLevelIndicators from './TopLevelIndicators'
@@ -242,6 +231,50 @@ export default function ReleaseOverview(props) {
                     startIcon={<ArrowForward />}
                   />
                 </div>
+              </Card>
+            </Grid>
+
+            <Grid item md={6}>
+              <Card
+                elevation={5}
+                style={{ textAlign: 'center', padding: 20, height: '100%' }}
+              >
+                <Typography style={{ textAlign: 'center' }} variant="h5">
+                  <Link to={`/release/${props.release}/tags`}>
+                    Payload acceptance
+                  </Link>
+                  <Tooltip
+                    title={
+                      'This table shows the last accepted payload for each combination of architecture and stream.'
+                    }
+                  >
+                    <InfoIcon />
+                  </Tooltip>
+                </Typography>
+                <ReleasePayloadAcceptance
+                  release={props.release}
+                  rowsPerPageOptions={[5]}
+                />
+              </Card>
+            </Grid>
+
+            <Grid item md={6}>
+              <Card elevation={5} style={{ textAlign: 'center', padding: 20 }}>
+                <Typography style={{ textAlign: 'center' }} variant="h5">
+                  <Link to={`/release/${props.release}/tags`}>
+                    Most recent payloads
+                  </Link>
+                  <Tooltip title={'This table shows the last 10 payloads'}>
+                    <InfoIcon />
+                  </Tooltip>
+                </Typography>
+                <ReleasePayloadTable
+                  release={props.release}
+                  limit={10}
+                  briefTable={true}
+                  hideControls={true}
+                  pageSize={5}
+                />
               </Card>
             </Grid>
 
