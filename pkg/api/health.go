@@ -9,7 +9,8 @@ import (
 )
 
 // PrintOverallReleaseHealth gives a summarized status of the overall health, including
-// infrastructure, install, upgrade, and variant success rates.
+// infrastructure, install, upgrade, and variant success rates, as well as payload
+// acceptance.
 func PrintOverallReleaseHealth(w http.ResponseWriter, curr, twoDay, prev sippyprocessingv1.TestReport) {
 	type indicator struct {
 		Current  sippyv1.PassRate `json:"current"`
