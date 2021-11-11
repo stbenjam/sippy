@@ -13,6 +13,10 @@ import (
 )
 
 func PrintPullRequestsReport(w http.ResponseWriter, req *http.Request, dbClient *db.DB) {
+	if dbClient == nil || dbClient.DB == nil {
+		RespondWithJSON(http.StatusOK, w, []struct{}{})
+	}
+
 	q, err := filterableDBResult(req, "releaseTag", apitype.SortDescending, releaseFilter(req, dbClient))
 	if err != nil {
 		RespondWithJSON(http.StatusBadRequest, w, map[string]interface{}{
@@ -28,6 +32,10 @@ func PrintPullRequestsReport(w http.ResponseWriter, req *http.Request, dbClient 
 }
 
 func PrintReleaseJobRunsReport(w http.ResponseWriter, req *http.Request, dbClient *db.DB) {
+	if dbClient == nil || dbClient.DB == nil {
+		RespondWithJSON(http.StatusOK, w, []struct{}{})
+	}
+
 	q, err := filterableDBResult(req, "releaseTag", apitype.SortDescending, releaseFilter(req, dbClient))
 	if err != nil {
 		RespondWithJSON(http.StatusBadRequest, w, map[string]interface{}{
@@ -43,6 +51,10 @@ func PrintReleaseJobRunsReport(w http.ResponseWriter, req *http.Request, dbClien
 }
 
 func PrintReleasesReport(w http.ResponseWriter, req *http.Request, dbClient *db.DB) {
+	if dbClient == nil || dbClient.DB == nil {
+		RespondWithJSON(http.StatusOK, w, []struct{}{})
+	}
+
 	q, err := filterableDBResult(req, "releaseTag", apitype.SortDescending, releaseFilter(req, dbClient))
 	if err != nil {
 		RespondWithJSON(http.StatusBadRequest, w, map[string]interface{}{
@@ -58,6 +70,10 @@ func PrintReleasesReport(w http.ResponseWriter, req *http.Request, dbClient *db.
 }
 
 func PrintReleaseHealthReport(w http.ResponseWriter, req *http.Request, dbClient *db.DB) {
+	if dbClient == nil || dbClient.DB == nil {
+		RespondWithJSON(http.StatusOK, w, []struct{}{})
+	}
+
 	release := req.URL.Query().Get("release")
 	if release == "" {
 		RespondWithJSON(http.StatusBadRequest, w, map[string]interface{}{

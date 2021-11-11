@@ -2,6 +2,8 @@ package bigqueryexporter
 
 import (
 	"context"
+	"errors"
+	"gorm.io/gorm"
 
 	"cloud.google.com/go/bigquery"
 	"github.com/openshift/sippy/pkg/db"
@@ -51,11 +53,18 @@ func (client *Client) ExportData(ctx context.Context, dbClient *db.DB) error {
 }
 
 func (client *Client) ExportReleaseTags(ctx context.Context, dbClient *db.DB) error {
+	maxID := 0
+	lastTag := models.ReleaseTag{}
+	if result := dbClient.DB.Last(&lastTag); !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return result.Error
+	}
+
 	rows := make([]models.ReleaseTag, 0)
 	query := client.Query(`
 		SELECT
 			ROW_NUMBER() OVER() id, *
-		FROM ` + "`ci_data.ReleaseTags`")
+		FROM ` + "`ci_data.ReleaseTags`" +
+		"WHERE id > @maxID")
 	it, err := query.Read(ctx)
 	if err != nil {
 		return err

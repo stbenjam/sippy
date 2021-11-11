@@ -81,7 +81,7 @@ func main() {
 	}
 	flags := cmd.Flags()
 	flags.StringVar(&opt.LocalData, "local-data", opt.LocalData, "Path to testgrid data from local disk")
-	flags.StringVar(&opt.DSN, "database-dsn", opt.DSN, "Database DSN for storage of some types of data")
+	flags.StringVar(&opt.DSN, "database-dsn", os.Getenv("SIPPY_DATABASE_DSN"), "Database DSN for storage of some types of data")
 	flags.StringArrayVar(&opt.OpenshiftReleases, "release", opt.OpenshiftReleases, "Which releases to analyze (one per arg instance)")
 	flags.StringArrayVar(&opt.Dashboards, "dashboard", opt.Dashboards, "<display-name>=<comma-separated-list-of-dashboards>=<openshift-version>")
 	flags.StringArrayVar(&opt.Variants, "variant", opt.Variants, "{ocp,kube,none}")
@@ -196,20 +196,13 @@ func (o *Options) Run() error {
 		}
 		testgridhelpers.DownloadData(dashboards, o.JobFilter, o.FetchData)
 
-		// Export bigquery data to postgres, if we have a local db and bigquery
-		// creds.
-		dsn := o.DSN
-		if dsn == "" {
-			dsn = os.Getenv("SIPPY_DATABASE_DSN")
-		}
-
-		if dsn != "" && os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") != "" {
+		if o.DSN != "" && os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") != "" {
 			bge, err := bigqueryexporter.New(context.Background())
 			if err != nil {
 				return err
 			}
 
-			dbc, err := db.New(dsn)
+			dbc, err := db.New(o.DSN)
 			if err != nil {
 				return err
 			}
@@ -217,6 +210,8 @@ func (o *Options) Run() error {
 			if err := bge.ExportData(context.Background(), dbc); err != nil {
 				return err
 			}
+		} else {
+			klog.V(1).Infof("")
 		}
 
 		// Fetch OpenShift PerfScale Data from ElasticSearch:
