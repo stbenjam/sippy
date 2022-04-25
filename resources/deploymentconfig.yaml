@@ -88,6 +88,34 @@ spec:
             name: db
       - image: docker.io/openshift/sippy
         imagePullPolicy: Always
+        name: fetchbugs
+        resources:
+          limits:
+            memory: 3G
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        command:
+        - /bin/fetchbugs.sh
+        env:
+          - name: GOOGLE_APPLICATION_CREDENTIALS
+            value: /etc/bigquery/credentials
+          - name: SIPPY_DATABASE_DSN
+            valueFrom:
+              secretKeyRef:
+                name: postgres
+                key: dsn
+          - name: SIPPY_DATABASE_DSN
+            valueFrom:
+              secretKeyRef:
+                name: postgres
+                key: dsn
+        volumeMounts:
+        - mountPath: /data
+          name: data
+        - mountPath: /etc/bigquery
+          name: bigquery-credentials
+      - image: docker.io/openshift/sippy
+        imagePullPolicy: Always
         name: fetchdata
         ports:
         - containerPort: 8080

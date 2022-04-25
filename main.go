@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
@@ -61,6 +60,7 @@ type Options struct {
 	DBOnlyMode              bool
 	SkipBugLookup           bool
 	DSN                     string
+	SkipTestGrid            bool
 }
 
 func main() {
@@ -116,6 +116,7 @@ func main() {
 	flags.BoolVar(&opt.Server, "server", opt.Server, "Run in web server mode (serve reports over http)")
 	flags.BoolVar(&opt.DBOnlyMode, "db-only-mode", opt.DBOnlyMode, "Run web server off data in postgresql instead of in-memory")
 	flags.BoolVar(&opt.SkipBugLookup, "skip-bug-lookup", opt.SkipBugLookup, "Do not attempt to find bugs that match test/job failures")
+	flags.BoolVar(&opt.SkipTestGrid, "skip-test-grid", opt.SkipTestGrid, "Do not sync test grid data (use for example to only load bz cache)")
 
 	flags.AddGoFlag(flag.CommandLine.Lookup("v"))
 	flags.AddGoFlag(flag.CommandLine.Lookup("skip_headers"))
@@ -208,7 +209,7 @@ func (o *Options) Validate() error {
 		return fmt.Errorf("cannot specify --load-database with --fetch-data")
 	}
 
-	if o.LoadDatabase && o.LocalData == "" {
+	if o.LoadDatabase && !o.SkipTestGrid && o.LocalData == "" {
 		return fmt.Errorf("must specify --local-data with --load-database")
 	}
 
@@ -273,21 +274,23 @@ func (o *Options) Run() error {
 		}
 
 		start := time.Now()
-		trgc := sippyserver.TestReportGeneratorConfig{
-			TestGridLoadingConfig:       o.toTestGridLoadingConfig(),
-			RawJobResultsAnalysisConfig: o.toRawJobResultsAnalysisConfig(),
-			DisplayDataConfig:           o.toDisplayDataConfig(),
-		}
+		if !o.SkipTestGrid {
+			trgc := sippyserver.TestReportGeneratorConfig{
+				TestGridLoadingConfig:       o.toTestGridLoadingConfig(),
+				RawJobResultsAnalysisConfig: o.toRawJobResultsAnalysisConfig(),
+				DisplayDataConfig:           o.toDisplayDataConfig(),
+			}
 
-		loadBugs := !o.SkipBugLookup && len(o.OpenshiftReleases) > 0
-		for _, dashboard := range o.ToTestGridDashboardCoordinates() {
-			err := trgc.LoadDatabase(dbc, dashboard, o.getVariantManager(), o.getSyntheticTestManager())
-			if err != nil {
-				klog.Error(err)
-				return err
+			for _, dashboard := range o.ToTestGridDashboardCoordinates() {
+				err := trgc.LoadDatabase(dbc, dashboard, o.getVariantManager(), o.getSyntheticTestManager())
+				if err != nil {
+					klog.Error(err)
+					return err
+				}
 			}
 		}
 
+		loadBugs := !o.SkipBugLookup && len(o.OpenshiftReleases) > 0
 		if loadBugs {
 			testCache, err := sippyserver.LoadTestCache(dbc)
 			if err != nil {
