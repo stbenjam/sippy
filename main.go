@@ -61,6 +61,7 @@ type Options struct {
 	SkipBugLookup           bool
 	DSN                     string
 	SkipTestGrid            bool
+	SkipReleases            bool
 }
 
 func main() {
@@ -117,6 +118,7 @@ func main() {
 	flags.BoolVar(&opt.DBOnlyMode, "db-only-mode", opt.DBOnlyMode, "Run web server off data in postgresql instead of in-memory")
 	flags.BoolVar(&opt.SkipBugLookup, "skip-bug-lookup", opt.SkipBugLookup, "Do not attempt to find bugs that match test/job failures")
 	flags.BoolVar(&opt.SkipTestGrid, "skip-test-grid", opt.SkipTestGrid, "Do not sync test grid data (use for example to only load bz cache)")
+	flags.BoolVar(&opt.SkipReleases, "skip-releases", opt.SkipReleases, "Do not sync release controller data")
 
 	flags.AddGoFlag(flag.CommandLine.Lookup("v"))
 	flags.AddGoFlag(flag.CommandLine.Lookup("skip_headers"))
@@ -305,7 +307,7 @@ func (o *Options) Run() error {
 			}
 		}
 
-		loadReleases := len(o.OpenshiftReleases) > 0
+		loadReleases := !o.SkipReleases && len(o.OpenshiftReleases) > 0
 		if loadReleases {
 			releaseStreams := make([]string, 0)
 			for _, release := range o.OpenshiftReleases {
