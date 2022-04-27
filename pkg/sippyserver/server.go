@@ -645,6 +645,16 @@ func (s *Server) jsonJobsDetailsReport(w http.ResponseWriter, req *http.Request)
 	}
 }
 
+func (s *Server) jsonJobsFisherReportFromDB(w http.ResponseWriter, req *http.Request) {
+	release := s.getReleaseOrFail(w, req)
+	if release != "" {
+		err := api.PrintJobFisherReportFromDB(w, req, s.db, release)
+		if err != nil {
+			log.Errorf("Error from PrintJobFisherFromDB: %v", err)
+		}
+	}
+}
+
 func (s *Server) jsonJobsDetailsReportFromDB(w http.ResponseWriter, req *http.Request) {
 	release := s.getReleaseOrFail(w, req)
 	jobName := req.URL.Query().Get("job")
@@ -748,6 +758,8 @@ func (s *Server) Serve() {
 		serveMux.HandleFunc("/api/jobs/runs", s.jsonJobRunsReportFromDB)
 		serveMux.HandleFunc("/api/jobs/analysis", s.jsonJobsAnalysisFromDB)
 		serveMux.HandleFunc("/api/jobs/details", s.jsonJobsDetailsReportFromDB)
+		serveMux.HandleFunc("/api/jobs/fisher", s.jsonJobsFisherReportFromDB)
+
 		serveMux.HandleFunc("/api/tests", s.jsonTestsReportFromDB)
 		serveMux.HandleFunc("/api/tests/details", s.jsonTestDetailsReportFromDB)
 		serveMux.HandleFunc("/api/tests/analysis", s.jsonTestAnalysisReportFromDB)
