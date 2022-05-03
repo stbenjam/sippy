@@ -23,6 +23,7 @@ import IconButton from '@material-ui/core/IconButton'
 import PassRateIcon from '../components/PassRateIcon'
 import PropTypes from 'prop-types'
 import React, { Fragment, useEffect } from 'react'
+import SummaryCard from '../components/SummaryCard'
 
 const bookmarks = [
   {
@@ -77,7 +78,11 @@ function TestTable(props) {
       autocomplete: 'variants',
       type: 'array',
       renderCell: (params) => {
-        return params.value.join(', ')
+        if (params.value) {
+          return params.value.join(', ')
+        } else {
+          return '—'
+        }
       },
     },
     {
@@ -532,9 +537,7 @@ function TestTable(props) {
           },
         }}
       />
-
       {props.hideControls ? '' : detailsButton}
-
       <BugzillaDialog
         release={props.release}
         item={testDetails}
