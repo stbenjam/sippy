@@ -29,6 +29,10 @@ export function generateClasses(threshold) {
     classes['row-percent-' + i] = { backgroundColor: colors(i).hex() }
   }
 
+  classes['overall'] = {
+    borderBottom: '5px solid black',
+  }
+
   return classes
 }
 

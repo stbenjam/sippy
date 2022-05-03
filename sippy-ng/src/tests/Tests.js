@@ -68,7 +68,7 @@ export default function Tests(props) {
             </Grid>
             <Switch>
               <Route path={path + '/details'}>
-                <TestDetails release={props.release} />
+                <TestTable release={props.release} collapse={false} />
               </Route>
               <Route exact path={path}>
                 <TestTable release={props.release} />

@@ -456,25 +456,27 @@ export default function ReleaseOverview(props) {
                   </Tooltip>
                 </Typography>
 
-                <TestTable
-                  hideControls={true}
-                  sortField="current_working_percentage"
-                  sort="asc"
-                  limit={10}
-                  rowsPerPageOptions={[5]}
-                  filterModel={{
-                    items: [
-                      BOOKMARKS.RUN_10,
-                      BOOKMARKS.NO_NEVER_STABLE,
-                      BOOKMARKS.NO_TECHPREVIEW,
-                      BOOKMARKS.WITHOUT_OVERALL_JOB_RESULT,
-                      BOOKMARKS.NO_STEP_GRAPH,
-                    ],
-                  }}
-                  pageSize={5}
-                  briefTable={true}
-                  release={props.release}
-                />
+                <Grid container xl>
+                  <TestTable
+                    hideControls={true}
+                    sortField="current_working_percentage"
+                    sort="asc"
+                    limit={10}
+                    rowsPerPageOptions={[5]}
+                    filterModel={{
+                      items: [
+                        BOOKMARKS.RUN_10,
+                        BOOKMARKS.NO_NEVER_STABLE,
+                        BOOKMARKS.NO_TECHPREVIEW,
+                        BOOKMARKS.WITHOUT_OVERALL_JOB_RESULT,
+                        BOOKMARKS.NO_STEP_GRAPH,
+                      ],
+                    }}
+                    pageSize={5}
+                    briefTable={true}
+                    release={props.release}
+                  />
+                </Grid>
               </Card>
             </Grid>
           </Grid>

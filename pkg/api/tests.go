@@ -196,6 +196,12 @@ func PrintTestsJSON(release string, w http.ResponseWriter, req *http.Request, cu
 func PrintTestsJSONFromDB(release string, w http.ResponseWriter, req *http.Request, dbc *db.DB) {
 	var fil *filter.Filter
 
+	collapseStr := req.URL.Query().Get("collapse")
+	collapse := true
+	if collapseStr == "false" {
+		collapse = false
+	}
+
 	queryFilter := req.URL.Query().Get("filter")
 	if queryFilter != "" {
 		fil = &filter.Filter{}
@@ -213,7 +219,7 @@ func PrintTestsJSONFromDB(release string, w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	testsResult, overall, err := BuildTestsResults(dbc, release, period, false, fil)
+	testsResult, overall, err := BuildTestsResults(dbc, release, period, collapse, fil)
 	if err != nil {
 		RespondWithJSON(http.StatusInternalServerError, w, map[string]interface{}{"code": http.StatusInternalServerError, "message": "Error building job report:" + err.Error()})
 		return
@@ -248,8 +254,11 @@ func BuildTestsResults(dbc *db.DB, release, period string, collapse bool, fil *f
 		Where("release = ?", release)
 
 	// Collapse collates the test results by name, otherwise we return the test results per-variant
+	variantSelect := ""
 	if collapse {
 		rawQuery = rawQuery.Select(`name,` + queryTestSummer).Group("name")
+	} else {
+		variantSelect = "variants, "
 	}
 
 	if rawFilter != nil {
@@ -260,28 +269,30 @@ func BuildTestsResults(dbc *db.DB, release, period string, collapse bool, fil *f
 	// FIXME: Add test id to matview, for now generate with ROW_NUMBER OVER
 	processedResults := dbc.DB.Table("(?) as results", rawQuery).Select(
 		`ROW_NUMBER() OVER() as id,
-				name,
-				variants, ` + queryTestSummarizer)
+				name,` + variantSelect + queryTestSummarizer)
 
 	finalResults := dbc.DB.Table("(?) as final_results", processedResults)
 	if processedFilter != nil {
 		finalResults = processedFilter.ToSQL(finalResults, apitype.Test{})
 	}
 
-	overallResults := dbc.DB.Table("(?) as final_results", finalResults)
-	overallResults = overallResults.Select(queryTestSummer)
-
-	summaryResult := dbc.DB.Table("(?) as overall", overallResults).Select(queryTestSummarizer)
-	summaryReport := apitype.Test{
-		ID:   math.MaxInt32,
-		Name: "Overall",
-	}
-	summaryResult.Scan(&summaryReport)
-
-	finalResults = finalResults.Scan(&testReports)
-	if finalResults.Error != nil {
+	frr := finalResults.Scan(&testReports)
+	if frr.Error != nil {
 		log.WithError(finalResults.Error).Error("error querying test reports")
-		return []apitype.Test{}, nil, finalResults.Error
+		return []apitype.Test{}, nil, frr.Error
+	}
+
+	var summaryReport *apitype.Test
+	if !collapse {
+		overallResults := dbc.DB.Table("(?) as final_results", finalResults)
+		overallResults = overallResults.Select(queryTestSummer)
+
+		summaryResult := dbc.DB.Table("(?) as overall", overallResults).Select(queryTestSummarizer)
+		summaryReport = &apitype.Test{
+			ID:   math.MaxInt32,
+			Name: "Overall",
+		}
+		summaryResult.Scan(summaryReport)
 	}
 
 	elapsed := time.Since(now)
@@ -290,7 +301,7 @@ func BuildTestsResults(dbc *db.DB, release, period string, collapse bool, fil *f
 		"reports": len(testReports),
 	}).Info("BuildTestsResults completed")
 
-	return testReports, &summaryReport, nil
+	return testReports, summaryReport, nil
 }
 
 type testDetail struct {

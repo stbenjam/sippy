@@ -25,6 +25,8 @@ import PropTypes from 'prop-types'
 import React, { Fragment, useEffect } from 'react'
 import SummaryCard from '../components/SummaryCard'
 
+const overallTestName = 'Overall'
+
 const bookmarks = [
   {
     name: 'Runs > 10',
@@ -57,24 +59,33 @@ function TestTable(props) {
       autocomplete: 'tests',
       headerName: 'Name',
       flex: 4,
-      renderCell: (params) => (
-        <div className="test-name">
-          <Tooltip title={params.value}>
-            <Link
-              to={
-                '/tests/' + props.release + '/analysis?test=' + params.row.name
-              }
-            >
-              {params.value}
-            </Link>
-          </Tooltip>
-        </div>
-      ),
+      renderCell: (params) => {
+        if (params.value === overallTestName) {
+          return params.value
+        }
+        return (
+          <div className="test-name">
+            <Tooltip title={params.value}>
+              <Link
+                to={
+                  '/tests/' +
+                  props.release +
+                  '/analysis?test=' +
+                  params.row.name
+                }
+              >
+                {params.value}
+              </Link>
+            </Tooltip>
+          </div>
+        )
+      },
     },
     {
       field: 'variants',
       headerName: 'Variants',
       flex: 2,
+      hide: props.collapse,
       autocomplete: 'variants',
       type: 'array',
       renderCell: (params) => {
@@ -178,7 +189,12 @@ function TestTable(props) {
       flex: 1.5,
       hide: props.briefTable,
       filterable: false,
+      sortable: false,
       renderCell: (params) => {
+        if (params.row.name === overallTestName) {
+          return ''
+        }
+
         return (
           <Grid container justifyContent="space-between">
             <Tooltip title="Search CI Logs">
@@ -392,6 +408,8 @@ function TestTable(props) {
     queryString += '&sortField=' + safeEncodeURIComponent(sortField)
     queryString += '&sort=' + safeEncodeURIComponent(sort)
 
+    queryString += '&collapse=' + safeEncodeURIComponent(props.collapse)
+
     fetch(
       process.env.REACT_APP_API_URL +
         '/api/tests?release=' +
@@ -452,18 +470,6 @@ function TestTable(props) {
     return tests.join('&')
   }
 
-  const detailsButton = (
-    <Button
-      component={Link}
-      to={'/tests/' + props.release + '/details?' + createTestNameQuery()}
-      variant="contained"
-      color="primary"
-      style={{ margin: 10 }}
-    >
-      Get Details
-    </Button>
-  )
-
   const addFilters = (filter) => {
     const currentFilters = filterModel.items.filter((item) => item.value !== '')
 
@@ -506,7 +512,7 @@ function TestTable(props) {
         disableColumnMenu={true}
         pageSize={props.pageSize}
         rowsPerPageOptions={props.rowsPerPageOptions}
-        checkboxSelection={!props.hideControls}
+        checkboxSelection={false}
         filterMode="server"
         sortingMode="server"
         sortingOrder={['desc', 'asc']}
@@ -518,11 +524,20 @@ function TestTable(props) {
         ]}
         onSortModelChange={(m) => updateSortModel(m)}
         onSelectionModelChange={(rows) => setSelectedTests(rows)}
-        getRowClassName={(params) =>
-          classes[
-            'row-percent-' + Math.round(params.row.current_working_percentage)
-          ]
-        }
+        getRowClassName={(params) => {
+          let rowClass = []
+          if (params.row.name === overallTestName) {
+            rowClass.push(classes['overall'])
+          }
+
+          rowClass.push(
+            classes[
+              'row-percent-' + Math.round(params.row.current_working_percentage)
+            ]
+          )
+
+          return rowClass.join(' ')
+        }}
         componentsProps={{
           toolbar: {
             bookmarks: bookmarks,
@@ -537,7 +552,6 @@ function TestTable(props) {
           },
         }}
       />
-      {props.hideControls ? '' : detailsButton}
       <BugzillaDialog
         release={props.release}
         item={testDetails}
@@ -549,6 +563,7 @@ function TestTable(props) {
 }
 
 TestTable.defaultProps = {
+  collapse: true,
   limit: 0,
   hideControls: false,
   pageSize: 25,
@@ -564,6 +579,7 @@ TestTable.defaultProps = {
 
 TestTable.propTypes = {
   briefTable: PropTypes.bool,
+  collapse: PropTypes.bool,
   hideControls: PropTypes.bool,
   limit: PropTypes.number,
   pageSize: PropTypes.number,
