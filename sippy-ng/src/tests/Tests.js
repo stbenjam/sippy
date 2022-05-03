@@ -71,9 +71,7 @@ export default function Tests(props) {
                 <TestDetails release={props.release} />
               </Route>
               <Route exact path={path}>
-                <Container size="xl">
-                  <TestTable release={props.release} />
-                </Container>
+                <TestTable release={props.release} />
               </Route>
             </Switch>
           </TabContext>

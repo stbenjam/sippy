@@ -1,11 +1,5 @@
 import './TestTable.css'
-import {
-  AcUnit,
-  BugReport,
-  DirectionsRun,
-  Error,
-  Search,
-} from '@material-ui/icons'
+import { AcUnit, BugReport, Check, Error, Search } from '@material-ui/icons'
 import { Badge, Box, Button, Container, Grid, Tooltip } from '@material-ui/core'
 import { BOOKMARKS, TEST_THRESHOLDS } from '../constants'
 import { DataGrid } from '@material-ui/data-grid'
@@ -28,7 +22,7 @@ import GridToolbar from '../datagrid/GridToolbar'
 import IconButton from '@material-ui/core/IconButton'
 import PassRateIcon from '../components/PassRateIcon'
 import PropTypes from 'prop-types'
-import React, { useEffect } from 'react'
+import React, { Fragment, useEffect } from 'react'
 
 const bookmarks = [
   {
@@ -59,8 +53,9 @@ function TestTable(props) {
   const columns = [
     {
       field: 'name',
+      autocomplete: 'tests',
       headerName: 'Name',
-      flex: 3.5,
+      flex: 4,
       renderCell: (params) => (
         <div className="test-name">
           <Tooltip title={params.value}>
@@ -74,6 +69,16 @@ function TestTable(props) {
           </Tooltip>
         </div>
       ),
+    },
+    {
+      field: 'variants',
+      headerName: 'Variants',
+      flex: 2,
+      autocomplete: 'variants',
+      type: 'array',
+      renderCell: (params) => {
+        return params.value.join(', ')
+      },
     },
     {
       field: 'current_working_percentage',
@@ -246,12 +251,6 @@ function TestTable(props) {
       },
     },
     // These are here just to allow filtering
-    {
-      field: 'variants',
-      headerName: 'Variants',
-      hide: true,
-      type: 'array',
-    },
     {
       field: 'current_runs',
       headerName: 'Current runs',
@@ -490,7 +489,7 @@ function TestTable(props) {
 
   return (
     /* eslint-disable react/prop-types */
-    <Container size="xl">
+    <Fragment>
       <DataGrid
         className={gridClasses.root}
         components={{ Toolbar: props.hideControls ? '' : GridToolbar }}
@@ -542,7 +541,7 @@ function TestTable(props) {
         isOpen={isBugzillaDialogOpen}
         close={closeBugzillaDialog}
       />
-    </Container>
+    </Fragment>
   )
 }
 

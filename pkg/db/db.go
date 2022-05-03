@@ -214,6 +214,7 @@ GROUP BY prow_job_runs.id, prow_jobs.name, prow_jobs.variants, prow_jobs.release
 
 const testReportMatView = `
 SELECT 
+	tests.id AS id,
 	tests.name AS name,
 	coalesce(count(case when status = 1 AND timestamp BETWEEN |||START||| AND |||BOUNDARY||| then 1 end), 0) AS previous_successes,
     coalesce(count(case when status = 13 AND timestamp BETWEEN |||START||| AND |||BOUNDARY||| then 1 end), 0) AS previous_flakes,
