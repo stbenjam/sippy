@@ -80,11 +80,18 @@ type TestReport struct {
 // TopLevelIndicators is a curated list of metrics, that describe the overall health of the release independent of
 // individual jobs or variants.
 type TopLevelIndicators struct {
-	// Infrastructure goal is indicate when we fail before we start to install.  Because of other issue, this is slightly
-	// broader, catching cases where we are not able to contact a kube-apiserver after the test run.  In theory, this
-	// could include some cases of bootstrapping failure.  In practice, it doesn't appear to very often.
+	// Infrastructure goal is to indicate when we fail before we start to install. Openshift installer returns this
+	// error when it fails to apply terraform command.
 	// Low Infrastructure pass rates means we are doing a bad job of keeping the CI system itself up and running
 	Infrastructure FailingTestResult
+	// InstallConfig indicates a configuration error with the installation. The pass rate should stay very high for normal
+	// job runs.
+	InstallConfig FailingTestResult
+	// Bootstrap indicates how successful we are with bootstraping the cluster. Openshift installer returns this error
+	// when it does not get the bootstrap seccess signal during installation process.
+	Bootstrap FailingTestResult
+	// InstallOther indicates problems during install other than infrastructure, install config, bootstrap or cluster install.
+	InstallOther FailingTestResult
 	// Install indicates how successful we are with installing onto clusters that have started
 	// Low Install pass rates mean we are doing a bad job installing our product, often due to operators.  This should
 	// limit new feature development, but in a pinch we could ship with low install rates.

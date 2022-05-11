@@ -67,6 +67,72 @@ func PrintOverallReleaseHealth(w http.ResponseWriter, curr, twoDay, prev sippypr
 		Previous: previousPassRate,
 	}
 
+	// Install Configuration
+	res = curr.TopLevelIndicators.InstallConfig.TestResultAcrossAllJobs
+	passPercent = res.PassPercentage
+	total = res.Successes + res.Failures + res.Flakes
+	currentPassRate = sippyv1.PassRate{
+		Percentage: passPercent,
+		Runs:       total,
+	}
+
+	res = prev.TopLevelIndicators.InstallConfig.TestResultAcrossAllJobs
+	passPercent = res.PassPercentage
+	total = res.Successes + res.Failures + res.Flakes
+	previousPassRate = sippyv1.PassRate{
+		Percentage: passPercent,
+		Runs:       total,
+	}
+
+	indicators["installConfig"] = indicator{
+		Current:  currentPassRate,
+		Previous: previousPassRate,
+	}
+
+	// Bootstrap
+	res = curr.TopLevelIndicators.Bootstrap.TestResultAcrossAllJobs
+	passPercent = res.PassPercentage
+	total = res.Successes + res.Failures + res.Flakes
+	currentPassRate = sippyv1.PassRate{
+		Percentage: passPercent,
+		Runs:       total,
+	}
+
+	res = prev.TopLevelIndicators.Bootstrap.TestResultAcrossAllJobs
+	passPercent = res.PassPercentage
+	total = res.Successes + res.Failures + res.Flakes
+	previousPassRate = sippyv1.PassRate{
+		Percentage: passPercent,
+		Runs:       total,
+	}
+
+	indicators["bootstrap"] = indicator{
+		Current:  currentPassRate,
+		Previous: previousPassRate,
+	}
+
+	// Install Other
+	res = curr.TopLevelIndicators.InstallOther.TestResultAcrossAllJobs
+	passPercent = res.PassPercentage
+	total = res.Successes + res.Failures + res.Flakes
+	currentPassRate = sippyv1.PassRate{
+		Percentage: passPercent,
+		Runs:       total,
+	}
+
+	res = prev.TopLevelIndicators.InstallOther.TestResultAcrossAllJobs
+	passPercent = res.PassPercentage
+	total = res.Successes + res.Failures + res.Flakes
+	previousPassRate = sippyv1.PassRate{
+		Percentage: passPercent,
+		Runs:       total,
+	}
+
+	indicators["installOther"] = indicator{
+		Current:  currentPassRate,
+		Previous: previousPassRate,
+	}
+
 	// Install
 	res = curr.TopLevelIndicators.Install.TestResultAcrossAllJobs
 	passPercent = res.PassPercentage

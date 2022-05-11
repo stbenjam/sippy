@@ -3,6 +3,7 @@ package testreportconversion
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,6 +13,27 @@ import (
 	"github.com/openshift/sippy/pkg/testgridanalysis/testgridanalysisapi"
 	"github.com/openshift/sippy/pkg/testidentification"
 )
+
+func useNewInstallTest(release string) bool {
+	digits := strings.Split(release, ".")
+	if len(digits) < 2 {
+		return false
+	}
+	major, err := strconv.Atoi(digits[0])
+	if err != nil {
+		return false
+	}
+	minor, err := strconv.Atoi(digits[1])
+	if err != nil {
+		return false
+	}
+	if major < 4 {
+		return false
+	} else if major == 4 && minor < 11 {
+		return false
+	}
+	return true
+}
 
 func PrepareTestReport(
 	reportName string,
@@ -59,8 +81,18 @@ func PrepareTestReport(
 	curatedTests := getCuratedTests(bugzillaRelease, allTestResultsByName)
 
 	// the top level indicators should exclude jobs that are not yet stable, because those failures are not informative
-	infra := excludeNeverStableAndTechPreviewJobs(allTestResultsByName[testgridanalysisapi.SippySuiteName+"."+testgridanalysisapi.InfrastructureTestName], variantManager)
-	install := excludeNeverStableAndTechPreviewJobs(allTestResultsByName[testgridanalysisapi.SippySuiteName+"."+testgridanalysisapi.InstallTestName], variantManager)
+	var infra, config, bootstrap, other, install sippyprocessingv1.FailingTestResult
+	// the new install tests are only available for releases after 4.11
+	if useNewInstallTest(reportName) {
+		infra = excludeNeverStableAndTechPreviewJobs(allTestResultsByName[testgridanalysisapi.NewInfrastructureTestName], variantManager)
+		config = excludeNeverStableAndTechPreviewJobs(allTestResultsByName[testgridanalysisapi.InstallConfigTestName], variantManager)
+		bootstrap = excludeNeverStableAndTechPreviewJobs(allTestResultsByName[testgridanalysisapi.InstallBootstrapTestName], variantManager)
+		other = excludeNeverStableAndTechPreviewJobs(allTestResultsByName[testgridanalysisapi.InstallOtherTestName], variantManager)
+		install = excludeNeverStableAndTechPreviewJobs(allTestResultsByName[testgridanalysisapi.NewInstallTestName], variantManager)
+	} else {
+		infra = excludeNeverStableAndTechPreviewJobs(allTestResultsByName[testgridanalysisapi.SippySuiteName+"."+testgridanalysisapi.InfrastructureTestName], variantManager)
+		install = excludeNeverStableAndTechPreviewJobs(allTestResultsByName[testgridanalysisapi.SippySuiteName+"."+testgridanalysisapi.InstallTestName], variantManager)
+	}
 	upgrade := excludeNeverStableAndTechPreviewJobs(allTestResultsByName[testgridanalysisapi.SippySuiteName+"."+testgridanalysisapi.UpgradeTestName], variantManager)
 	tests := excludeNeverStableAndTechPreviewJobs(allTestResultsByName[testgridanalysisapi.SippySuiteName+"."+testgridanalysisapi.OpenShiftTestsName], variantManager)
 
@@ -79,6 +111,9 @@ func PrepareTestReport(
 		JobStatistics: stats,
 		TopLevelIndicators: sippyprocessingv1.TopLevelIndicators{
 			Infrastructure:      infra,
+			InstallConfig:       config,
+			Bootstrap:           bootstrap,
+			InstallOther:        other,
 			Install:             install,
 			Upgrade:             upgrade,
 			Tests:               tests,
