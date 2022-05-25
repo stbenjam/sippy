@@ -14,7 +14,9 @@ import (
 	"github.com/openshift/sippy/pkg/testidentification"
 )
 
-func useNewInstallTest(release string) bool {
+// UseNewInstallTest decides which install test name to use based on releases. For
+// release 4.11 and above, it uses the new install test names
+func UseNewInstallTest(release string) bool {
 	digits := strings.Split(release, ".")
 	if len(digits) < 2 {
 		return false
@@ -83,7 +85,7 @@ func PrepareTestReport(
 	// the top level indicators should exclude jobs that are not yet stable, because those failures are not informative
 	var infra, config, bootstrap, other, install sippyprocessingv1.FailingTestResult
 	// the new install tests are only available for releases after 4.11
-	if useNewInstallTest(reportName) {
+	if UseNewInstallTest(reportName) {
 		infra = excludeNeverStableAndTechPreviewJobs(allTestResultsByName[testgridanalysisapi.NewInfrastructureTestName], variantManager)
 		config = excludeNeverStableAndTechPreviewJobs(allTestResultsByName[testgridanalysisapi.InstallConfigTestName], variantManager)
 		bootstrap = excludeNeverStableAndTechPreviewJobs(allTestResultsByName[testgridanalysisapi.InstallBootstrapTestName], variantManager)
