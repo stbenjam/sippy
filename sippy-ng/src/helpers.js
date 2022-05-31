@@ -137,6 +137,11 @@ export function pathForJobRunsWithFilter(release, filter) {
   )}`
 }
 
+export function pathForTestByVariant(release, test) {
+  return (
+    `/tests/${release}/details?` + single(filterFor('name', 'equals', test))
+  )
+}
 export function pathForTestsWithFilter(release, filter) {
   if (!filter || filter.items === []) {
     return `/tests/${release}`

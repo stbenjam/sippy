@@ -8,7 +8,7 @@ import {
   UPGRADE_THRESHOLDS,
 } from '../constants'
 import { Box, Tooltip, Typography } from '@material-ui/core'
-import { TOOLTIP } from './ReleaseOverview'
+import { pathForTestByVariant } from '../helpers'
 import Grid from '@material-ui/core/Grid'
 import InfoIcon from '@material-ui/icons/Info'
 import PassRateIcon from '../components/PassRateIcon'
@@ -87,11 +87,10 @@ export default function TopLevelIndicators(props) {
             key="infrastructure-summary"
             threshold={INFRASTRUCTURE_THRESHOLDS}
             name="Infrastructure"
-            link={
-              '/tests/' +
-              props.release +
-              '/details?test=cluster install.install should succeed: infrastructure'
-            }
+            link={pathForTestByVariant(
+              props.release,
+              'cluster install.install should succeed: infrastructure'
+            )}
             success={props.indicators.infrastructure.current.percentage}
             fail={100 - props.indicators.infrastructure.current.percentage}
             caption={indicatorCaption(props.indicators.infrastructure)}
@@ -104,11 +103,10 @@ export default function TopLevelIndicators(props) {
             key="infrastructure-summary"
             threshold={INFRASTRUCTURE_THRESHOLDS}
             name="Infrastructure"
-            link={
-              '/tests/' +
-              props.release +
-              '/details?test=[sig-sippy] infrastructure should work'
-            }
+            link={pathForTestByVariant(
+              props.release,
+              '[sig-sippy] infrastructure should work'
+            )}
             success={props.indicators.infrastructure.current.percentage}
             fail={100 - props.indicators.infrastructure.current.percentage}
             caption={indicatorCaption(props.indicators.infrastructure)}
@@ -123,11 +121,10 @@ export default function TopLevelIndicators(props) {
             key="install-config-summary"
             threshold={INSTALL_CONFIG_THRESHOLDS}
             name="Install-Configuration"
-            link={
-              '/tests/' +
-              props.release +
-              '/details?test=cluster install.install should succeed: configuration'
-            }
+            link={pathForTestByVariant(
+              props.release,
+              'cluster install.install should succeed: configuration'
+            )}
             success={props.indicators.installConfig.current.percentage}
             fail={100 - props.indicators.installConfig.current.percentage}
             caption={indicatorCaption(props.indicators.installConfig)}
@@ -142,11 +139,10 @@ export default function TopLevelIndicators(props) {
             key="bootstrap-summary"
             threshold={BOOTSTRAP_THRESHOLDS}
             name="Bootstrap"
-            link={
-              '/tests/' +
-              props.release +
-              '/details?test=cluster install.install should succeed: cluster bootstrap'
-            }
+            link={pathForTestByVariant(
+              props.release,
+              'cluster install.install should succeed: cluster bootstrap'
+            )}
             success={props.indicators.bootstrap.current.percentage}
             fail={100 - props.indicators.bootstrap.current.percentage}
             caption={indicatorCaption(props.indicators.bootstrap)}
@@ -161,11 +157,10 @@ export default function TopLevelIndicators(props) {
             key="install-other"
             threshold={INSTALL_OTHER_THRESHOLDS}
             name="Install Other"
-            link={
-              '/tests/' +
-              props.release +
-              '/details?test=cluster install.install should succeed: other'
-            }
+            link={pathForTestByVariant(
+              props.release,
+              'cluster install.install should succeed: other'
+            )}
             success={props.indicators.installOther.current.percentage}
             fail={100 - props.indicators.installOther.current.percentage}
             caption={indicatorCaption(props.indicators.installOther)}
@@ -204,11 +199,10 @@ export default function TopLevelIndicators(props) {
         <SummaryCard
           key="test-summary"
           threshold={TEST_THRESHOLDS}
-          link={
-            '/tests/' +
-            props.release +
-            '/details?test=[sig-sippy] openshift-tests should work'
-          }
+          link={pathForTestByVariant(
+            props.release,
+            '[sig-sippy] openshift-tests should work'
+          )}
           name="Tests"
           success={props.indicators.tests.current.percentage}
           fail={100 - props.indicators.tests.current.percentage}
