@@ -109,6 +109,58 @@ function TestTable(props) {
       ),
     },
     {
+      field: 'z_score',
+      headerName: 'Z-Score',
+      flex: 0.75,
+      hide: true,
+      type: 'number',
+      renderCell: (params) => {
+        return (
+          <div className="percentage-cell">
+            <Tooltip
+              title={
+                <div>
+                  <b>Working average: </b>
+                  {Number(params.row.working_average)
+                    .toFixed(1)
+                    .toLocaleString()}
+                  %
+                  <br />
+                  <b>Standard deviation: </b>
+                  {Number(params.row.working_standard_deviation)
+                    .toFixed(1)
+                    .toLocaleString()}
+                </div>
+              }
+            >
+              <Box>{params.value ? params.value.toFixed(2) : ''}</Box>
+            </Tooltip>
+          </div>
+        )
+      },
+    },
+    {
+      field: 'working_average',
+      headerName: 'Working average for test on all NURPs',
+      flex: 0.75,
+      hide: !props.collapse || props.briefTable,
+      type: 'number',
+      renderCell: (params) => (
+        <div className="percentage-cell">
+          {params.value
+            ? Number(params.value).toFixed(1).toLocaleString() + '%'
+            : ''}
+        </div>
+      ),
+    },
+    {
+      field: 'working_standard_deviation',
+      headerName: 'Working standard deviation',
+      flex: 0.75,
+      hide: true,
+      type: 'number',
+    },
+    {
       field: 'current_working_percentage',
       headerName: 'Current working percentage',
       headerClassName: props.briefTable ? '' : 'wrapHeader',
@@ -151,6 +203,7 @@ function TestTable(props) {
       field: 'net_working_improvement',
       headerName: 'Improvement',
       type: 'number',
+      hide: !props.collapse && props.briefTable,
       flex: 0.5,
       renderCell: (params) => {
         return <PassRateIcon tooltip={true} improvement={params.value} />
@@ -162,6 +215,7 @@ function TestTable(props) {
       headerClassName: props.briefTable ? '' : 'wrapHeader',
       flex: 0.75,
       type: 'number',
+      hide: !props.collapse && props.briefTable,
       renderCell: (params) => (
         <div className="percentage-cell">
           <Tooltip
@@ -418,6 +472,10 @@ function TestTable(props) {
       queryString += '&limit=' + safeEncodeURIComponent(props.limit)
     }
 
+    if (props.overall !== undefined) {
+      queryString += '&overall=' + safeEncodeURIComponent(props.overall)
+    }
+
     if (period) {
       queryString += '&period=' + safeEncodeURIComponent(period)
     }
@@ -541,7 +599,7 @@ function TestTable(props) {
         autoHeight={true}
         rowHeight={100}
         disableColumnFilter={props.briefTable}
-        disableColumnMenu={true}
+        disableColumnMenu={false}
         pageSize={props.pageSize}
         rowsPerPageOptions={props.rowsPerPageOptions}
         checkboxSelection={false}
@@ -612,6 +670,7 @@ TestTable.defaultProps = {
 TestTable.propTypes = {
   briefTable: PropTypes.bool,
   collapse: PropTypes.bool,
+  overall: PropTypes.bool,
   hideControls: PropTypes.bool,
   limit: PropTypes.number,
   pageSize: PropTypes.number,

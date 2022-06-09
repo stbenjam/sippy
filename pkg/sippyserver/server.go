@@ -12,12 +12,13 @@ import (
 	"strings"
 	"time"
 
-	apitype "github.com/openshift/sippy/pkg/apis/api"
-	"github.com/openshift/sippy/pkg/filter"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
+
+	apitype "github.com/openshift/sippy/pkg/apis/api"
+	"github.com/openshift/sippy/pkg/filter"
 
 	"github.com/openshift/sippy/pkg/api"
 	sippyprocessingv1 "github.com/openshift/sippy/pkg/apis/sippyprocessing/v1"
@@ -603,6 +604,7 @@ func (s *Server) Serve() {
 	serveMux.HandleFunc("/api/tests", s.jsonTestsReportFromDB)
 	serveMux.HandleFunc("/api/tests/details", s.jsonTestDetailsReportFromDB)
 	serveMux.HandleFunc("/api/tests/analysis", s.jsonTestAnalysisReportFromDB)
+
 	serveMux.HandleFunc("/api/install", s.jsonInstallReportFromDB)
 	serveMux.HandleFunc("/api/upgrade", s.jsonUpgradeReportFromDB)
 	serveMux.HandleFunc("/api/releases", s.jsonReleasesReportFromDB)

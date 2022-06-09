@@ -263,6 +263,10 @@ type Test struct {
 	NetWorkingImprovement float64 `json:"net_working_improvement"`
 	NetImprovement        float64 `json:"net_improvement"`
 
+	WorkingAverage           float64 `json:"working_average,omitempty"`
+	WorkingStandardDeviation float64 `json:"working_standard_deviation,omitempty"`
+	ZScore                   float64 `json:"z_score,omitempty"`
+
 	Tags           []string     `json:"tags"`
 	Bugs           []bugsv1.Bug `json:"bugs"`
 	AssociatedBugs []bugsv1.Bug `json:"associated_bugs"`
@@ -342,6 +346,12 @@ func (test Test) GetNumericalValue(param string) (float64, error) {
 		return float64(len(test.Bugs)), nil
 	case "associated_bugs":
 		return float64(len(test.AssociatedBugs)), nil
+	case "z_score":
+		return test.ZScore, nil
+	case "working_average":
+		return test.WorkingAverage, nil
+	case "working_standard_deviation":
+		return test.WorkingStandardDeviation, nil
 	default:
 		return 0, fmt.Errorf("unknown numerical field %s", param)
 	}
