@@ -23,14 +23,16 @@ const (
 	testReport2dMatView = "prow_test_report_2d_matview"
 
 	queryTestSummer = `
-           sum(current_runs)       AS current_runs,
-           sum(current_successes)  AS current_successes,
-           sum(current_failures)   AS current_failures,
-           sum(current_flakes)     AS current_flakes,
-           sum(previous_runs)      AS previous_runs,
-           sum(previous_successes) AS previous_successes,
-           sum(previous_failures)  AS previous_failures,
-           sum(previous_flakes)    AS previous_flakes`
+           sum(current_mean_duration * current_runs)   AS current_total_duration,
+           sum(current_runs)                           AS current_runs,
+           sum(current_successes)                      AS current_successes,
+           sum(current_failures)                       AS current_failures,
+           sum(current_flakes)                         AS current_flakes,
+           sum(previous_mean_duration * previous_runs) AS previous_total_duration,
+           sum(previous_runs)                          AS previous_runs,
+           sum(previous_successes)                     AS previous_successes,
+           sum(previous_failures)                      AS previous_failures,
+           sum(previous_flakes)                        AS previous_flakes`
 
 	queryTestSummarizer = `current_runs,
 		current_successes,
@@ -40,16 +42,19 @@ const (
 		previous_successes,
 		previous_failures,
 		previous_flakes,
+		current_total_duration / current_runs AS current_mean_duration,
 		current_successes * 100.0 / NULLIF(current_runs, 0) AS current_pass_percentage,
 		current_failures * 100.0 / NULLIF(current_runs, 0) AS current_failure_percentage,
 		current_flakes * 100.0 / NULLIF(current_runs, 0) AS current_flake_percentage,
 		(current_successes + current_flakes) * 100.0 / NULLIF(current_runs, 0) AS current_working_percentage,
 
+		previous_total_duration / previous_runs AS previous_mean_duration,
 		previous_successes * 100.0 / NULLIF(previous_runs, 0) AS previous_pass_percentage,
 		previous_failures * 100.0 / NULLIF(previous_runs, 0) AS previous_failure_percentage,
 		previous_flakes * 100.0 / NULLIF(previous_runs, 0) AS previous_flake_percentage,
 		(previous_successes + previous_flakes) * 100.0 / NULLIF(previous_runs, 0) AS previous_working_percentage,
 
+		(current_total_duration / current_runs) - (previous_total_duration / previous_runs) AS net_duration_change,
 		(current_failures * 100.0 / NULLIF(current_runs, 0) - (previous_failures * 100.0 / NULLIF(previous_runs, 0))) AS net_failure_improvement,
 		(current_flakes * 100.0 / NULLIF(current_runs, 0) - (previous_flakes * 100.0 / NULLIF(previous_runs, 0))) AS net_flake_improvement,
 		((current_successes + current_flakes) * 100.0 / NULLIF(current_runs, 0)) - ((previous_successes + previous_flakes) * 100.0 / NULLIF(previous_runs, 0)) AS net_working_improvement,

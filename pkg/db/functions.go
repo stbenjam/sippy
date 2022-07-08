@@ -33,12 +33,13 @@ func syncPostgresFunctions(db *gorm.DB) error {
 }
 
 const testResultFunction = `
-CREATE FUNCTION public.test_results(start timestamp without time zone, boundary timestamp without time zone, endstamp timestamp without time zone) RETURNS TABLE(id bigint, name text, previous_successes bigint, previous_flakes bigint, previous_failures bigint, previous_runs bigint, current_successes bigint, current_flakes bigint, current_failures bigint, current_runs bigint, current_pass_percentage double precision, current_failure_percentage double precision, previous_pass_percentage double precision, previous_failure_percentage double precision, net_improvement double precision, release text)
+CREATE FUNCTION public.test_results(start timestamp without time zone, boundary timestamp without time zone, endstamp timestamp without time zone) RETURNS TABLE(id bigint, name text, mean_duration numeric, previous_successes bigint, previous_flakes bigint, previous_failures bigint, previous_runs bigint, current_successes bigint, current_flakes bigint, current_failures bigint, current_runs bigint, current_pass_percentage double precision, current_failure_percentage double precision, previous_pass_percentage double precision, previous_failure_percentage double precision, net_improvement double precision, release text)
     LANGUAGE sql
     AS $_$
 WITH results AS (
   SELECT
     tests.id AS id,
+	AVG(prow_job_run_tests.duration) as mean_duration,
     coalesce(count(case when status = 1 AND timestamp BETWEEN $1 AND $2 then 1 end), 0) AS previous_successes,
     coalesce(count(case when status = 13 AND timestamp BETWEEN $1 AND $2 then 1 end), 0) AS previous_flakes,
     coalesce(count(case when status = 12 AND timestamp BETWEEN $1 AND $2 then 1 end), 0) AS previous_failures,
@@ -56,6 +57,7 @@ GROUP BY tests.id, prow_jobs.release
 )
 SELECT tests.id,
        tests.name,
+       mean_duration,
        previous_successes,
        previous_flakes,
        previous_failures,

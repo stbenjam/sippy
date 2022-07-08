@@ -240,6 +240,7 @@ type Test struct {
 	Variant  string         `json:"variant,omitempty"`
 	Variants pq.StringArray `json:"variants" gorm:"type:text[]"`
 
+	CurrentMeanDuration      float64 `json:"current_mean_duration"`
 	CurrentSuccesses         int     `json:"current_successes"`
 	CurrentFailures          int     `json:"current_failures"`
 	CurrentFlakes            int     `json:"current_flakes"`
@@ -249,6 +250,7 @@ type Test struct {
 	CurrentWorkingPercentage float64 `json:"current_working_percentage"`
 	CurrentRuns              int     `json:"current_runs"`
 
+	PreviousMeanDuration      float64 `json:"previous_mean_duration"`
 	PreviousSuccesses         int     `json:"previous_successes"`
 	PreviousFailures          int     `json:"previous_failures"`
 	PreviousFlakes            int     `json:"previous_flakes"`
@@ -258,6 +260,7 @@ type Test struct {
 	PreviousWorkingPercentage float64 `json:"previous_working_percentage"`
 	PreviousRuns              int     `json:"previous_runs"`
 
+	NetDurationChange     float64 `json:"net_duration_change"`
 	NetFailureImprovement float64 `json:"net_failure_improvement"`
 	NetFlakeImprovement   float64 `json:"net_flake_improvement"`
 	NetWorkingImprovement float64 `json:"net_working_improvement"`

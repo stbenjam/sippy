@@ -19,6 +19,7 @@ type analysisResult struct {
 	TotalRuns        int                                        `json:"total_runs"`
 	ResultCount      map[v1sippyprocessing.JobOverallResult]int `json:"result_count"`
 	TestFailureCount map[string]int                             `json:"test_count"`
+	MeanDuration     float64                                    `json:"mean_duration"`
 }
 
 type apiJobAnalysisResult struct {
@@ -80,6 +81,7 @@ func PrintJobAnalysisJSONFromDB(w http.ResponseWriter, req *http.Request, dbc *d
 	type resultSum struct {
 		Period         time.Time
 		TotalRuns      int
+		MeanDuration   float64
 		Aborted        int `gorm:"column:A"`
 		Success        int `gorm:"column:S"`
 		Running        int `gorm:"column:R"`
@@ -95,6 +97,7 @@ func PrintJobAnalysisJSONFromDB(w http.ResponseWriter, req *http.Request, dbc *d
 	sumResults := dbc.DB.Table("(?) as prow_job_runs", prowJobRunsFiltered).
 		Select(fmt.Sprintf(`date_trunc('%s', timestamp)        AS period,
 	           count(*)                                              AS total_runs,
+			   avg(duration)                                         AS mean_duration,
 	           sum(case when overall_result = 'S' then 1 else 0 end) AS "S",
 	           sum(case when overall_result = 'F' then 1 else 0 end) AS "F",
 	           sum(case when overall_result = 'f' then 1 else 0 end) AS "f",
@@ -123,7 +126,8 @@ func PrintJobAnalysisJSONFromDB(w http.ResponseWriter, req *http.Request, dbc *d
 
 	for _, sum := range sums {
 		results.ByPeriod[sum.Period.UTC().Format(formatter)] = analysisResult{
-			TotalRuns: sum.TotalRuns,
+			TotalRuns:    sum.TotalRuns,
+			MeanDuration: sum.MeanDuration,
 			ResultCount: map[v1sippyprocessing.JobOverallResult]int{
 				v1sippyprocessing.JobSucceeded:             sum.Success,
 				v1sippyprocessing.JobRunning:               sum.Running,

@@ -146,6 +146,16 @@ FROM prow_job_runs
 const testReportMatView = `
 SELECT tests.id,
    tests.name,
+   AVG(
+       CASE
+           WHEN prow_job_run_tests.status = 1 AND prow_job_runs."timestamp" BETWEEN |||BOUNDARY||| AND |||END||| THEN prow_job_run_tests.duration
+           ELSE NULL::numeric
+       END) AS current_mean_duration,
+   AVG(
+       CASE
+           WHEN prow_job_run_tests.status = 1 AND prow_job_runs."timestamp" BETWEEN |||START||| AND |||BOUNDARY||| THEN prow_job_run_tests.duration
+           ELSE NULL::numeric
+       END) AS previous_mean_duration,
    COALESCE(count(
        CASE
            WHEN prow_job_run_tests.status = 1 AND prow_job_runs."timestamp" BETWEEN |||START||| AND |||BOUNDARY||| THEN 1
@@ -202,6 +212,11 @@ SELECT tests.id AS test_id,
    date(prow_job_runs."timestamp") AS date,
    unnest(prow_jobs.variants) AS variant,
    prow_jobs.release,
+   AVG(
+       CASE
+           WHEN prow_job_runs."timestamp" >= (now() - '14 days'::interval) AND prow_job_runs."timestamp" <= now() THEN prow_job_run_tests.duration
+           ELSE NULL::numeric
+       END) AS mean_duration,
    COALESCE(count(
        CASE
            WHEN prow_job_runs."timestamp" >= (now() - '14 days'::interval) AND prow_job_runs."timestamp" <= now() THEN 1
@@ -236,6 +251,11 @@ SELECT tests.id AS test_id,
    date(prow_job_runs."timestamp") AS date,
    prow_jobs.release,
    prow_jobs.name AS job_name,
+   AVG(
+       CASE
+           WHEN prow_job_runs."timestamp" >= (now() - '14 days'::interval) AND prow_job_runs."timestamp" <= now() THEN prow_job_run_tests.duration
+           ELSE NULL::numeric
+       END) AS mean_duration,
    COALESCE(count(
        CASE
            WHEN prow_job_runs."timestamp" >= (now() - '14 days'::interval) AND prow_job_runs."timestamp" <= now() THEN 1

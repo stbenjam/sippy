@@ -160,6 +160,20 @@ export function JobStackedChart(props) {
     ),
   })
 
+  resultChart.datasets.push({
+    label: 'Mean duration (minutes)',
+    tension: 0.5,
+    radius: 2,
+    yAxisID: 'y1',
+    xAxisID: 'x',
+    order: 1,
+    borderColor: '#b7c9e2',
+    backgroundColor: '#b7c9e2',
+    data: Object.keys(analysis.by_period).map(
+      (key) => analysis.by_period[key].mean_duration / 60000000000
+    ),
+  })
+
   Object.keys(resultTypes).forEach((result) => {
     resultChart.datasets.push({
       type: 'line',
@@ -210,6 +224,10 @@ export function JobStackedChart(props) {
           label: function (context) {
             if (context.dataset.label === 'Run count') {
               return `${context.formattedValue} total runs`
+            }
+
+            if (context.dataset.label.includes('duration')) {
+              return `${context.formattedValue} minutes`
             }
 
             return `${context.formattedValue}% (${
