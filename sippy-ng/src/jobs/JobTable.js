@@ -142,6 +142,18 @@ export const getColumns = (config, openBugzillaDialog) => {
     },
     // These are here just to allow filtering
     {
+      field: 'org',
+      type: 'string',
+      headerName: 'GitHub Org',
+      hide: true,
+    },
+    {
+      field: 'repo',
+      type: 'string',
+      headerName: 'GitHub Repo',
+      hide: true,
+    },
+    {
       field: 'variants',
       autocomplete: 'variants',
       type: 'array',

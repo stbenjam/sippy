@@ -100,6 +100,8 @@ func New(dsn string) (*DB, error) {
 		return nil, err
 	}
 
+	syncPRStatus(db)
+
 	return &DB{
 		DB:        db,
 		BatchSize: 1024,

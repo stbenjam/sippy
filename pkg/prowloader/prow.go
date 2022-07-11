@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/sippy/pkg/db"
 	"github.com/openshift/sippy/pkg/db/models"
 	"github.com/openshift/sippy/pkg/prowloader/gcs"
+	"github.com/openshift/sippy/pkg/prowloader/github"
 	"github.com/openshift/sippy/pkg/prowloader/testconversion"
 	"github.com/openshift/sippy/pkg/synthetictests"
 	"github.com/openshift/sippy/pkg/testidentification"
@@ -36,6 +37,7 @@ type ProwLoader struct {
 	dbc                  *db.DB
 	bkt                  *storage.BucketHandle
 	bktName              string
+	githubClient         *github.Client
 	prowJobCache         map[string]*models.ProwJob
 	prowJobRunCache      map[uint]bool
 	prowJobRunTestCache  map[string]uint
@@ -54,6 +56,7 @@ func New(dbc *db.DB, gcsClient *storage.Client, gcsBucket string, variantManager
 		dbc:                  dbc,
 		bkt:                  bkt,
 		bktName:              gcsBucket,
+		githubClient:         github.New(context.TODO()),
 		prowJobRunCache:      loadProwJobRunCache(dbc),
 		prowJobCache:         loadProwJobCache(dbc),
 		prowJobRunTestCache:  make(map[string]uint),
@@ -244,7 +247,14 @@ func (pl *ProwLoader) findOrAddPullRequests(refs *prow.Refs) []models.ProwPullRe
 
 		pull := models.ProwPullRequest{}
 		res := pl.dbc.DB.Where("link = ? and sha = ?", pr.Link, pr.SHA).First(&pull)
+
+		merged, err := pl.githubClient.GetPRMerged(refs.Org, refs.Repo, pr.Number, pr.SHA)
+		if err != nil {
+			log.WithError(err).Warningf("could not fetch pull request status from GitHub; org=%q repo=%q number=%q sha=%q", refs.Org, refs.Repo, pr.Number, pr.SHA)
+		}
+
 		if errors.Is(res.Error, gorm.ErrRecordNotFound) {
+			pull.Merged = merged
 			pull.Org = refs.Org
 			pull.Repo = refs.Repo
 			pull.Link = pr.Link
@@ -260,6 +270,14 @@ func (pl *ProwLoader) findOrAddPullRequests(refs *prow.Refs) []models.ProwPullRe
 		} else if res.Error != nil {
 			log.WithError(res.Error).Errorf("unexpected error looking for pull request %s (%s)", pr.Link, pr.SHA)
 			continue
+		}
+
+		if pull.Merged != nil && *pull.Merged != *merged {
+			pull.Merged = merged
+			if res := pl.dbc.DB.Save(pull); res.Error != nil {
+				log.WithError(res.Error).Errorf("unexpected error updating pull request %s (%s)", pr.Link, pr.SHA)
+				continue
+			}
 		}
 
 		pulls = append(pulls, pull)

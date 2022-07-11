@@ -49,8 +49,11 @@ type Variant struct {
 // TODO: with move to database, IDs will no longer be synthetic, although they will change in the event
 // the database is rebuilt from testgrid data.
 type Job struct {
-	ID        int            `json:"id"`
-	Name      string         `json:"name"`
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+	Org  string `json:"org"`
+	Repo string `json:"repo"`
+
 	BriefName string         `json:"brief_name"`
 	Variants  pq.StringArray `json:"variants" gorm:"type:text[]"`
 
@@ -81,6 +84,10 @@ func (job Job) GetFieldType(param string) ColumnType {
 		return ColumnTypeString
 	case "briefName":
 		return ColumnTypeString
+	case "org":
+		return ColumnTypeString
+	case "repo":
+		return ColumnTypeString
 	//nolint:goconst
 	case "variants":
 		return ColumnTypeArray
@@ -103,6 +110,10 @@ func (job Job) GetStringValue(param string) (string, error) {
 		return job.BriefName, nil
 	case "test_grid_url":
 		return job.TestGridURL, nil
+	case "org":
+		return job.Org, nil
+	case "repo":
+		return job.Repo, nil
 	default:
 		return "", fmt.Errorf("unknown string field %s", param)
 	}

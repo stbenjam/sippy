@@ -141,4 +141,6 @@ type ProwPullRequest struct {
 	SHA string `json:"sha" gorm:"index:pr_link_sha,unique"`
 	// Link links to the pull request itself.
 	Link string `json:"link,omitempty" gorm:"index:pr_link_sha,unique"`
+
+	Merged *bool `json:"merged,omitempty" gorm:""`
 }
