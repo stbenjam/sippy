@@ -140,15 +140,23 @@ export const getColumns = (config, openBugzillaDialog) => {
         )
       },
     },
+    {
+      field: 'average_retests',
+      type: 'number',
+      headerName: 'Retests to merge',
+      renderCell: (params) => Number(params.value).toFixed(1).toLocaleString(),
+    },
     // These are here just to allow filtering
     {
       field: 'org',
+      autocomplete: 'orgs',
       type: 'string',
       headerName: 'GitHub Org',
       hide: true,
     },
     {
       field: 'repo',
+      autocomplete: 'repos',
       type: 'string',
       headerName: 'GitHub Repo',
       hide: true,

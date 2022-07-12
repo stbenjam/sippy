@@ -44,6 +44,7 @@ export default function GridToolbarAutocomplete(props) {
   return (
     <Autocomplete
       disableClearable
+      freeSolo
       id={`autocomplete-${props.id}`}
       style={{ width: 220 }}
       open={open}

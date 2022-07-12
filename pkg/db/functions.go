@@ -76,7 +76,7 @@ $_$;
 `
 
 const jobResultFunction = `
-CREATE FUNCTION public.job_results(release text, start timestamp without time zone, boundary timestamp without time zone, endstamp timestamp without time zone) RETURNS TABLE(pj_name text, pj_variants text[], org text, repo text, previous_passes bigint, previous_failures bigint, previous_runs bigint, previous_infra_fails bigint, current_passes bigint, current_fails bigint, current_runs bigint, current_infra_fails bigint, id bigint, created_at timestamp without time zone, updated_at timestamp without time zone, deleted_at timestamp without time zone, name text, release text, variants text[], test_grid_url text, kind text, brief_name text, current_pass_percentage real, current_projected_pass_percentage real, current_failure_percentage real, previous_pass_percentage real, previous_projected_pass_percentage real, previous_failure_percentage real, net_improvement real)
+CREATE FUNCTION public.job_results(release text, start timestamp without time zone, boundary timestamp without time zone, endstamp timestamp without time zone) RETURNS TABLE(pj_name text, pj_variants text[], org text, repo text, average_runs_to_merge double precision, previous_passes bigint, previous_failures bigint, previous_runs bigint, previous_infra_fails bigint, current_passes bigint, current_fails bigint, current_runs bigint, current_infra_fails bigint, id bigint, created_at timestamp without time zone, updated_at timestamp without time zone, deleted_at timestamp without time zone, name text, release text, variants text[], test_grid_url text, kind text, brief_name text, current_pass_percentage real, current_projected_pass_percentage real, current_failure_percentage real, previous_pass_percentage real, previous_projected_pass_percentage real, previous_failure_percentage real, net_improvement real)
     LANGUAGE sql
     AS $_$
 WITH repo_org_jobs AS (
@@ -87,6 +87,16 @@ WITH repo_org_jobs AS (
          INNER JOIN prow_jobs ON prow_job_runs.prow_job_id = prow_jobs.id
     GROUP BY prow_pull_requests.org, prow_pull_requests.repo, prow_jobs.id
 ),
+merged_prs AS
+    (SELECT prow_jobs.id as prow_job_id, prow_pull_requests.link, COUNT(*) as total_runs
+    FROM prow_job_runs
+         INNER JOIN prow_job_run_prow_pull_requests on prow_job_run_prow_pull_requests.prow_job_run_id = prow_job_runs.id
+         INNER JOIN prow_pull_requests on prow_pull_requests.id = prow_job_run_prow_pull_requests.prow_pull_request_id
+         INNER JOIN prow_jobs ON prow_job_runs.prow_job_id = prow_jobs.id
+    WHERE prow_pull_requests.merged = 't'
+    GROUP BY prow_jobs.id, prow_pull_requests.id, prow_pull_requests.link),
+retests AS
+    (SELECT prow_job_id, AVG(total_runs) as average_runs_to_merge FROM merged_prs GROUP BY prow_job_id),
 results AS (
         select prow_jobs.name as pj_name, prow_jobs.variants as pj_variants,
                 coalesce(count(case when succeeded = true AND timestamp BETWEEN $2 AND $3 then 1 end), 0) as previous_passes,
@@ -107,7 +117,8 @@ results AS (
 SELECT pj_name,
        pj_variants,
        repo_org_jobs.org,
-       repo_org_jobs.repo,	
+       repo_org_jobs.repo,
+	   average_runs_to_merge,
        previous_passes,
        previous_failures,
        previous_runs,
@@ -136,5 +147,6 @@ SELECT pj_name,
 FROM results
          JOIN prow_jobs ON prow_jobs.name = results.pj_name
          LEFT JOIN repo_org_jobs ON prow_jobs.id = repo_org_jobs.id
+		 LEFT JOIN retests ON prow_jobs.id = retests.prow_job_id
     $_$;
 `

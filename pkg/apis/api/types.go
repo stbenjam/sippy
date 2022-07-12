@@ -27,6 +27,12 @@ const (
 	SortDescending Sort = "desc"
 )
 
+type Repository struct {
+	ID   int    `json:"id"`
+	Org  string `json:"org"`
+	Repo string `json:"repo"`
+}
+
 type Variant struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
@@ -49,14 +55,14 @@ type Variant struct {
 // TODO: with move to database, IDs will no longer be synthetic, although they will change in the event
 // the database is rebuilt from testgrid data.
 type Job struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-	Org  string `json:"org"`
-	Repo string `json:"repo"`
-
+	ID        int            `json:"id"`
+	Name      string         `json:"name"`
+	Org       string         `json:"org"`
+	Repo      string         `json:"repo"`
 	BriefName string         `json:"brief_name"`
 	Variants  pq.StringArray `json:"variants" gorm:"type:text[]"`
 
+	AverageRunsToMerge             float64 `json:"average_runs_to_merge"`
 	CurrentPassPercentage          float64 `json:"current_pass_percentage"`
 	CurrentProjectedPassPercentage float64 `json:"current_projected_pass_percentage"`
 	CurrentRuns                    int     `json:"current_runs"`
@@ -141,6 +147,8 @@ func (job Job) GetNumericalValue(param string) (float64, error) {
 		return float64(len(job.Bugs)), nil
 	case "associated_bugs":
 		return float64(len(job.AssociatedBugs)), nil
+	case "average_runs_to_merge":
+		return job.AverageRunsToMerge, nil
 	default:
 		return 0, fmt.Errorf("unknown numerical field %s", param)
 	}
