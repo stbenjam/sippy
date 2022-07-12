@@ -11,6 +11,7 @@ import {
   SafeJSONParam,
 } from '../helpers'
 import { generateClasses } from '../datagrid/utils'
+import { GridView } from '../datagrid/GridView'
 import { Link } from 'react-router-dom'
 import { StringParam, useQueryParam } from 'use-query-params'
 import { withStyles } from '@material-ui/styles'
@@ -28,8 +29,8 @@ const bookmarks = [
 ]
 
 export const getColumns = (config, openBugzillaDialog) => {
-  return [
-    {
+  return {
+    name: {
       field: 'name',
       headerName: 'Name',
       flex: 3.5,
@@ -45,7 +46,7 @@ export const getColumns = (config, openBugzillaDialog) => {
         )
       },
     },
-    {
+    current_pass_percentage: {
       field: 'current_pass_percentage',
       headerName: 'Current pass percentage',
       type: 'number',
@@ -57,7 +58,7 @@ export const getColumns = (config, openBugzillaDialog) => {
         </div>
       ),
     },
-    {
+    net_improvement: {
       field: 'net_improvement',
       headerName: 'Improvement',
       type: 'number',
@@ -66,7 +67,7 @@ export const getColumns = (config, openBugzillaDialog) => {
         return <PassRateIcon tooltip={true} improvement={params.value} />
       },
     },
-    {
+    previous_pass_percentage: {
       field: 'previous_pass_percentage',
       headerName: 'Previous pass percentage',
       flex: 0.75,
@@ -78,7 +79,7 @@ export const getColumns = (config, openBugzillaDialog) => {
         </div>
       ),
     },
-    {
+    test_grid_url: {
       field: 'test_grid_url',
       headerName: ' ',
       flex: 0.4,
@@ -97,7 +98,7 @@ export const getColumns = (config, openBugzillaDialog) => {
       filterable: false,
       hide: config.briefTable,
     },
-    {
+    job_runs: {
       field: 'job_runs',
       headerName: ' ',
       flex: 0.4,
@@ -116,7 +117,7 @@ export const getColumns = (config, openBugzillaDialog) => {
       filterable: false,
       hide: config.briefTable,
     },
-    {
+    link: {
       field: 'link',
       sortable: false,
       headerName: ' ',
@@ -140,47 +141,47 @@ export const getColumns = (config, openBugzillaDialog) => {
         )
       },
     },
-    {
-      field: 'average_retests',
+    average_runs_to_merge: {
+      field: 'average_runs_to_merge',
       type: 'number',
-      headerName: 'Retests to merge',
+      headerName: 'Average runs to merge',
       renderCell: (params) => Number(params.value).toFixed(1).toLocaleString(),
     },
     // These are here just to allow filtering
-    {
+    org: {
       field: 'org',
       autocomplete: 'orgs',
       type: 'string',
       headerName: 'GitHub Org',
       hide: true,
     },
-    {
+    repo: {
       field: 'repo',
       autocomplete: 'repos',
       type: 'string',
       headerName: 'GitHub Repo',
       hide: true,
     },
-    {
+    variants: {
       field: 'variants',
       autocomplete: 'variants',
       type: 'array',
       headerName: 'Variants',
       hide: true,
     },
-    {
+    current_runs: {
       field: 'current_runs',
       headerName: 'Current runs',
       hide: true,
       type: 'number',
     },
-    {
+    previous_runs: {
       field: 'previous_runs',
       headerName: 'Previous runs',
       hide: true,
       type: 'number',
     },
-  ]
+  }
 }
 
 /**
@@ -195,6 +196,8 @@ function JobTable(props) {
   const [isLoaded, setLoaded] = React.useState(false)
   const [rows, setRows] = React.useState([])
   const [selectedJobs, setSelectedJobs] = React.useState([])
+
+  const [view = props.view, setView] = useQueryParam('view', StringParam)
 
   const [period = props.period, setPeriod] = useQueryParam(
     'period',
@@ -379,7 +382,71 @@ function JobTable(props) {
     </Button>
   )
 
-  const columns = getColumns(props, openBugzillaDialog)
+  const views = {
+    Default: {
+      sortField: 'current_pass_percentage',
+      sort: 'asc',
+      fieldOrder: [
+        {
+          field: 'name',
+          flex: 3.5,
+        },
+        {
+          field: 'current_pass_percentage',
+          flex: 0.75,
+          headerClassName: props.briefTable ? '' : 'wrapHeader',
+        },
+        {
+          field: 'net_improvement',
+          flex: 0.5,
+        },
+        {
+          field: 'previous_pass_percentage',
+          flex: 0.75,
+          headerClassName: props.briefTable ? '' : 'wrapHeader',
+        },
+        {
+          field: 'test_grid_url',
+          flex: 0.4,
+          hide: props.briefTable,
+        },
+        {
+          field: 'job_runs',
+          flex: 0.4,
+          hide: props.briefTable,
+        },
+      ],
+    },
+    'Pull Requests': {
+      sortField: 'average_runs_to_merge',
+      sort: 'desc',
+      fieldOrder: [
+        {
+          field: 'name',
+          flex: 3.5,
+        },
+        {
+          field: 'average_runs_to_merge',
+          flex: 1,
+          headerClassName: 'wrapHeader',
+        },
+      ],
+    },
+  }
+
+  const gridView = new GridView(
+    getColumns(props, openBugzillaDialog),
+    views,
+    view
+  )
+
+  const selectView = (v) => {
+    setLoaded(false)
+    setView(v)
+    gridView.setView(v)
+    setSort(gridView.view.sort)
+    setSortField(gridView.view.sortField)
+  }
 
   return (
     /* eslint-disable react/prop-types */
@@ -388,7 +455,7 @@ function JobTable(props) {
       <DataGrid
         components={{ Toolbar: props.hideControls ? '' : GridToolbar }}
         rows={rows}
-        columns={columns}
+        columns={gridView.columns}
         autoHeight={true}
         rowHeight={70}
         sortingOrder={['desc', 'asc']}
@@ -415,14 +482,17 @@ function JobTable(props) {
         componentsProps={{
           toolbar: {
             bookmarks: bookmarks,
+            views: gridView.views,
+            view: view,
+            selectView: selectView,
+            columns: gridView.filterColumns,
             clearSearch: () => requestSearch(''),
             doSearch: requestSearch,
             period: period,
             selectPeriod: setPeriod,
+            addFilters: (m) => addFilters(m),
             filterModel: filterModel,
             setFilterModel: setFilterModel,
-            columns: columns,
-            addFilters: (m) => addFilters(m),
             downloadDataFunc: () => {
               return rows
             },
@@ -453,6 +523,7 @@ JobTable.defaultProps = {
   },
   sortField: 'current_pass_percentage',
   sort: 'asc',
+  view: 'Default',
 }
 
 JobTable.propTypes = {
@@ -469,6 +540,7 @@ JobTable.propTypes = {
   sort: PropTypes.string,
   sortField: PropTypes.string,
   rowsPerPageOptions: PropTypes.array,
+  view: PropTypes.string,
 }
 
 export default withStyles(generateClasses(JOB_THRESHOLDS))(JobTable)

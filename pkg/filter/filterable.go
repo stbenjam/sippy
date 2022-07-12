@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -302,6 +303,7 @@ func ApplyFilters(req *http.Request, filter *Filter, defaultSortField string, db
 	if sort == "" {
 		sort = apitype.SortDescending
 	}
+
 	q.Order(clause.OrderByColumn{Column: clause.Column{Name: sortField}, Desc: sort == apitype.SortDescending})
 
 	return q, nil
@@ -313,8 +315,12 @@ func FilterableDBResult(dbClient *gorm.DB, filterOpts *FilterOptions, filterable
 		q = q.Limit(filterOpts.Limit)
 	}
 
+	sort := apitype.SortDescending
+	if filterOpts.Sort == apitype.SortAscending {
+		sort = apitype.SortAscending
+	}
 	if len(filterOpts.SortField) > 0 {
-		q.Order(clause.OrderByColumn{Column: clause.Column{Name: filterOpts.SortField}, Desc: filterOpts.Sort == apitype.SortDescending})
+		q.Order(fmt.Sprintf("%s %s NULLS LAST", pq.QuoteIdentifier(filterOpts.SortField), sort))
 	}
 
 	return q, nil

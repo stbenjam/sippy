@@ -3,6 +3,7 @@ package api
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/lib/pq"
 
@@ -27,10 +28,78 @@ const (
 	SortDescending Sort = "desc"
 )
 
+type PullRequest struct {
+	ID     int    `json:"id"`
+	Org    string `json:"org"`
+	Repo   string `json:"repo"`
+	Author string `json:"author"`
+	SHA    string `json:"sha"`
+	Link   string `json:"link"`
+	Merged bool   `json:"merged"`
+}
+
+func (pr PullRequest) GetFieldType(param string) ColumnType {
+	switch param {
+	case "id":
+		return ColumnTypeNumerical
+	case "author":
+		return ColumnTypeString
+	case "org":
+		return ColumnTypeString
+	case "repo":
+		return ColumnTypeString
+	case "sha":
+		return ColumnTypeString
+	case "link":
+		return ColumnTypeString
+	case "merged":
+		return ColumnTypeString
+	default:
+		return ColumnTypeNumerical
+	}
+}
+
+func (pr PullRequest) GetStringValue(param string) (string, error) {
+	switch param {
+	case "author":
+		return pr.Author, nil
+	case "sha":
+		return pr.SHA, nil
+	case "link":
+		return pr.Link, nil
+	case "org":
+		return pr.Org, nil
+	case "repo":
+		return pr.Repo, nil
+	case "merged":
+		return strconv.FormatBool(pr.Merged), nil
+	default:
+		return "", fmt.Errorf("unknown string field %s", param)
+	}
+}
+
+func (pr PullRequest) GetNumericalValue(param string) (float64, error) {
+	switch param {
+	case "id":
+		return float64(pr.ID), nil
+	default:
+		return 0, fmt.Errorf("unknown numerical field %s", param)
+	}
+}
+
+func (pr PullRequest) GetArrayValue(param string) ([]string, error) {
+	switch param {
+	default:
+		return nil, fmt.Errorf("unknown array value field %s", param)
+	}
+}
+
 type Repository struct {
-	ID   int    `json:"id"`
-	Org  string `json:"org"`
-	Repo string `json:"repo"`
+	ID               int    `json:"id"`
+	Org              string `json:"org"`
+	Repo             string `json:"repo"`
+	CurrentMergedPR  int    `json:"current_merged_pr"`
+	PreviousMergedPR int    `json:"previous_merged_pr"`
 }
 
 type Variant struct {

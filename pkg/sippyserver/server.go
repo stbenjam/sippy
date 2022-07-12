@@ -12,12 +12,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+
 	apitype "github.com/openshift/sippy/pkg/apis/api"
 	"github.com/openshift/sippy/pkg/filter"
 	"github.com/openshift/sippy/pkg/sippyserver/metrics"
 	"github.com/openshift/sippy/pkg/synthetictests"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	log "github.com/sirupsen/logrus"
 
@@ -478,6 +479,13 @@ func (s *Server) jsonJobsReportFromDB(w http.ResponseWriter, req *http.Request) 
 	}
 }
 
+func (s *Server) jsonPullRequestsReportFromDB(w http.ResponseWriter, req *http.Request) {
+	release := s.getReleaseOrFail(w, req)
+	if release != "" {
+		api.PrintPullRequestsReportFromDB(w, req, s.db, release)
+	}
+}
+
 func (s *Server) jsonJobRunsReportFromDB(w http.ResponseWriter, req *http.Request) {
 	release := s.getReleaseOrFail(w, req)
 	if release != "" {
@@ -537,6 +545,7 @@ func (s *Server) Serve() {
 	serveMux.HandleFunc("/api/jobs/runs", s.jsonJobRunsReportFromDB)
 	serveMux.HandleFunc("/api/jobs/analysis", s.jsonJobsAnalysisFromDB)
 	serveMux.HandleFunc("/api/jobs/details", s.jsonJobsDetailsReportFromDB)
+	serveMux.HandleFunc("/api/pull_requests", s.jsonPullRequestsReportFromDB)
 	serveMux.HandleFunc("/api/tests", s.jsonTestsReportFromDB)
 	serveMux.HandleFunc("/api/tests/details", s.jsonTestDetailsReportFromDB)
 	serveMux.HandleFunc("/api/tests/analysis", s.jsonTestAnalysisReportFromDB)

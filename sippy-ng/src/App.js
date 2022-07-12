@@ -20,13 +20,13 @@ import React, { useEffect } from 'react'
 import ReleaseOverview from './releases/ReleaseOverview'
 import ReleasePayloadDetails from './releases/ReleasePayloadDetails'
 import ReleasePayloads from './releases/ReleasePayloads'
+import RepositoryDetails from './repositories/RepositoryDetails'
 import Sidebar from './components/Sidebar'
 import Tests from './tests/Tests'
 import Toolbar from '@material-ui/core/Toolbar'
 import Typography from '@material-ui/core/Typography'
 import Upgrades from './releases/Upgrades'
 import VariantStatus from './jobs/VariantStatus'
-import WorkloadMetricsOverview from './workloadmetrics/WorkloadMetricsOverview'
 
 const drawerWidth = 240
 
@@ -288,6 +288,17 @@ export default function App(props) {
                   path="/jobs/:release/analysis"
                   render={(props) => (
                     <JobAnalysis release={props.match.params.release} />
+                  )}
+                />
+
+                <Route
+                  path="/repositories/:release/:org/:repo"
+                  render={(props) => (
+                    <RepositoryDetails
+                      release={props.match.params.release}
+                      org={props.match.params.org}
+                      repo={props.match.params.repo}
+                    />
                   )}
                 />
 
