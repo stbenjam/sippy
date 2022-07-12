@@ -3,7 +3,7 @@ package api
 
 import (
 	"fmt"
-	"strconv"
+	"time"
 
 	"github.com/lib/pq"
 
@@ -29,13 +29,13 @@ const (
 )
 
 type PullRequest struct {
-	ID     int    `json:"id"`
-	Org    string `json:"org"`
-	Repo   string `json:"repo"`
-	Author string `json:"author"`
-	SHA    string `json:"sha"`
-	Link   string `json:"link"`
-	Merged bool   `json:"merged"`
+	ID       int        `json:"id"`
+	Org      string     `json:"org"`
+	Repo     string     `json:"repo"`
+	Author   string     `json:"author"`
+	SHA      string     `json:"sha"`
+	Link     string     `json:"link"`
+	MergedAt *time.Time `json:"merged_at"`
 }
 
 func (pr PullRequest) GetFieldType(param string) ColumnType {
@@ -52,8 +52,8 @@ func (pr PullRequest) GetFieldType(param string) ColumnType {
 		return ColumnTypeString
 	case "link":
 		return ColumnTypeString
-	case "merged":
-		return ColumnTypeString
+	case "merged_at":
+		return ColumnTypeNumerical
 	default:
 		return ColumnTypeNumerical
 	}
@@ -71,8 +71,6 @@ func (pr PullRequest) GetStringValue(param string) (string, error) {
 		return pr.Org, nil
 	case "repo":
 		return pr.Repo, nil
-	case "merged":
-		return strconv.FormatBool(pr.Merged), nil
 	default:
 		return "", fmt.Errorf("unknown string field %s", param)
 	}
@@ -82,6 +80,8 @@ func (pr PullRequest) GetNumericalValue(param string) (float64, error) {
 	switch param {
 	case "id":
 		return float64(pr.ID), nil
+	case "merged_at":
+		return float64(pr.MergedAt.Unix()), nil
 	default:
 		return 0, fmt.Errorf("unknown numerical field %s", param)
 	}

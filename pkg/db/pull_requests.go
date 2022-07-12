@@ -10,20 +10,21 @@ import (
 	"github.com/openshift/sippy/pkg/prowloader/github"
 )
 
+// TODO: move to DB Loading
 func syncPRStatus(dbc *gorm.DB) {
 	pulls := make([]models.ProwPullRequest, 0)
 	dbc.Table("prow_pull_requests").Scan(&pulls)
 	githubClient := github.New(context.TODO())
 	for _, pr := range pulls {
-		if pr.Merged != nil {
+		if pr.MergedAt != nil {
 			continue
 		}
 
-		merged, err := githubClient.GetPRMerged(pr.Org, pr.Repo, pr.Number, pr.SHA)
+		mergedAt, err := githubClient.GetPRMerged(pr.Org, pr.Repo, pr.Number, pr.SHA)
 		if err != nil {
 			log.WithError(err).Warningf("could not fetch pull request status from GitHub; org=%q repo=%q number=%q sha=%q", pr.Org, pr.Repo, pr.Number, pr.SHA)
 		}
-		pr.Merged = merged
+		pr.MergedAt = mergedAt
 		if res := dbc.Save(pr); res.Error != nil {
 			log.WithError(res.Error).Errorf("unexpected error updating pull request %s (%s)", pr.Link, pr.SHA)
 		}

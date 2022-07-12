@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/go-github/v45/github"
 	"github.com/tcnksm/go-gitconfig"
@@ -18,13 +19,13 @@ type prlocator struct {
 type Client struct {
 	ctx    context.Context
 	client *github.Client
-	cache  map[prlocator]bool
+	cache  map[prlocator]*time.Time
 }
 
 func New(ctx context.Context) *Client {
 	client := &Client{
 		ctx:   ctx,
-		cache: make(map[prlocator]bool),
+		cache: make(map[prlocator]*time.Time),
 	}
 	token, err := gitconfig.GithubToken()
 
@@ -43,10 +44,14 @@ func New(ctx context.Context) *Client {
 	return client
 }
 
-func (c *Client) GetPRMerged(org, repo string, number int, sha string) (*bool, error) {
+func (c *Client) GetPRMerged(org, repo string, number int, sha string) (*time.Time, error) {
+	zero := time.Time{}
 	prl := prlocator{org: org, repo: repo, number: number, sha: sha}
 	if val, ok := c.cache[prl]; ok {
-		return &val, nil
+		if *val == zero {
+			return nil, nil
+		}
+		return val, nil
 	}
 
 	pr, _, err := c.client.PullRequests.Get(c.ctx, org, repo, number)
@@ -55,18 +60,18 @@ func (c *Client) GetPRMerged(org, repo string, number int, sha string) (*bool, e
 	}
 
 	// see if PR was merged yet
-	state := pr.GetMerged()
-	if !state {
-		c.cache[prl] = state
-		return &state, nil
+	state := pr.MergedAt
+	if state == nil {
+		c.cache[prl] = &time.Time{}
+		return nil, nil
 	}
 
-	val := false
-	// if it is, see if it was this sha
+	val := &zero
+	// if it is merged, see if it was this sha
 	if pr.Head != nil && pr.Head.SHA != nil && *pr.Head.SHA == sha {
-		val = true
+		val = pr.MergedAt
 	}
 
 	c.cache[prl] = val
-	return &val, nil
+	return val, nil
 }

@@ -248,13 +248,13 @@ func (pl *ProwLoader) findOrAddPullRequests(refs *prow.Refs) []models.ProwPullRe
 		pull := models.ProwPullRequest{}
 		res := pl.dbc.DB.Where("link = ? and sha = ?", pr.Link, pr.SHA).First(&pull)
 
-		merged, err := pl.githubClient.GetPRMerged(refs.Org, refs.Repo, pr.Number, pr.SHA)
+		mergedAt, err := pl.githubClient.GetPRMerged(refs.Org, refs.Repo, pr.Number, pr.SHA)
 		if err != nil {
 			log.WithError(err).Warningf("could not fetch pull request status from GitHub; org=%q repo=%q number=%q sha=%q", refs.Org, refs.Repo, pr.Number, pr.SHA)
 		}
 
 		if errors.Is(res.Error, gorm.ErrRecordNotFound) {
-			pull.Merged = merged
+			pull.MergedAt = mergedAt
 			pull.Org = refs.Org
 			pull.Repo = refs.Repo
 			pull.Link = pr.Link
@@ -272,8 +272,8 @@ func (pl *ProwLoader) findOrAddPullRequests(refs *prow.Refs) []models.ProwPullRe
 			continue
 		}
 
-		if pull.Merged != nil && *pull.Merged != *merged {
-			pull.Merged = merged
+		if pull.MergedAt == nil || *pull.MergedAt != *mergedAt {
+			pull.MergedAt = mergedAt
 			if res := pl.dbc.DB.Save(pull); res.Error != nil {
 				log.WithError(res.Error).Errorf("unexpected error updating pull request %s (%s)", pr.Link, pr.SHA)
 				continue
