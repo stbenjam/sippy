@@ -10,6 +10,5 @@ import (
 
 func RepositoryReport(dbc *db.DB, filterOpts *filter.FilterOptions, release string,
 	start, boundary, end time.Time) ([]api.Repository, error) {
-
 	return nil, nil
 }
