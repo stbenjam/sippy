@@ -449,3 +449,16 @@ type PayloadEvent struct {
 	AllDay  bool   `json:"allDay"`
 	Display string `json:"display,omitempty"`
 }
+
+type BuildClusterHealths struct {
+	ByPeriod map[string]BuildClusterHealth `json:"by_period"`
+}
+
+type BuildClusterHealth struct {
+	TotalRuns             int     `json:"total_runs"`
+	Passes                int     `json:"passes"`
+	Failures              int     `json:"failures"`
+	CurrentPassPercentage float64 `json:"current_pass_percentage"`
+	MeanSuccess           float64 `json:"mean_success"`
+	Difference            float64 `json:"difference"`
+}

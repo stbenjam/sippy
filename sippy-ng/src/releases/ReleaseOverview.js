@@ -14,6 +14,7 @@ import {
   withSort,
 } from '../helpers'
 import Alert from '@material-ui/lab/Alert'
+import BuildClusterHealthChart from '../build_clusters/BuildClusterHealthChart'
 import Grid from '@material-ui/core/Grid'
 import Histogram from '../components/Histogram'
 import InfoIcon from '@material-ui/icons/Info'
@@ -254,6 +255,13 @@ export default function ReleaseOverview(props) {
                 )
               }}
             </CapabilitiesContext.Consumer>
+
+            <Grid item md={12}>
+              <Card elevation={5} style={{ padding: 20, height: '100%' }}>
+                <Typography variant="h6">Build cluster pass rates</Typography>
+                <BuildClusterHealthChart />
+              </Card>
+            </Grid>
 
             <Grid item md={12}>
               <VariantCards release={props.release} />
