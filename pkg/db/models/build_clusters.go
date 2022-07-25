@@ -3,6 +3,7 @@ package models
 import "time"
 
 type BuildClusterHealthReport struct {
+	Cluster               string  `json:"cluster,omitempty"`
 	CurrentPassPercentage float64 `json:"current_pass_percentage"`
 	CurrentRuns           int     `json:"current_runs"`
 	CurrentPasses         int     `json:"current_passes,omitempty"`

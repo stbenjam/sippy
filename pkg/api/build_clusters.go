@@ -1,10 +1,17 @@
 package api
 
 import (
+	"time"
+
 	apitype "github.com/openshift/sippy/pkg/apis/api"
 	"github.com/openshift/sippy/pkg/db"
 	"github.com/openshift/sippy/pkg/db/query"
 )
+
+func GetBuildClusterHealthReport(dbc *db.DB, start, boundary, end time.Time) ([]apitype.BuildClusterHealth, error) {
+	results, err := query.BuildClusterHealth(dbc, start, boundary, end)
+	return results, err
+}
 
 func GetBuildClusterHealthAnalysis(dbc *db.DB, period string) (map[string]apitype.BuildClusterHealthAnalysis, error) {
 	results := make(map[string]apitype.BuildClusterHealthAnalysis, 0)

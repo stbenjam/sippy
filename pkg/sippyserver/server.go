@@ -492,7 +492,9 @@ func (s *Server) jsonHealthReportFromDB(w http.ResponseWriter, req *http.Request
 }
 
 func (s *Server) jsonBuildClusterHealth(w http.ResponseWriter, req *http.Request) {
-	results, err := api.GetBuildClusterHealthAnalysis(s.db, "day")
+	start, boundary, end := getPeriodDates("default", req)
+
+	results, err := api.GetBuildClusterHealthReport(s.db, start, boundary, end)
 	if err != nil {
 		log.WithError(err).Error("error querying build cluster health from db")
 		api.RespondWithJSON(http.StatusInternalServerError, w, map[string]interface{}{

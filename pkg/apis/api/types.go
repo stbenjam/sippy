@@ -454,16 +454,4 @@ type BuildClusterHealthAnalysis struct {
 	ByPeriod map[string]BuildClusterHealth `json:"by_period"`
 }
 
-type BuildClusterHealth struct {
-	CurrentPassPercentage float64 `json:"current_pass_percentage"`
-	CurrentRuns           int     `json:"current_runs"`
-	CurrentPasses         int     `json:"current_passes,"`
-	CurrentFails          int     `json:"current_fails"`
-
-	PreviousPassPercentage float64 `json:"previous_pass_percentage,omitempty"`
-	PreviousRuns           int     `json:"previous_runs,omitempty"`
-	PreviousPasses         int     `json:"previous_passes,omitempty"`
-	PreviousFails          int     `json:"previous_fails,omitempty"`
-
-	NetImprovement float64 `json:"net_improvement,omitempty"`
-}
+type BuildClusterHealth = models.BuildClusterHealthReport
