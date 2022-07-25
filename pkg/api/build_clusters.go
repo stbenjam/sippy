@@ -6,10 +6,10 @@ import (
 	"github.com/openshift/sippy/pkg/db/query"
 )
 
-func GetBuildClusterHealth(dbc *db.DB, period string) (map[string]apitype.BuildClusterHealths, error) {
-	results := make(map[string]apitype.BuildClusterHealths, 0)
+func GetBuildClusterHealthAnalysis(dbc *db.DB, period string) (map[string]apitype.BuildClusterHealthAnalysis, error) {
+	results := make(map[string]apitype.BuildClusterHealthAnalysis, 0)
 
-	health, err := query.BuildClusterReportByDay(dbc, "day")
+	health, err := query.BuildClusterAnalysis(dbc, period)
 	if err != nil {
 		return nil, err
 	}
@@ -23,18 +23,16 @@ func GetBuildClusterHealth(dbc *db.DB, period string) (map[string]apitype.BuildC
 
 	for _, item := range health {
 		if _, ok := results[item.Cluster]; !ok {
-			results[item.Cluster] = apitype.BuildClusterHealths{
+			results[item.Cluster] = apitype.BuildClusterHealthAnalysis{
 				ByPeriod: make(map[string]apitype.BuildClusterHealth),
 			}
 		}
 		key := item.Period.UTC().Format(formatter)
 		results[item.Cluster].ByPeriod[key] = apitype.BuildClusterHealth{
-			TotalRuns:             item.TotalRuns,
-			Passes:                item.Passes,
-			Failures:              item.Failures,
-			CurrentPassPercentage: item.CurrentPassPercentage,
-			MeanSuccess:           item.MeanSuccess,
-			Difference:            item.Difference,
+			CurrentRuns:           item.TotalRuns,
+			CurrentPasses:         item.Passes,
+			CurrentFails:          item.Failures,
+			CurrentPassPercentage: item.PassPercentage,
 		}
 	}
 

@@ -17,12 +17,10 @@ type BuildClusterHealthReport struct {
 }
 
 type BuildClusterHealth struct {
-	Cluster               string    `json:"cluster"`
-	Period                time.Time `json:"period"`
-	TotalRuns             int       `json:"total_runs"`
-	Passes                int       `json:"passes"`
-	Failures              int       `json:"failures"`
-	CurrentPassPercentage float64   `json:"current_pass_percentage"`
-	MeanSuccess           float64   `json:"mean_success"`
-	Difference            float64   `json:"difference"`
+	Cluster        string    `json:"cluster"`
+	Period         time.Time `json:"period"`
+	TotalRuns      int       `json:"total_runs"`
+	Passes         int       `json:"passes"`
+	Failures       int       `json:"failures"`
+	PassPercentage float64   `json:"pass_percentage"`
 }

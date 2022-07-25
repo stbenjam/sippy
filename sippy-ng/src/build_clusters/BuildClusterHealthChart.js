@@ -1,6 +1,7 @@
 import { Line } from 'react-chartjs-2'
 import Alert from '@material-ui/lab/Alert'
 import chroma from 'chroma-js'
+import PropTypes from 'prop-types'
 import React, { useEffect } from 'react'
 
 export default function BuildClusterHealthChart(props) {
@@ -9,7 +10,11 @@ export default function BuildClusterHealthChart(props) {
   const [data, setData] = React.useState([])
 
   const fetchData = () => {
-    fetch(process.env.REACT_APP_API_URL + '/api/health/build_cluster')
+    fetch(
+      process.env.REACT_APP_API_URL +
+        '/api/health/build_cluster/analysis?period=' +
+        props.period
+    )
       .then((response) => {
         if (response.status !== 200) {
           throw new Error('server returned ' + response.status)
@@ -37,15 +42,22 @@ export default function BuildClusterHealthChart(props) {
     return <p>Loading...</p>
   }
 
+  let periodCount = 14
+  if (props.period === 'hour') {
+    periodCount = 24
+  }
+
   const now = new Date()
-  let last14Days = [],
+  let lastPeriods = [],
     d = new Date(),
     count = 0
   for (
     ;
-    count < 14;
-    d.setDate(now.getDate() - count),
-      last14Days.unshift(d.toISOString().split('T')[0]),
+    count < periodCount;
+    props.period === 'day'
+      ? d.setDate(now.getDate() - count)
+      : d.setHours(now.getHours() - count),
+      lastPeriods.unshift(d.toISOString().split('T')[0]),
       count++
   );
 
@@ -55,7 +67,7 @@ export default function BuildClusterHealthChart(props) {
     .colors(Object.keys(data).length)
 
   const chartData = {
-    labels: last14Days,
+    labels: lastPeriods,
     datasets: [],
   }
 
@@ -92,11 +104,10 @@ export default function BuildClusterHealthChart(props) {
 
   Object.keys(data).forEach((cluster, index) => {
     chartData.datasets.push({
-      label: cluster === 'overall' ? 'Mean' : cluster,
-      borderDash: cluster === 'overall' ? [5, 2] : undefined,
-      borderColor: cluster === 'overall' ? 'black' : colors[index],
-      backgroundColor: cluster === 'overall' ? 'black' : colors[index],
-      data: last14Days.map((day) =>
+      label: cluster,
+      borderColor: colors[index],
+      backgroundColor: colors[index],
+      data: lastPeriods.map((day) =>
         data[cluster].by_period[day]
           ? data[cluster].by_period[day].current_pass_percentage
           : NaN
@@ -107,4 +118,8 @@ export default function BuildClusterHealthChart(props) {
   console.log(chartData)
 
   return <Line key="build-cluster-chart" options={options} data={chartData} />
+}
+
+BuildClusterHealthChart.propTypes = {
+  period: PropTypes.string.isRequired,
 }

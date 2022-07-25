@@ -491,8 +491,27 @@ func (s *Server) jsonHealthReportFromDB(w http.ResponseWriter, req *http.Request
 	}
 }
 
-func (s *Server) jsonBuildClusterHealthReportFromDB(w http.ResponseWriter, req *http.Request) {
-	results, err := api.GetBuildClusterHealth(s.db, "day")
+func (s *Server) jsonBuildClusterHealth(w http.ResponseWriter, req *http.Request) {
+	results, err := api.GetBuildClusterHealthAnalysis(s.db, "day")
+	if err != nil {
+		log.WithError(err).Error("error querying build cluster health from db")
+		api.RespondWithJSON(http.StatusInternalServerError, w, map[string]interface{}{
+			"code":    http.StatusInternalServerError,
+			"message": "error querying build cluster health from db " + err.Error(),
+		})
+		return
+	}
+
+	api.RespondWithJSON(200, w, results)
+}
+
+func (s *Server) jsonBuildClusterHealthAnalysis(w http.ResponseWriter, req *http.Request) {
+	period := req.URL.Query().Get("period")
+	if period == "" {
+		period = api.PeriodDay
+	}
+
+	results, err := api.GetBuildClusterHealthAnalysis(s.db, period)
 	if err != nil {
 		log.WithError(err).Error("error querying build cluster health from db")
 		api.RespondWithJSON(http.StatusInternalServerError, w, map[string]interface{}{
@@ -616,7 +635,8 @@ func (s *Server) Serve() {
 	serveMux.HandleFunc("/api/install", s.jsonInstallReportFromDB)
 	serveMux.HandleFunc("/api/upgrade", s.jsonUpgradeReportFromDB)
 	serveMux.HandleFunc("/api/releases", s.jsonReleasesReportFromDB)
-	serveMux.HandleFunc("/api/health/build_cluster", s.jsonBuildClusterHealthReportFromDB)
+	serveMux.HandleFunc("/api/health/build_cluster/analysis", s.jsonBuildClusterHealthAnalysis)
+	serveMux.HandleFunc("/api/health/build_cluster", s.jsonBuildClusterHealth)
 	serveMux.HandleFunc("/api/health", s.jsonHealthReportFromDB)
 	serveMux.HandleFunc("/api/variants", s.jsonVariantsReportFromDB)
 	serveMux.HandleFunc("/api/canary", s.printCanaryReportFromDB)

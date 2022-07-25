@@ -450,15 +450,20 @@ type PayloadEvent struct {
 	Display string `json:"display,omitempty"`
 }
 
-type BuildClusterHealths struct {
+type BuildClusterHealthAnalysis struct {
 	ByPeriod map[string]BuildClusterHealth `json:"by_period"`
 }
 
 type BuildClusterHealth struct {
-	TotalRuns             int     `json:"total_runs"`
-	Passes                int     `json:"passes"`
-	Failures              int     `json:"failures"`
 	CurrentPassPercentage float64 `json:"current_pass_percentage"`
-	MeanSuccess           float64 `json:"mean_success"`
-	Difference            float64 `json:"difference"`
+	CurrentRuns           int     `json:"current_runs"`
+	CurrentPasses         int     `json:"current_passes,"`
+	CurrentFails          int     `json:"current_fails"`
+
+	PreviousPassPercentage float64 `json:"previous_pass_percentage,omitempty"`
+	PreviousRuns           int     `json:"previous_runs,omitempty"`
+	PreviousPasses         int     `json:"previous_passes,omitempty"`
+	PreviousFails          int     `json:"previous_fails,omitempty"`
+
+	NetImprovement float64 `json:"net_improvement,omitempty"`
 }

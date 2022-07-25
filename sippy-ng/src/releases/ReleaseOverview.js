@@ -259,7 +259,7 @@ export default function ReleaseOverview(props) {
             <Grid item md={12}>
               <Card elevation={5} style={{ padding: 20, height: '100%' }}>
                 <Typography variant="h6">Build cluster pass rates</Typography>
-                <BuildClusterHealthChart />
+                <BuildClusterHealthChart period="hour" />
               </Card>
             </Grid>
 
