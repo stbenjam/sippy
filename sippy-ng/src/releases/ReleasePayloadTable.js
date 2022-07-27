@@ -16,7 +16,6 @@ import Alert from '@material-ui/lab/Alert'
 import GridToolbar from '../datagrid/GridToolbar'
 import PropTypes from 'prop-types'
 import React, { Fragment, useEffect } from 'react'
-import SimpleBreadcrumbs from '../components/SimpleBreadcrumbs'
 
 const defaultTheme = createTheme()
 const useStyles = makeStyles(

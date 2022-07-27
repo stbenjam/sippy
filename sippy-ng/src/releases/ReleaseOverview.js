@@ -1,7 +1,6 @@
-import { ArrowBack, ArrowForward } from '@material-ui/icons'
 import { BOOKMARKS } from '../constants'
-import { Button, Card, Container, Tooltip, Typography } from '@material-ui/core'
 import { CapabilitiesContext } from '../App'
+import { Card, Container, Tooltip, Typography } from '@material-ui/core'
 import { createTheme, makeStyles } from '@material-ui/core/styles'
 import { dayFilter, JobStackedChart } from '../jobs/JobStackedChart'
 import { Link } from 'react-router-dom'
@@ -28,9 +27,9 @@ import TopLevelIndicators from './TopLevelIndicators'
 import VariantCards from '../jobs/VariantCards'
 
 export const REGRESSED_TOOLTIP =
-  'Shows the most regressed items this week vs. last week, for those with more than 10 runs, excluding never-stable and techpreview.'
+  'Shows the most regressed items this week vs. last week, for those with more than 10 runs, excluding never-stable.'
 export const TWODAY_WARNING =
-  'Shows the last 2 days compared to the last 7 days, sorted by most regressed, excluding never-stable and techpreview.'
+  'Shows the last 2 days compared to the last 7 days, sorted by most regressed, excluding never-stable.'
 export const TOP_FAILERS_TOOLTIP =
   'Shows the list of tests ordered by their failure percentage.'
 
@@ -297,7 +296,6 @@ export default function ReleaseOverview(props) {
                     items: [
                       BOOKMARKS.RUN_7,
                       BOOKMARKS.NO_NEVER_STABLE,
-                      BOOKMARKS.NO_TECHPREVIEW,
                       BOOKMARKS.NO_STEP_GRAPH,
                     ],
                   }}
@@ -349,7 +347,6 @@ export default function ReleaseOverview(props) {
                   to={`/tests/${props.release}?${queryForBookmark(
                     BOOKMARKS.RUN_7,
                     BOOKMARKS.NO_NEVER_STABLE,
-                    BOOKMARKS.NO_TECHPREVIEW,
                     BOOKMARKS.WITHOUT_OVERALL_JOB_RESULT,
                     BOOKMARKS.NO_STEP_GRAPH
                   )}&sortField=net_working_improvement&sort=asc`}
@@ -373,7 +370,6 @@ export default function ReleaseOverview(props) {
                       items: [
                         BOOKMARKS.RUN_7,
                         BOOKMARKS.NO_NEVER_STABLE,
-                        BOOKMARKS.NO_TECHPREVIEW,
                         BOOKMARKS.WITHOUT_OVERALL_JOB_RESULT,
                         BOOKMARKS.NO_STEP_GRAPH,
                       ],
@@ -395,7 +391,6 @@ export default function ReleaseOverview(props) {
                   }?period=twoDay&sortField=net_working_improvement&sort=asc&${queryForBookmark(
                     BOOKMARKS.RUN_2,
                     BOOKMARKS.NO_NEVER_STABLE,
-                    BOOKMARKS.NO_TECHPREVIEW,
                     BOOKMARKS.WITHOUT_OVERALL_JOB_RESULT,
                     BOOKMARKS.NO_STEP_GRAPH
                   )}`}
@@ -418,7 +413,6 @@ export default function ReleaseOverview(props) {
                       items: [
                         BOOKMARKS.RUN_2,
                         BOOKMARKS.NO_NEVER_STABLE,
-                        BOOKMARKS.NO_TECHPREVIEW,
                         BOOKMARKS.WITHOUT_OVERALL_JOB_RESULT,
                         BOOKMARKS.NO_STEP_GRAPH,
                       ],
@@ -439,7 +433,6 @@ export default function ReleaseOverview(props) {
                   to={`/tests/${props.release}?${queryForBookmark(
                     BOOKMARKS.RUN_7,
                     BOOKMARKS.NO_NEVER_STABLE,
-                    BOOKMARKS.NO_TECHPREVIEW,
                     BOOKMARKS.WITHOUT_OVERALL_JOB_RESULT,
                     BOOKMARKS.NO_STEP_GRAPH
                   )}&sortField=current_working_percentage&sort=asc`}
@@ -463,7 +456,6 @@ export default function ReleaseOverview(props) {
                       items: [
                         BOOKMARKS.RUN_7,
                         BOOKMARKS.NO_NEVER_STABLE,
-                        BOOKMARKS.NO_TECHPREVIEW,
                         BOOKMARKS.WITHOUT_OVERALL_JOB_RESULT,
                         BOOKMARKS.NO_STEP_GRAPH,
                       ],
