@@ -256,13 +256,6 @@ export default function ReleaseOverview(props) {
             </CapabilitiesContext.Consumer>
 
             <Grid item md={12}>
-              <Card elevation={5} style={{ padding: 20, height: '100%' }}>
-                <Typography variant="h6">Build cluster pass rates</Typography>
-                <BuildClusterHealthChart period="hour" />
-              </Card>
-            </Grid>
-
-            <Grid item md={12}>
               <VariantCards release={props.release} />
             </Grid>
 

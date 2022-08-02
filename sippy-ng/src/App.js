@@ -8,6 +8,7 @@ import { Route, Switch } from 'react-router-dom'
 import { TestAnalysis } from './tests/TestAnalysis'
 import Alert from '@material-ui/lab/Alert'
 import AppBar from '@material-ui/core/AppBar'
+import BuildClusterTable from './build_clusters/BuildClusterTable'
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft'
 import ChevronRightIcon from '@material-ui/icons/ChevronRight'
 import clsx from 'clsx'
@@ -359,6 +360,11 @@ export default function App(props) {
                       release={props.match.params.release}
                     />
                   )}
+                />
+
+                <Route
+                  path="/build_clusters"
+                  render={() => <BuildClusterTable />}
                 />
 
                 <Route path="/">{landingPage}</Route>

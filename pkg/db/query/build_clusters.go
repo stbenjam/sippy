@@ -12,7 +12,9 @@ import (
 func BuildClusterHealth(db *db.DB, start, boundary, end time.Time) ([]models.BuildClusterHealthReport, error) {
 	results := make([]models.BuildClusterHealthReport, 0)
 
-	rawResults := db.DB.Select(`cluster,
+	rawResults := db.DB.Select(`
+		ROW_NUMBER() OVER() AS id,
+		cluster,
 		coalesce(count(case when succeeded = true AND timestamp BETWEEN @start AND @boundary then 1 end), 0) as previous_passes,
 		coalesce(count(case when succeeded = false AND timestamp BETWEEN @start AND @boundary then 1 end), 0) as previous_failures,
 		coalesce(count(case when timestamp BETWEEN @start AND @boundary then 1 end), 0) as previous_runs,
