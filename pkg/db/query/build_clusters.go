@@ -9,6 +9,12 @@ import (
 	"github.com/openshift/sippy/pkg/db/models"
 )
 
+func HasBuildClusterData(dbc *db.DB) (bool, error) {
+	count := int64(0)
+	res := dbc.DB.Table("prow_job_runs").Where(`cluster != '' AND cluster IS NOT NULL`).Count(&count)
+	return count > 0, res.Error
+}
+
 func BuildClusterHealth(db *db.DB, start, boundary, end time.Time) ([]models.BuildClusterHealthReport, error) {
 	results := make([]models.BuildClusterHealthReport, 0)
 

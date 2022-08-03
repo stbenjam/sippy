@@ -259,6 +259,13 @@ func (s *Server) jsonCapabilitiesReport(w http.ResponseWriter, _ *http.Request) 
 	if s.mode == ModeOpenShift {
 		capabilities = append(capabilities, "openshift_releases")
 	}
+
+	if hasBuildCluster, err := query.HasBuildClusterData(s.db); hasBuildCluster {
+		capabilities = append(capabilities, "build_clusters")
+	} else if err != nil {
+		log.WithError(err).Warningf("could not fetch build cluster data")
+	}
+
 	api.RespondWithJSON(http.StatusOK, w, capabilities)
 }
 
@@ -526,6 +533,10 @@ func (s *Server) jsonBuildClusterHealthAnalysis(w http.ResponseWriter, req *http
 	api.RespondWithJSON(200, w, results)
 }
 
+func (s *Server) getRelease(req *http.Request) string {
+	return req.URL.Query().Get("release")
+}
+
 func (s *Server) getReleaseOrFail(w http.ResponseWriter, req *http.Request) string {
 	release := req.URL.Query().Get("release")
 
@@ -573,17 +584,12 @@ func (s *Server) jsonJobsReportFromDB(w http.ResponseWriter, req *http.Request) 
 }
 
 func (s *Server) jsonJobRunsReportFromDB(w http.ResponseWriter, req *http.Request) {
-	release := s.getReleaseOrFail(w, req)
-	if release != "" {
-		api.PrintJobsRunsReportFromDB(w, req, s.db)
-	}
+	api.PrintJobsRunsReportFromDB(w, req, s.db)
 }
 
 func (s *Server) jsonJobsAnalysisFromDB(w http.ResponseWriter, req *http.Request) {
-	release := s.getReleaseOrFail(w, req)
-	if release != "" {
-		api.PrintJobAnalysisJSONFromDB(w, req, s.db, release)
-	}
+	release := s.getRelease(req)
+	api.PrintJobAnalysisJSONFromDB(w, req, s.db, release)
 }
 
 func (s *Server) jsonPerfScaleMetricsReport(w http.ResponseWriter, req *http.Request) {
