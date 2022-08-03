@@ -5,17 +5,36 @@ import {
   useQueryParam,
 } from 'use-query-params'
 import { BUILD_CLUSTER_THRESHOLDS, JOB_THRESHOLDS } from '../constants'
-import { CircularProgress } from '@material-ui/core'
+import { CircularProgress, Tooltip } from '@material-ui/core'
 import { DataGrid } from '@material-ui/data-grid'
 import { generateClasses } from '../datagrid/utils'
-import { safeEncodeURIComponent } from '../helpers'
+import { Link } from 'react-router-dom'
+import { makeStyles } from '@material-ui/core/styles'
+import { safeEncodeURIComponent, SafeJSONParam } from '../helpers'
 import { withStyles } from '@material-ui/styles'
 import Alert from '@material-ui/lab/Alert'
+import GridToolbar from '../datagrid/GridToolbar'
 import PassRateIcon from '../components/PassRateIcon'
 import PropTypes from 'prop-types'
 import React, { Fragment, useEffect } from 'react'
 
+const useStyles = makeStyles((theme) => ({
+  root: {
+    '& .wrapHeader .MuiDataGrid-columnHeaderTitle': {
+      textOverflow: 'ellipsis',
+      display: '-webkit-box',
+      '-webkit-line-clamp': 2,
+      '-webkit-box-orient': 'vertical',
+      overflow: 'hidden',
+      overflowWrap: 'break-word',
+      lineHeight: '20px',
+      whiteSpace: 'normal',
+    },
+  },
+}))
+
 function BuildClusterTable(props) {
+  const gridClasses = useStyles()
   const { classes } = props
 
   // place to store state (i.e., our table data, error message, etc)
@@ -27,6 +46,15 @@ function BuildClusterTable(props) {
     'period',
     StringParam
   )
+  const [sortField = props.sortField, setSortField] = useQueryParam(
+    'sortField',
+    StringParam
+  )
+  const [sort = props.sort, setSort] = useQueryParam('sort', StringParam)
+  const [filterModel = props.filterModel, setFilterModel] = useQueryParam(
+    'filters',
+    SafeJSONParam
+  )
 
   // define table columns
   const columns = [
@@ -34,6 +62,15 @@ function BuildClusterTable(props) {
       field: 'cluster',
       headerName: 'Cluster',
       flex: 1,
+      renderCell: (params) => {
+        return (
+          <div className="cluster-name">
+            <Tooltip title={params.value}>
+              <Link to={`/build_clusters/${params.value}`}>{params.value}</Link>
+            </Tooltip>
+          </div>
+        )
+      },
     },
     {
       field: 'current_pass_percentage',
@@ -46,7 +83,7 @@ function BuildClusterTable(props) {
     {
       field: 'net_improvement',
       headerName: 'Net improvement',
-      flex: 1,
+      flex: 0.5,
       renderCell: (params) => {
         return <PassRateIcon tooltip={true} improvement={params.value} />
       },
@@ -60,6 +97,34 @@ function BuildClusterTable(props) {
       flex: 1,
     },
   ]
+
+  const addFilters = (filter) => {
+    const currentFilters = filterModel.items.filter((item) => item.value !== '')
+
+    filter.forEach((item) => {
+      if (item.value && item.value !== '') {
+        currentFilters.push(item)
+      }
+    })
+    setFilterModel({
+      items: currentFilters,
+      linkOperator: filterModel.linkOperator || 'and',
+    })
+  }
+
+  const updateSortModel = (model) => {
+    if (model.length === 0) {
+      return
+    }
+
+    if (sort !== model[0].sort) {
+      setSort(model[0].sort)
+    }
+
+    if (sortField !== model[0].field) {
+      setSortField(model[0].field)
+    }
+  }
 
   // fetch data from api
   const fetchData = () => {
@@ -103,12 +168,43 @@ function BuildClusterTable(props) {
   // what we return
   return (
     <DataGrid
-      autoHeight={true}
-      columns={columns}
+      className={gridClasses.root}
+      components={{ Toolbar: props.hideControls ? '' : GridToolbar }}
       rows={rows}
+      columns={columns}
+      autoHeight={true}
+      disableColumnFilter={props.briefTable}
+      disableColumnMenu={true}
+      pageSize={props.pageSize}
+      rowsPerPageOptions={props.rowsPerPageOptions}
+      checkboxSelection={false}
+      filterMode="server"
+      sortingMode="server"
+      sortingOrder={['desc', 'asc']}
+      sortModel={[
+        {
+          field: sortField,
+          sort: sort,
+        },
+      ]}
+      onSortModelChange={(m) => updateSortModel(m)}
       getRowClassName={(params) =>
         classes['row-percent-' + Math.round(params.row.current_pass_percentage)]
       }
+      componentsProps={{
+        toolbar: {
+          columns: columns,
+          period: period,
+          selectPeriod: setPeriod,
+          addFilters: addFilters,
+          filterModel: filterModel,
+          setFilterModel: setFilterModel,
+          downloadDataFunc: () => {
+            return rows
+          },
+          downloadFilePrefix: 'clusters',
+        },
+      }}
     />
   )
 }
@@ -118,11 +214,24 @@ export default withStyles(generateClasses(BUILD_CLUSTER_THRESHOLDS))(
 )
 
 BuildClusterTable.defaultProps = {
+  briefTable: false,
+  hideControls: false,
+  pageSize: 25,
   period: 'default',
+  rowsPerPageOptions: [5, 10, 25, 50, 100],
+  filterModel: {
+    items: [],
+  },
 }
 
 BuildClusterTable.propTypes = {
   briefTable: PropTypes.bool,
   classes: PropTypes.object,
+  hideControls: PropTypes.bool,
+  pageSize: PropTypes.number,
   period: PropTypes.string,
+  rowsPerPageOptions: PropTypes.array,
+  sort: PropTypes.string,
+  sortField: PropTypes.string,
+  filterModel: PropTypes.object,
 }

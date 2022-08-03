@@ -47,19 +47,12 @@ export default function BuildClusterHealthChart(props) {
     periodCount = 24
   }
 
-  const now = new Date()
-  let lastPeriods = [],
-    d = new Date(),
-    count = 0
-  for (
-    ;
-    count < periodCount;
-    props.period === 'day'
-      ? d.setDate(now.getDate() - count)
-      : d.setHours(now.getHours() - count),
-      lastPeriods.unshift(d.toISOString().split('T')[0]),
-      count++
-  );
+  let lastPeriods = new Set()
+  Object.keys(data).forEach((k) => {
+    Object.keys(data[k].by_period).forEach((p) => {
+      lastPeriods.add(p)
+    })
+  })
 
   const colors = chroma
     .scale('Spectral')
@@ -67,7 +60,7 @@ export default function BuildClusterHealthChart(props) {
     .colors(Object.keys(data).length)
 
   const chartData = {
-    labels: lastPeriods,
+    labels: Array.from(lastPeriods),
     datasets: [],
   }
 
@@ -75,9 +68,10 @@ export default function BuildClusterHealthChart(props) {
     plugins: {
       tooltip: {
         callbacks: {
-          label: function (context) {
-            console.log(context)
-            return `${context.dataset.label} ${context.formattedValue}%`
+          label: function (context, index) {
+            return `${context.dataset.label} ${context.formattedValue}% (${
+              data[context.dataset.label].by_period[context.label].current_runs
+            } runs)`
           },
         },
       },
@@ -93,11 +87,6 @@ export default function BuildClusterHealthChart(props) {
           z: 1,
         },
         max: 100,
-        ticks: {
-          callback: (value, index, values) => {
-            return `${value}%`
-          },
-        },
       },
     },
   }
@@ -107,7 +96,7 @@ export default function BuildClusterHealthChart(props) {
       label: cluster,
       borderColor: colors[index],
       backgroundColor: colors[index],
-      data: lastPeriods.map((day) =>
+      data: Array.from(lastPeriods).map((day) =>
         data[cluster].by_period[day]
           ? data[cluster].by_period[day].current_pass_percentage
           : NaN

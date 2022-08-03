@@ -40,7 +40,12 @@ export function JobStackedChart(props) {
   const [fetchError, setFetchError] = React.useState('')
 
   const fetchData = () => {
-    let queryParams = `release=${props.release}`
+    let queryParams = ''
+
+    if (props.release) {
+      queryParams += `&release=${props.release}`
+    }
+
     if (props.filter) {
       queryParams += `&filter=${safeEncodeURIComponent(
         JSON.stringify(props.filter)
@@ -51,7 +56,11 @@ export function JobStackedChart(props) {
       queryParams += `&period=${props.period}`
     }
 
-    fetch(`${process.env.REACT_APP_API_URL}/api/jobs/analysis?${queryParams}`)
+    fetch(
+      `${
+        process.env.REACT_APP_API_URL
+      }/api/jobs/analysis?${queryParams.substring(1)}`
+    )
       .then((analysis) => {
         if (analysis.status !== 200) {
           throw new Error('server returned ' + analysis.status)
@@ -257,7 +266,7 @@ export function JobStackedChart(props) {
 }
 
 JobStackedChart.propTypes = {
-  release: PropTypes.string.isRequired,
+  release: PropTypes.string,
   filter: PropTypes.object,
   period: PropTypes.string,
   analysis: PropTypes.object,
