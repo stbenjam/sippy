@@ -102,6 +102,17 @@ var (
 		"periodic-ci-openshift-release-master-nightly-4.11-e2e-azurestack-csi",
 		"periodic-ci-openshift-release-master-nightly-4.12-e2e-azurestack-csi",
 
+		// https://issues.redhat.com/browse/OCPBUGS-703
+		"periodic-ci-openshift-hypershift-main-periodics-aws-conformance",
+		"periodic-ci-openshift-hypershift-main-periodics-conformance-aws-ovn-4-12",
+		"periodic-ci-openshift-hypershift-main-periodics-conformance-azure-ovn-4-12",
+		"periodic-ci-openshift-hypershift-main-periodics-conformance-proxy-aws-ovn-4-12",
+		"periodic-ci-openshift-hypershift-main-periodics-e2e-aws-periodic",
+		"periodic-ci-openshift-hypershift-main-periodics-e2e-aws-periodic-conformance-serial",
+		"periodic-ci-openshift-hypershift-main-periodics-e2e-conformance-azure",
+		"periodic-ci-openshift-hypershift-main-periodics-e2e-conformance-kubevirt",
+		"periodic-ci-openshift-hypershift-main-periodics-e2e-conformance-proxy",
+
 		// These will fail until there's a stable 4.10 build
 		"periodic-ci-openshift-release-master-ci-4.11-upgrade-from-stable-4.10-e2e-aws-upgrade-infra",
 		"periodic-ci-openshift-release-master-ci-4.11-upgrade-from-stable-4.10-e2e-azure-ovn-upgrade",
