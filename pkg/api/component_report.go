@@ -11,18 +11,19 @@ import (
 
 	"cloud.google.com/go/bigquery"
 	fischer "github.com/glycerine/golang-fisher-exact"
-	apitype "github.com/openshift/sippy/pkg/apis/api"
-	"github.com/openshift/sippy/pkg/util/sets"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"
+
+	apitype "github.com/openshift/sippy/pkg/apis/api"
+	"github.com/openshift/sippy/pkg/util/sets"
 )
 
 func getSingleColumnResultToSlice(query *bigquery.Query) ([]string, error) {
 	names := []string{}
 	it, err := query.Read(context.TODO())
 	if err != nil {
-		log.WithError(err).Error("error querying test status from bigquery")
+		log.WithError(err).Error("error querying test status from bigquery 1")
 		return names, err
 	}
 
@@ -190,6 +191,7 @@ func (c *componentReportGenerator) GenerateTestDetailsReport() (apitype.Componen
 func (c *componentReportGenerator) fetchQuerySchema(queryString string) {
 	queryString += `LIMIT 1`
 	query := c.client.Query(queryString)
+	log.Infof("Fetch query schema query is:\n%+v", queryString)
 	it, err := query.Read(context.TODO())
 	if err != nil {
 		log.WithError(err).Error("error querying test status from bigquery")
@@ -218,14 +220,23 @@ func (c *componentReportGenerator) getJobRunTestStatusFromBigQuery() (
 	[]error,
 ) {
 	errs := []error{}
-	queryString := `SELECT
+	queryString := `WITH latest_component_mapping AS (
+    					SELECT *
+    					FROM ci_analysis_us.component_mapping cm
+    					WHERE created_at = (
+								SELECT MAX(created_at)
+								FROM openshift-gce-devel.ci_analysis_us.component_mapping))
+					SELECT
 						ANY_VALUE(test_name) AS test_name,
 						file_path,
 						ANY_VALUE(prowjob_name) AS prowjob_name,
 						COUNT(*) AS total_count,
 						SUM(success_val) AS success_count,
 						SUM(flake_count) AS flake_count,
-					FROM ci_analysis_us.junit `
+					FROM ci_analysis_us.junit
+						INNER JOIN latest_component_mapping cm ON testsuite = cm.suite
+							AND test_name = cm.name 
+`
 	groupString := `
 					GROUP BY
 						file_path,
@@ -244,7 +255,7 @@ func (c *componentReportGenerator) getJobRunTestStatusFromBigQuery() (
 						AND network = @Network
 						AND platform = @Platform
 						AND @Variant IN UNNEST(variants)
-						AND test_id = @TestId `
+						AND cm.id = @TestId `
 	commonParams := []bigquery.QueryParameter{
 		{
 			Name:  "Upgrade",
@@ -345,20 +356,19 @@ func (c *componentReportGenerator) getTestStatusFromBigQuery() (
 								FROM openshift-gce-devel.ci_analysis_us.component_mapping))
 					SELECT
 						ANY_VALUE(test_name) AS test_name,
-						test_id,
+						cm.id as test_id,
 						network,
 						upgrade,
 						arch,
 						platform,
 						ANY_VALUE(variants) AS variants,
-						COUNT(test_id) AS total_count,
+						COUNT(cm.id) AS total_count,
 						SUM(success_val) AS success_count,
 						SUM(flake_count) AS flake_count,
 						ANY_VALUE(cm.component) AS component,
 						ANY_VALUE(cm.capabilities) AS capabilities
 					FROM ci_analysis_us.junit
-						INNER JOIN latest_component_mapping cm ON testsuite = cm.suite
-							AND test_name = cm.name `
+					INNER JOIN latest_component_mapping cm ON testsuite = cm.suite AND test_name = cm.name`
 
 	groupString := `
 					GROUP BY
@@ -366,7 +376,7 @@ func (c *componentReportGenerator) getTestStatusFromBigQuery() (
 						upgrade,
 						arch,
 						platform,
-						test_id `
+						cm.id `
 
 	if c.schema == nil {
 		c.fetchQuerySchema(queryString + groupString)
@@ -408,7 +418,7 @@ func (c *componentReportGenerator) getTestStatusFromBigQuery() (
 		})
 	}
 	if c.TestID != "" {
-		queryString += ` AND test_id = @TestId`
+		queryString += ` AND cm.id = @TestId`
 		commonParams = append(commonParams, bigquery.QueryParameter{
 			Name:  "TestId",
 			Value: c.TestID,
