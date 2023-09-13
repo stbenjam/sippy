@@ -257,13 +257,7 @@ func (c *componentReportGenerator) getJobRunTestStatusFromBigQuery() (
 	[]error,
 ) {
 	errs := []error{}
-	queryString := fmt.Sprintf(`WITH latest_component_mapping AS (
-						SELECT *
-						FROM ci_analysis_us.component_mapping cm
-						WHERE created_at = (
-								SELECT MAX(created_at)
-								FROM openshift-gce-devel.ci_analysis_us.component_mapping))
-					SELECT
+	queryString := fmt.Sprintf(`SELECT
 						ANY_VALUE(test_name) AS test_name,
 						ANY_VALUE(testsuite) AS test_suite,
 						file_path,
@@ -272,7 +266,7 @@ func (c *componentReportGenerator) getJobRunTestStatusFromBigQuery() (
 						SUM(success_val) AS success_count,
 						SUM(flake_count) AS flake_count,
 					FROM (%s)
-					INNER JOIN latest_component_mapping cm ON testsuite = cm.suite AND test_name = cm.name`, dedupedJunitTable)
+					INNER JOIN openshift-gce-devel.component_mapping_latest cm ON testsuite = cm.suite AND test_name = cm.name`, dedupedJunitTable)
 
 	groupString := `
 					GROUP BY
@@ -386,13 +380,7 @@ func (c *componentReportGenerator) getTestStatusFromBigQuery() (
 	[]error,
 ) {
 	errs := []error{}
-	queryString := fmt.Sprintf(`WITH latest_component_mapping AS (
-						SELECT *
-						FROM ci_analysis_us.component_mapping cm
-						WHERE created_at = (
-								SELECT MAX(created_at)
-								FROM openshift-gce-devel.ci_analysis_us.component_mapping))
-					SELECT
+	queryString := fmt.Sprintf(`SELECT
 						ANY_VALUE(test_name) AS test_name,
 						ANY_VALUE(testsuite) AS test_suite,
 						cm.id as test_id,
@@ -408,7 +396,7 @@ func (c *componentReportGenerator) getTestStatusFromBigQuery() (
 						ANY_VALUE(cm.component) AS component,
 						ANY_VALUE(cm.capabilities) AS capabilities
 					FROM (%s)
-					INNER JOIN latest_component_mapping cm ON testsuite = cm.suite AND test_name = cm.name`, dedupedJunitTable)
+					INNER JOIN openshift-gce-devel.component_mapping_latest cm ON testsuite = cm.suite AND test_name = cm.name`, dedupedJunitTable)
 
 	groupString := `
 					GROUP BY
