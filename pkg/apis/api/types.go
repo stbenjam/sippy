@@ -870,7 +870,8 @@ type ComponentReportRowIdentification struct {
 
 type ComponentReportColumn struct {
 	ComponentReportColumnIdentification
-	Status ComponentReportStatus `json:"status"`
+	Status        ComponentReportStatus `json:"status"`
+	MostRegressed ComponentReportTestIdentification
 }
 
 type ComponentReportColumnIdentification struct {
@@ -883,9 +884,13 @@ type ComponentReportColumnIdentification struct {
 
 type ComponentReportStatus int
 
-type ComponentReportTestDetails struct {
+type ComponentReportTestIdentification struct {
 	ComponentReportRowIdentification
 	ComponentReportColumnIdentification
+}
+
+type ComponentReportTestDetails struct {
+	ComponentReportTestIdentification
 	SampleStats  ComponentReportTestDetailsReleaseStats `json:"sample_stats"`
 	BaseStats    ComponentReportTestDetailsReleaseStats `json:"base_stats"`
 	FisherExact  float64                                `json:"fisher_exact"`
