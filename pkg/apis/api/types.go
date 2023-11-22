@@ -870,8 +870,8 @@ type ComponentReportRowIdentification struct {
 
 type ComponentReportColumn struct {
 	ComponentReportColumnIdentification
-	Status        ComponentReportStatus `json:"status"`
-	MostRegressed ComponentReportTestIdentification
+	Status         ComponentReportStatus        `json:"status"`
+	RegressedTests []ComponentReportTestSummary `json:"regress_tests,omitempty"`
 }
 
 type ComponentReportColumnIdentification struct {
@@ -887,6 +887,11 @@ type ComponentReportStatus int
 type ComponentReportTestIdentification struct {
 	ComponentReportRowIdentification
 	ComponentReportColumnIdentification
+}
+
+type ComponentReportTestSummary struct {
+	ComponentReportTestIdentification
+	Status ComponentReportStatus `json:"status"`
 }
 
 type ComponentReportTestDetails struct {
