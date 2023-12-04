@@ -399,12 +399,13 @@ export function mergeRegressedTests(data) {
     return ['Cancelled']
   }
 
-  const columns = data.rows[0].columns
   let regressedTests = []
-  columns.forEach((column) => {
-    if (column.regressed_tests && column.regressed_tests.length > 0) {
-      regressedTests = regressedTests.concat(column.regressed_tests)
-    }
+  data.rows.forEach((row) => {
+    row.columns.forEach((column) => {
+      if (column.regressed_tests && column.regressed_tests.length > 0) {
+        regressedTests = regressedTests.concat(column.regressed_tests)
+      }
+    })
   })
 
   regressedTests.sort((a, b) => {

@@ -16,7 +16,11 @@ import {
   useMediaQuery,
 } from '@mui/material'
 import { cyan, green, orange, red } from '@mui/material/colors'
-import { getReportStartDate, relativeTime } from './helpers'
+import {
+  getReportStartDate,
+  getUrlWithoutParams,
+  relativeTime,
+} from './helpers'
 import { JobAnalysis } from './jobs/JobAnalysis'
 import { light } from '@mui/material/styles/createPalette'
 import { makeStyles, styled } from '@mui/styles'
@@ -479,7 +483,7 @@ export default function App(props) {
                             return (
                               <CompReadyVarsProvider>
                                 <ComponentReadiness
-                                  key={window.location.href}
+                                  key={getUrlWithoutParams(['regressedModal'])}
                                 />
                               </CompReadyVarsProvider>
                             )
