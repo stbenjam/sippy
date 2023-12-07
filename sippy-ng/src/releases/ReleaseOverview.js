@@ -1,6 +1,7 @@
+import { ArrayParam, NumberParam, useQueryParam } from 'use-query-params'
 import { BOOKMARKS } from '../constants'
+import { Box, Card, Container, Tooltip, Typography } from '@mui/material'
 import { CapabilitiesContext } from '../App'
-import { Card, Container, Tooltip, Typography } from '@mui/material'
 import { dayFilter, JobStackedChart } from '../jobs/JobStackedChart'
 import {
   getReportStartDate,
@@ -8,11 +9,11 @@ import {
   queryForBookmark,
   safeEncodeURIComponent,
   withoutUnstable,
+  withoutVariants,
   withSort,
 } from '../helpers'
 import { Link } from 'react-router-dom'
 import { makeStyles } from '@mui/styles'
-import { NumberParam, useQueryParam } from 'use-query-params'
 import { ReportEndContext } from '../App'
 import Alert from '@mui/material/Alert'
 import Grid from '@mui/material/Grid'
@@ -26,6 +27,7 @@ import SimpleBreadcrumbs from '../components/SimpleBreadcrumbs'
 import TestTable from '../tests/TestTable'
 import TopLevelIndicators from './TopLevelIndicators'
 import VariantCards from '../jobs/VariantCards'
+import VariantSelector from '../components/VariantSelector'
 
 export const REGRESSED_TOOLTIP =
   'Shows the most regressed items this week vs. last week, for those with more than 10 runs, excluding never-stable.'
@@ -61,10 +63,32 @@ export default function ReleaseOverview(props) {
   const [dayOffset = 1, setDayOffset] = useQueryParam('dayOffset', NumberParam)
   const startDate = getReportStartDate(React.useContext(ReportEndContext))
 
+  const defaultExcludedVariants = [
+    'never-stable',
+    'arm64',
+    'ppc64le',
+    's390x',
+    'heterogeneous',
+    'aggregated',
+  ]
+  const [excludedVariants = defaultExcludedVariants, setExcludedVariantsParam] =
+    useQueryParam('excludedVariants', ArrayParam)
+
+  const setExcludedVariants = (values) => {
+    setExcludedVariantsParam(values)
+    setLoaded(false)
+  }
+
   const fetchData = () => {
-    fetch(
-      process.env.REACT_APP_API_URL + '/api/health?release=' + props.release
-    )
+    let queryParams = 'release=' + props.release
+
+    if (excludedVariants.length > 0) {
+      queryParams +=
+        '&' +
+        excludedVariants.map((value) => `excludedVariant=${value}`).join('&')
+    }
+
+    fetch(process.env.REACT_APP_API_URL + '/api/health?' + queryParams)
       .then((response) => {
         if (response.status !== 200) {
           throw new Error('server returned ' + response.status)
@@ -85,7 +109,7 @@ export default function ReleaseOverview(props) {
   useEffect(() => {
     document.title = `Sippy > ${props.release} > Health Summary`
     fetchData()
-  }, [])
+  }, [excludedVariants])
 
   if (fetchError !== '') {
     return <Alert severity="error">{fetchError}</Alert>
@@ -115,7 +139,15 @@ export default function ReleaseOverview(props) {
 
   return (
     <Fragment>
-      <SimpleBreadcrumbs release={props.release} />
+      <Box display="flex" justifyContent="space-between" alignItems="center">
+        <SimpleBreadcrumbs release={props.release} />
+        <VariantSelector
+          defaultExcludedVariants={defaultExcludedVariants}
+          excludedVariants={excludedVariants}
+          setExcludedVariants={setExcludedVariants}
+          release={props.release}
+        />
+      </Box>
       <div className="{classes.root}" style={{ padding: 20 }}>
         <Container maxWidth="lg">
           <Typography variant="h4" gutterBottom className={classes.title}>
@@ -134,7 +166,7 @@ export default function ReleaseOverview(props) {
                   <Link
                     to={withSort(
                       pathForJobsWithFilter(props.release, {
-                        items: withoutUnstable(),
+                        items: withoutVariants(excludedVariants),
                       }),
                       'current_pass_percentage',
                       'asc'
@@ -184,7 +216,7 @@ export default function ReleaseOverview(props) {
                     }/analysis?filters=${safeEncodeURIComponent(
                       JSON.stringify({
                         items: [
-                          ...withoutUnstable(),
+                          ...withoutVariants(excludedVariants),
                           ...dayFilter(14, startDate),
                         ],
                         linkOperator: 'and',
@@ -194,9 +226,7 @@ export default function ReleaseOverview(props) {
                     Last 14 days
                   </Link>
                   <Tooltip
-                    title={
-                      'This chart shows a 14 day period of job runs, excluding never-stable and tech preview. '
-                    }
+                    title={'This chart shows a 14 day period of job runs'}
                   >
                     <InfoIcon />
                   </Tooltip>
@@ -205,7 +235,10 @@ export default function ReleaseOverview(props) {
                   release={props.release}
                   period="day"
                   filter={{
-                    items: [...withoutUnstable(), ...dayFilter(14, startDate)],
+                    items: [
+                      ...withoutVariants(excludedVariants),
+                      ...dayFilter(14, startDate),
+                    ],
                     linkOperator: 'and',
                   }}
                 />
@@ -257,7 +290,10 @@ export default function ReleaseOverview(props) {
             </CapabilitiesContext.Consumer>
 
             <Grid item md={12}>
-              <VariantCards release={props.release} />
+              <VariantCards
+                release={props.release}
+                excludedVariants={excludedVariants}
+              />
             </Grid>
 
             <Grid item md={6} sm={12}>
@@ -269,7 +305,7 @@ export default function ReleaseOverview(props) {
                   }?sortField=net_improvement&sort=asc&${queryForBookmark(
                     BOOKMARKS.RUN_7,
                     BOOKMARKS.NO_STEP_GRAPH,
-                    ...withoutUnstable()
+                    ...withoutVariants(excludedVariants)
                   )}`}
                   style={{ textAlign: 'center' }}
                   variant="h5"
@@ -289,8 +325,8 @@ export default function ReleaseOverview(props) {
                   filterModel={{
                     items: [
                       BOOKMARKS.RUN_7,
-                      BOOKMARKS.NO_NEVER_STABLE,
                       BOOKMARKS.NO_STEP_GRAPH,
+                      ...withoutVariants(excludedVariants),
                     ],
                   }}
                   pageSize={5}
@@ -307,7 +343,7 @@ export default function ReleaseOverview(props) {
                     props.release
                   }?period=twoDay&sortField=net_improvement&sort=asc&${queryForBookmark(
                     BOOKMARKS.RUN_2,
-                    ...withoutUnstable()
+                    ...withoutVariants(excludedVariants)
                   )}`}
                   variant="h5"
                 >
@@ -324,7 +360,10 @@ export default function ReleaseOverview(props) {
                   limit={10}
                   rowsPerPageOptions={[5]}
                   filterModel={{
-                    items: [BOOKMARKS.RUN_2, ...withoutUnstable()],
+                    items: [
+                      BOOKMARKS.RUN_2,
+                      ...withoutVariants(excludedVariants),
+                    ],
                   }}
                   pageSize={5}
                   period="twoDay"
@@ -340,10 +379,9 @@ export default function ReleaseOverview(props) {
                   component={Link}
                   to={`/tests/${props.release}?${queryForBookmark(
                     BOOKMARKS.RUN_7,
-                    BOOKMARKS.NO_NEVER_STABLE,
-                    BOOKMARKS.NO_AGGREGATED,
                     BOOKMARKS.WITHOUT_OVERALL_JOB_RESULT,
-                    BOOKMARKS.NO_STEP_GRAPH
+                    BOOKMARKS.NO_STEP_GRAPH,
+                    ...withoutVariants(excludedVariants)
                   )}&sortField=net_working_improvement&sort=asc`}
                   style={{ textAlign: 'center' }}
                   variant="h5"
@@ -364,10 +402,9 @@ export default function ReleaseOverview(props) {
                     filterModel={{
                       items: [
                         BOOKMARKS.RUN_7,
-                        BOOKMARKS.NO_NEVER_STABLE,
-                        BOOKMARKS.NO_AGGREGATED,
                         BOOKMARKS.WITHOUT_OVERALL_JOB_RESULT,
                         BOOKMARKS.NO_STEP_GRAPH,
+                        ...withoutVariants(excludedVariants),
                       ],
                     }}
                     pageSize={5}
@@ -386,10 +423,9 @@ export default function ReleaseOverview(props) {
                     props.release
                   }?period=twoDay&sortField=net_working_improvement&sort=asc&${queryForBookmark(
                     BOOKMARKS.RUN_2,
-                    BOOKMARKS.NO_NEVER_STABLE,
-                    BOOKMARKS.NO_AGGREGATED,
                     BOOKMARKS.WITHOUT_OVERALL_JOB_RESULT,
-                    BOOKMARKS.NO_STEP_GRAPH
+                    BOOKMARKS.NO_STEP_GRAPH,
+                    ...withoutVariants(excludedVariants)
                   )}`}
                   style={{ textAlign: 'center' }}
                   variant="h5"
@@ -409,10 +445,9 @@ export default function ReleaseOverview(props) {
                     filterModel={{
                       items: [
                         BOOKMARKS.RUN_2,
-                        BOOKMARKS.NO_NEVER_STABLE,
-                        BOOKMARKS.NO_AGGREGATED,
                         BOOKMARKS.WITHOUT_OVERALL_JOB_RESULT,
                         BOOKMARKS.NO_STEP_GRAPH,
+                        ...withoutVariants(excludedVariants),
                       ],
                     }}
                     pageSize={5}
@@ -430,12 +465,11 @@ export default function ReleaseOverview(props) {
                   component={Link}
                   to={`/tests/${props.release}/details?${queryForBookmark(
                     BOOKMARKS.RUN_7,
-                    BOOKMARKS.NO_NEVER_STABLE,
-                    BOOKMARKS.NO_AGGREGATED,
                     BOOKMARKS.WITHOUT_OVERALL_JOB_RESULT,
                     BOOKMARKS.NO_STEP_GRAPH,
                     BOOKMARKS.HIGH_DELTA_FROM_WORKING_AVERAGE,
-                    BOOKMARKS.HIGH_STANDARD_DEVIATION
+                    BOOKMARKS.HIGH_STANDARD_DEVIATION,
+                    ...withoutVariants(excludedVariants)
                   )}&sortField=delta_from_working_average&sort=asc`}
                   style={{ textAlign: 'center' }}
                   variant="h5"
@@ -462,12 +496,11 @@ export default function ReleaseOverview(props) {
                     filterModel={{
                       items: [
                         BOOKMARKS.RUN_7,
-                        BOOKMARKS.NO_NEVER_STABLE,
-                        BOOKMARKS.NO_AGGREGATED,
                         BOOKMARKS.WITHOUT_OVERALL_JOB_RESULT,
                         BOOKMARKS.NO_STEP_GRAPH,
                         BOOKMARKS.HIGH_DELTA_FROM_WORKING_AVERAGE,
                         BOOKMARKS.HIGH_STANDARD_DEVIATION,
+                        ...withoutVariants(excludedVariants),
                       ],
                     }}
                     pageSize={5}
@@ -484,10 +517,9 @@ export default function ReleaseOverview(props) {
                   component={Link}
                   to={`/tests/${props.release}?${queryForBookmark(
                     BOOKMARKS.RUN_7,
-                    BOOKMARKS.NO_NEVER_STABLE,
-                    BOOKMARKS.NO_AGGREGATED,
                     BOOKMARKS.WITHOUT_OVERALL_JOB_RESULT,
-                    BOOKMARKS.NO_STEP_GRAPH
+                    BOOKMARKS.NO_STEP_GRAPH,
+                    ...withoutVariants(excludedVariants)
                   )}&sortField=current_working_percentage&sort=asc`}
                   style={{ textAlign: 'center' }}
                   variant="h5"
@@ -508,10 +540,9 @@ export default function ReleaseOverview(props) {
                     filterModel={{
                       items: [
                         BOOKMARKS.RUN_7,
-                        BOOKMARKS.NO_NEVER_STABLE,
-                        BOOKMARKS.NO_AGGREGATED,
                         BOOKMARKS.WITHOUT_OVERALL_JOB_RESULT,
                         BOOKMARKS.NO_STEP_GRAPH,
+                        ...withoutVariants(excludedVariants),
                       ],
                     }}
                     pageSize={5}

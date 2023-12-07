@@ -44,10 +44,9 @@ func useNewInstallTest(release string) bool {
 
 // PrintOverallReleaseHealthFromDB gives a summarized status of the overall health, including
 // infrastructure, install, upgrade, and variant success rates.
-func PrintOverallReleaseHealthFromDB(w http.ResponseWriter, dbc *db.DB, release string, reportEnd time.Time) {
-	excludedVariants := testidentification.DefaultExcludedVariants
+func PrintOverallReleaseHealthFromDB(w http.ResponseWriter, dbc *db.DB, release string, excludedVariants []string, reportEnd time.Time) {
 	// Minor upgrades install a previous version and should not be counted against the current version's install stat.
-	excludedInstallVariants := append(testidentification.DefaultExcludedVariants, "upgrade-minor")
+	excludedInstallVariants := append(excludedVariants, "upgrade-minor")
 
 	indicators := make(map[string]apitype.Test)
 
@@ -124,12 +123,23 @@ func PrintOverallReleaseHealthFromDB(w http.ResponseWriter, dbc *db.DB, release 
 	log.WithField("lastUpdated", lastUpdated).Info("ran the last update query")
 
 	// Load all the job reports for this release to calculate statistics:
+	filters := &filter.Filter{}
+	for i := range excludedVariants {
+		filters.Items = append(filters.Items, filter.FilterItem{
+			Field:    "variants",
+			Operator: "contains",
+			Not:      true,
+			Value:    excludedVariants[i],
+		})
+	}
+
 	filterOpts := &filter.FilterOptions{
-		Filter:    &filter.Filter{},
+		Filter:    filters,
 		SortField: "current_pass_percentage",
 		Sort:      apitype.SortDescending,
 		Limit:     0,
 	}
+
 	start := reportEnd.Add(-14 * 24 * time.Hour)
 	boundary := reportEnd.Add(-7 * 24 * time.Hour)
 	end := reportEnd

@@ -2,6 +2,7 @@ package sippyserver
 
 import (
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -30,6 +31,14 @@ func getISO8601Date(paramName string, req *http.Request) (*time.Time, error) {
 	}
 
 	return &date, nil
+}
+
+func extractArrayParams(url *url.URL, paramName string) []string {
+	if url == nil {
+		return nil
+	}
+
+	return url.Query()[paramName]
 }
 
 func getPeriodDates(defaultPeriod string, req *http.Request, reportEnd time.Time) (start, boundary, end time.Time) {

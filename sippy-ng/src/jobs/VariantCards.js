@@ -77,13 +77,15 @@ export default function VariantCards(props) {
 
   const cards = []
   const noData = [] // Put these at the end
-  variants.forEach((variant, index) => {
-    if (variant.current_runs === 0) {
-      noData.push(minicard(variant, index))
-    } else {
-      cards.push(minicard(variant, index))
-    }
-  })
+  variants
+    .filter((v) => !props.excludedVariants.includes(v.name))
+    .forEach((variant, index) => {
+      if (variant.current_runs === 0) {
+        noData.push(minicard(variant, index))
+      } else {
+        cards.push(minicard(variant, index))
+      }
+    })
 
   return (
     <Fragment>
@@ -116,6 +118,11 @@ export default function VariantCards(props) {
   )
 }
 
+VariantCards.defaultProps = {
+  excludedVariants: [],
+}
+
 VariantCards.propTypes = {
+  excludedVariants: PropTypes.arrayOf(PropTypes.string),
   release: PropTypes.string.isRequired,
 }

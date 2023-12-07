@@ -872,9 +872,11 @@ func (s *Server) jsonReleasesReportFromDB(w http.ResponseWriter, _ *http.Request
 }
 
 func (s *Server) jsonHealthReportFromDB(w http.ResponseWriter, req *http.Request) {
+	excludedVariants := extractArrayParams(req.URL, "excludedVariant")
+
 	release := s.getReleaseOrFail(w, req)
 	if release != "" {
-		api.PrintOverallReleaseHealthFromDB(w, s.db, release, s.GetReportEnd())
+		api.PrintOverallReleaseHealthFromDB(w, s.db, release, excludedVariants, s.GetReportEnd())
 	}
 }
 

@@ -260,6 +260,10 @@ export function pathForRepository(release, org, repo) {
   return `/repositories/${release}/${org}/${repo}`
 }
 
+export function withoutVariants(variants) {
+  return variants.map((v) => not(filterFor('variants', 'contains', v)))
+}
+
 export function filterFor(column, operator, value) {
   return { columnField: column, operatorValue: operator, value: value }
 }
