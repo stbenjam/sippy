@@ -17,7 +17,7 @@ import { CompReadyVarsContext } from './CompReadyVars'
 import { grey } from '@mui/material/colors'
 import { Grid, TableContainer, Tooltip, Typography } from '@mui/material'
 import { makeStyles, useTheme } from '@mui/styles'
-import { Route, Switch, useRouteMatch } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
 import ComponentReadinessHelp from './ComponentReadinessHelp'
 import ComponentReadinessToolBar from './ComponentReadinessToolBar'
 import CompReadyCancelled from './CompReadyCancelled'
@@ -203,8 +203,6 @@ export default function ComponentReadiness(props) {
   const [testId, setTestId] = React.useState(testIdParam)
   const [testName, setTestName] = React.useState(testNameParam)
 
-  const { path, url } = useRouteMatch()
-
   const [fetchError, setFetchError] = React.useState('')
   const [isLoaded, setIsLoaded] = React.useState(false)
   const [data, setData] = React.useState({})
@@ -371,8 +369,8 @@ export default function ComponentReadiness(props) {
   return (
     <ComponentReadinessStyleContext.Provider value={classes}>
       <Route
-        path={path}
-        render={({ location }) => (
+        path=""
+        render={() => (
           <Fragment>
             <Grid
               container
@@ -381,15 +379,15 @@ export default function ComponentReadiness(props) {
               className="cr-view"
             ></Grid>
             {/* eslint-disable react/prop-types */}
-            <Switch>
+            <Routes>
               <Route
-                path="/component_readiness/help"
+                path="help"
                 render={(props) => {
                   return <ComponentReadinessHelp key="cr-help" />
                 }}
               />
               <Route
-                path="/component_readiness/test_details"
+                path="test_details"
                 render={(props) => {
                   // We need to pass the testId and testName
                   const filterVals = getUpdatedUrlParts(varsContext)
@@ -518,7 +516,7 @@ export default function ComponentReadiness(props) {
                 }}
               />
               <Route
-                path={'/component_readiness/main'}
+                path="component_readiness/main"
                 render={(props) => {
                   const filterVals = getUpdatedUrlParts(varsContext)
                   return (
@@ -659,7 +657,7 @@ export default function ComponentReadiness(props) {
                   )
                 }}
               />
-            </Switch>
+            </Routes>
           </Fragment>
         )}
       />

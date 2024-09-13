@@ -1,21 +1,18 @@
+import { Box, Container, Paper, Tab, Tabs, Typography } from '@mui/material'
+import { filterFor } from '../helpers'
 import {
-  Box,
-  Container,
-  Grid,
-  Paper,
-  Tab,
-  Tabs,
-  Typography,
-} from '@mui/material'
+  Link,
+  Route,
+  Routes,
+  useLocation,
+  useResolvedPath,
+} from 'react-router-dom'
 import { TabContext } from '@mui/lab'
-import PropTypes from 'prop-types'
-import React, { Fragment, useEffect } from 'react'
-
-import { filterFor, multiple } from '../helpers'
-import { Link, Route, Switch, useRouteMatch } from 'react-router-dom'
 import JobRunsTable from './JobRunsTable'
 import JobsDetail from './JobsDetail'
 import JobTable from './JobTable'
+import PropTypes from 'prop-types'
+import React, { Fragment, useEffect } from 'react'
 import SimpleBreadcrumbs from '../components/SimpleBreadcrumbs'
 
 /**
@@ -23,7 +20,8 @@ import SimpleBreadcrumbs from '../components/SimpleBreadcrumbs'
  * and job runs.
  */
 export default function Jobs(props) {
-  const { path, url } = useRouteMatch()
+  const location = useLocation()
+  const resolvedPath = useResolvedPath('')
 
   useEffect(() => {
     document.title = `Sippy > ${props.release} > Jobs`
@@ -32,88 +30,84 @@ export default function Jobs(props) {
   return (
     <Fragment>
       <SimpleBreadcrumbs release={props.release} currentPage="Jobs" />
-      <Route
-        path="/"
-        render={({ location }) => (
-          <TabContext value={path}>
-            <Typography align="center" variant="h4">
-              Job health for {props.release}
-            </Typography>
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
+      <TabContext value={location.pathname}>
+        <Typography align="center" variant="h4">
+          Job health for {props.release}
+        </Typography>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <Paper
+            sx={{
+              margin: 2,
+              border: 1,
+              borderColor: 'divider',
+              display: 'inline-block',
+            }}
+          >
+            <Tabs
+              value={location.pathname.substring(
+                location.pathname.lastIndexOf('/') + 1
+              )}
+              indicatorColor="primary"
+              textColor="primary"
             >
-              <Paper
-                sx={{
-                  margin: 2,
-                  border: 1,
-                  borderColor: 'divider',
-                  display: 'inline-block',
-                }}
-              >
-                <Tabs
-                  value={location.pathname.substring(
-                    location.pathname.lastIndexOf('/') + 1
-                  )}
-                  indicatorColor="primary"
-                  textColor="primary"
-                >
-                  <Tab
-                    label="All jobs"
-                    value={props.release}
-                    component={Link}
-                    to={url}
-                    sx={{ padding: '6px 12px !important' }}
-                  />
-                  <Tab
-                    label="Permafailing"
-                    value="permafailing"
-                    component={Link}
-                    to={url + '/permafailing'}
-                    sx={{ padding: '6px 12px !important' }}
-                  />
-                  <Tab
-                    label="All job runs"
-                    value="runs"
-                    component={Link}
-                    to={url + '/runs'}
-                    sx={{ padding: '6px 12px !important' }}
-                  />
-                </Tabs>
-              </Paper>
-            </Box>
-            <Container size="xl">
-              <Switch>
-                <Route path={path + '/runs'}>
-                  <JobRunsTable release={props.release} />
-                </Route>
-                <Route path={path + '/permafailing'}>
-                  <JobTable
-                    release={props.release}
-                    filterModel={{
-                      items: [
-                        filterFor('current_pass_percentage', '=', '0'),
-                        filterFor('previous_pass_percentage', '=', '0'),
-                      ],
-                    }}
-                    sortField="last_pass"
-                    sort="desc"
-                    view="Last passing"
-                    hideControls="true"
-                  />
-                </Route>
-
-                <Route exact path={path}>
-                  <JobTable release={props.release} />
-                </Route>
-              </Switch>
-            </Container>
-          </TabContext>
-        )}
-      />
+              <Tab
+                label="All jobs"
+                value={props.release}
+                component={Link}
+                to={resolvedPath.pathname}
+                sx={{ padding: '6px 12px !important' }}
+              />
+              <Tab
+                label="Permafailing"
+                value="permafailing"
+                component={Link}
+                to={`${resolvedPath.pathname}/permafailing`}
+                sx={{ padding: '6px 12px !important' }}
+              />
+              <Tab
+                label="All job runs"
+                value="runs"
+                component={Link}
+                to={`${resolvedPath.pathname}/runs`}
+                sx={{ padding: '6px 12px !important' }}
+              />
+            </Tabs>
+          </Paper>
+        </Box>
+        <Container size="xl">
+          <Routes>
+            <Route
+              path="runs"
+              element={<JobRunsTable release={props.release} />}
+            />
+            <Route
+              path="permafailing"
+              element={
+                <JobTable
+                  release={props.release}
+                  filterModel={{
+                    items: [
+                      filterFor('current_pass_percentage', '=', '0'),
+                      filterFor('previous_pass_percentage', '=', '0'),
+                    ],
+                  }}
+                  sortField="last_pass"
+                  sort="desc"
+                  view="Last passing"
+                  hideControls="true"
+                />
+              }
+            />
+            <Route path="/" element={<JobTable release={props.release} />} />
+          </Routes>
+        </Container>
+      </TabContext>
     </Fragment>
   )
 }

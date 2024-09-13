@@ -5,10 +5,8 @@ import {
   formatLongDate,
   getUpdatedUrlParts,
 } from './CompReadyUtils'
-import { FormControl, Grid, InputLabel, MenuItem, Select } from '@mui/material'
 import { Fragment } from 'react'
 import { makeStyles, useTheme } from '@mui/styles'
-import { useHistory } from 'react-router-dom'
 import AdvancedOptions from './AdvancedOptions'
 import Button from '@mui/material/Button'
 import GroupByCheckboxList from './GroupByCheckboxList'
@@ -52,7 +50,6 @@ export default function CompReadyMainInputs(props) {
   ])
 
   const varsContext = useContext(CompReadyVarsContext)
-  const history = useHistory()
   const compReadyEnvOptions = (
     <div>
       <GroupByCheckboxList

@@ -1,6 +1,12 @@
 import './Install.css'
 import { Grid, Typography } from '@mui/material'
-import { Redirect, Route, Switch, useRouteMatch } from 'react-router-dom'
+import {
+  Navigate,
+  Route,
+  Routes,
+  useNavigate,
+  useResolvedPath,
+} from 'react-router-dom'
 import Alert from '@mui/material/Alert'
 import PropTypes from 'prop-types'
 import React, { Fragment, useEffect } from 'react'
@@ -9,7 +15,8 @@ import TestByVariantTable from '../tests/TestByVariantTable'
 import TopLevelIndicators from './InstallTopLevelIndicators'
 
 export default function Install(props) {
-  const { path, url } = useRouteMatch()
+  const resolvedPath = useResolvedPath('') // Base path
+  const navigate = useNavigate() // For programmatic navigation
 
   const [fetchError, setFetchError] = React.useState('')
   const [isLoaded, setLoaded] = React.useState(false)
@@ -53,7 +60,9 @@ export default function Install(props) {
   useEffect(() => {
     document.title = `Sippy > ${props.release} > Install health`
     fetchData()
-  }, [])
+    // Navigate to /operators on first load
+    navigate(`${resolvedPath.pathname}/operators`, { replace: true })
+  }, [props.release, navigate, resolvedPath.pathname])
 
   if (fetchError !== '') {
     return <Alert severity="error">Failed to load data, {fetchError}</Alert>
@@ -71,37 +80,33 @@ export default function Install(props) {
           Install health for {props.release}
         </Typography>
       </Grid>
-      <Route
-        path="/"
-        render={({ location }) => (
-          <Fragment>
-            <Grid container justifyContent="center" spacing={3}>
-              <TopLevelIndicators
+      <Grid container justifyContent="center" spacing={3}>
+        <TopLevelIndicators
+          release={props.release}
+          indicators={health.indicators}
+        />
+      </Grid>
+      <Grid>
+        <Routes>
+          <Route
+            path="operators"
+            element={
+              <TestByVariantTable
                 release={props.release}
-                indicators={health.indicators}
+                colorScale={[90, 100]}
+                data={data}
+                excludedVariants={[
+                  'upgrade-minor',
+                  'aggregated',
+                  'never-stable',
+                ]}
               />
-            </Grid>
-
-            <Grid>
-              <Switch>
-                <Route path={path + '/operators'}>
-                  <TestByVariantTable
-                    release={props.release}
-                    colorScale={[90, 100]}
-                    data={data}
-                    excludedVariants={[
-                      'upgrade-minor',
-                      'aggregated',
-                      'never-stable',
-                    ]}
-                  />
-                </Route>
-                <Redirect from="/" to={url + '/operators'} />
-              </Switch>
-            </Grid>
-          </Fragment>
-        )}
-      />
+            }
+          />
+          {/* Default redirect to /operators */}
+          <Route path="*" element={<Navigate to="operators" replace />} />
+        </Routes>
+      </Grid>
     </Fragment>
   )
 }

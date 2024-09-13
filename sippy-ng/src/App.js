@@ -1,4 +1,3 @@
-import { CompReadyVarsProvider } from './component_readiness/CompReadyVars'
 import { createTheme, useTheme } from '@mui/material/styles'
 import {
   CssBaseline,
@@ -6,21 +5,16 @@ import {
   StyledEngineProvider,
   ThemeProvider,
   Tooltip,
-  useMediaQuery,
 } from '@mui/material'
 import { cyan, green, orange, red } from '@mui/material/colors'
 import { DarkMode, LightMode } from '@mui/icons-material'
-import {
-  getReportStartDate,
-  getUrlWithoutParams,
-  relativeTime,
-} from './helpers'
+import { getReportStartDate, relativeTime } from './helpers'
 import { JobAnalysis } from './jobs/JobAnalysis'
 import { makeStyles, styled } from '@mui/styles'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { parse, stringify } from 'query-string'
 import { QueryParamProvider } from 'use-query-params'
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5'
-import { Redirect, Route, Switch } from 'react-router-dom'
+import { ReactRouter6Adapter } from 'use-query-params/adapters/react-router-6'
 import { TestAnalysis } from './tests/TestAnalysis'
 import { useCookies } from 'react-cookie'
 import Alert from '@mui/material/Alert'
@@ -96,7 +90,6 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   padding: theme.spacing(0, 1),
-  // necessary for content to be below app bar
   ...theme.mixins.toolbar,
   justifyContent: 'flex-end',
 }))
@@ -149,12 +142,9 @@ const themes = {
   },
 }
 
-// Default theme, restore settings from v4 color schemes. v5 is much darker.
-
 export default function App(props) {
   const classes = useStyles()
   const theme = useTheme()
-
   const [cookies, setCookie] = useCookies(['sippyColorMode'])
   const colorModePreference = cookies['sippyColorMode']
   const systemPrefersDark = window.matchMedia(
@@ -200,17 +190,12 @@ export default function App(props) {
       fetch(process.env.REACT_APP_API_URL + '/api/report_date'),
     ])
       .then(([releases, capabilities, reportDate]) => {
-        if (releases.status !== 200) {
+        if (releases.status !== 200)
           throw new Error('server returned ' + releases.status)
-        }
-
-        if (capabilities.status !== 200) {
+        if (capabilities.status !== 200)
           throw new Error('server returned ' + capabilities.status)
-        }
-
-        if (reportDate.status !== 200) {
+        if (reportDate.status !== 200)
           throw new Error('server returned ' + reportDate.status)
-        }
 
         return Promise.all([
           releases.json(),
@@ -219,8 +204,6 @@ export default function App(props) {
         ])
       })
       .then(([releases, capabilities, reportDate]) => {
-        // Remove the Z from the ga_dates so that when Date objects are created,
-        // the date is not converted to a local time zone.
         for (const key in releases.ga_dates) {
           if (releases.ga_dates[key]) {
             releases.ga_dates[key] = releases.ga_dates[key].replace('Z', '')
@@ -238,38 +221,23 @@ export default function App(props) {
       })
   }
 
-  // Disable console.log in production
   useEffect(() => {
-    if (process.env.NODE_ENV === 'production') {
-      console.log = function () {}
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!isLoaded) {
-      fetchData()
-    }
-  })
+    if (!isLoaded) fetchData()
+  }, [isLoaded])
 
   const handleDrawerOpen = () => {
     setDrawerOpen(true)
-  }
-
-  const showWithCapability = (capability, el) => {
-    if (capabilities.includes(capability)) {
-      return el
-    }
-
-    return null
   }
 
   const handleDrawerClose = () => {
     setDrawerOpen(false)
   }
 
-  if (!isLoaded) {
-    return <Typography>Loading...</Typography>
+  const showWithCapability = (capability, el) => {
+    return capabilities.includes(capability) ? el : null
   }
+
+  if (!isLoaded) return <Typography>Loading...</Typography>
 
   let landingPage = ''
   if (fetchError !== '') {
@@ -286,6 +254,7 @@ export default function App(props) {
   }
 
   const startDate = getReportStartDate(reportDate)
+
   return (
     <ColorModeContext.Provider value={colorMode}>
       <ThemeProvider theme={createTheme(themes[mode])}>
@@ -295,8 +264,7 @@ export default function App(props) {
               <CapabilitiesContext.Provider value={capabilities}>
                 <CssBaseline />
                 <QueryParamProvider
-                  ReactRouterRoute={Route}
-                  adapter={ReactRouter5Adapter}
+                  adapter={ReactRouter6Adapter}
                   options={{
                     searchStringToObject: parse,
                     objectToSearchString: stringify,
@@ -381,216 +349,89 @@ export default function App(props) {
 
                     <Main open={drawerOpen}>
                       <DrawerHeader />
-                      {/* eslint-disable react/prop-types */}
-                      <Switch>
+                      <Routes>
                         <Route
                           path="/release/:release/tags/:tag"
-                          render={(props) => (
-                            <ReleasePayloadDetails
-                              key={
-                                'release-details-' + props.match.params.release
-                              }
-                              release={props.match.params.release}
-                              releaseTag={props.match.params.tag}
-                            />
-                          )}
+                          element={<ReleasePayloadDetails />}
                         />
-
                         <Route
                           path="/release/:release/streams/:arch/:stream"
-                          render={(props) => (
-                            <PayloadStream
-                              release={props.match.params.release}
-                              arch={props.match.params.arch}
-                              stream={props.match.params.stream}
-                            />
-                          )}
+                          element={<PayloadStream />}
                         />
-
                         <Route
                           path="/release/:release/streams"
-                          render={(props) => (
-                            <PayloadStreams
-                              key={
-                                'release-streams-' + props.match.params.release
-                              }
-                              release={props.match.params.release}
-                            />
-                          )}
+                          element={<PayloadStreams />}
                         />
-
                         <Route
                           path="/release/:release/tags"
-                          render={(props) => (
-                            <ReleasePayloads
-                              key={'release-tags-' + props.match.params.release}
-                              release={props.match.params.release}
-                            />
-                          )}
+                          element={<ReleasePayloads />}
                         />
-
                         <Route
                           path="/release/:release"
-                          render={(props) => (
-                            <ReleaseOverview
-                              key={
-                                'release-overview-' + props.match.params.release
-                              }
-                              release={props.match.params.release}
-                            />
-                          )}
+                          element={<ReleaseOverview />}
                         />
-
                         <Route
                           path="/variants/:release/:variant"
-                          render={(props) => (
-                            <VariantStatus
-                              release={props.match.params.release}
-                              variant={props.match.params.variant}
-                            />
-                          )}
+                          element={<VariantStatus />}
                         />
-
                         <Route
                           path="/jobs/:release/analysis"
-                          render={(props) => (
-                            <JobAnalysis release={props.match.params.release} />
-                          )}
+                          element={<JobAnalysis />}
                         />
-
-                        <Route
-                          path="/jobs/:release"
-                          render={(props) => (
-                            <Jobs
-                              key={'jobs-' + props.match.params.release}
-                              title={
-                                'Job results for ' + props.match.params.release
-                              }
-                              release={props.match.params.release}
-                            />
-                          )}
-                        />
-
+                        <Route path="/jobs/:release" element={<Jobs />} />
                         <Route
                           path="/tests/:release/analysis"
-                          render={(props) => (
-                            <TestAnalysis
-                              release={props.match.params.release}
-                            />
-                          )}
+                          element={<TestAnalysis />}
                         />
-
-                        <Route
-                          path="/tests/:release"
-                          render={(props) => (
-                            <Tests
-                              key={'tests-' + props.match.params.release}
-                              release={props.match.params.release}
-                            />
-                          )}
-                        />
-
+                        <Route path="/tests/:release" element={<Tests />} />
                         <Route
                           path="/upgrade/:release"
-                          render={(props) => (
-                            <Upgrades
-                              key={'upgrades-' + props.match.params.release}
-                              release={props.match.params.release}
-                            />
-                          )}
+                          element={<Upgrades />}
                         />
-
                         <Route
                           path="/component_readiness"
-                          render={(props) => {
-                            return (
-                              <CompReadyVarsProvider>
-                                <ComponentReadiness
-                                  key={getUrlWithoutParams(['regressedModal'])}
-                                />
-                              </CompReadyVarsProvider>
-                            )
-                          }}
+                          element={<ComponentReadiness />}
                         />
-
-                        <Route
-                          path="/install/:release"
-                          render={(props) => (
-                            <Install
-                              key={'install-' + props.match.params.release}
-                              release={props.match.params.release}
-                            />
-                          )}
-                        />
-
+                        <Route path="/install/:release" element={<Install />} />
                         <Route
                           path="/build_clusters/:cluster"
-                          render={(props) => (
-                            <BuildClusterDetails
-                              key={'cluster-' + props.match.params.cluster}
-                              cluster={props.match.params.cluster}
-                            />
-                          )}
+                          element={<BuildClusterDetails />}
                         />
-
                         <Route
                           path="/build_clusters"
-                          render={() => <BuildClusterOverview />}
+                          element={<BuildClusterOverview />}
                         />
-
                         <Route
                           path="/repositories/:release/:org/:repo"
-                          render={(props) => (
-                            <RepositoryDetails
-                              release={props.match.params.release}
-                              org={props.match.params.org}
-                              repo={props.match.params.repo}
-                            />
-                          )}
+                          element={<RepositoryDetails />}
                         />
-
                         <Route
                           path="/repositories/:release"
-                          render={(props) => (
-                            <Repositories
-                              release={props.match.params.release}
-                            />
-                          )}
+                          element={<Repositories />}
                         />
-
                         <Route
                           path="/pull_requests/:release"
-                          render={(props) => (
-                            <PullRequests
-                              key={'pr-' + props.match.params.release}
-                              release={props.match.params.release}
-                            />
-                          )}
+                          element={<PullRequests />}
                         />
-
                         <Route
                           path="/job_runs/:jobrunid/:jobname?/:repoinfo?/:pullnumber?/intervals"
-                          render={(props) => (
-                            <ProwJobRun
-                              jobRunID={props.match.params.jobrunid}
-                              jobName={props.match.params.jobname}
-                              repoInfo={props.match.params.repoinfo}
-                              pullNumber={props.match.params.pullnumber}
-                            />
-                          )}
+                          element={<ProwJobRun />}
                         />
-
                         {capabilities.includes('local_db') ? (
-                          <Route path="/">{landingPage}</Route>
+                          <Route path="/sippy-ng" element={landingPage} />
                         ) : (
-                          <Redirect
-                            exact
-                            from="/"
-                            to="/component_readiness/main"
+                          <Route
+                            path="/sippy-ng"
+                            element={
+                              <Navigate to="/component_readiness/main" />
+                            }
                           />
                         )}
-                      </Switch>
-                      {/* eslint-enable react/prop-types */}
+                        <Route
+                          path="/"
+                          element={<Navigate to="/sippy-ng/" replace />}
+                        />
+                      </Routes>
                     </Main>
                   </div>
                 </QueryParamProvider>

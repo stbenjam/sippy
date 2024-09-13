@@ -11,7 +11,13 @@ import {
 } from '@mui/material'
 import { filterFor, safeEncodeURIComponent } from '../helpers'
 import { Fragment } from 'react'
-import { Link, Route, Switch, useRouteMatch } from 'react-router-dom'
+import {
+  Link,
+  Route,
+  Routes,
+  useLocation,
+  useResolvedPath,
+} from 'react-router-dom'
 import { makeStyles } from '@mui/styles'
 import { StringParam, useQueryParam } from 'use-query-params'
 import { WarningOutlined } from '@mui/icons-material'
@@ -35,11 +41,11 @@ const useStyles = makeStyles((theme) => ({
 
 export default function ReleasePayloadDetails(props) {
   const classes = useStyles()
-  const { path, url } = useRouteMatch()
+  const resolvedPath = useResolvedPath('')
+  const location = useLocation()
 
   const [fetchError, setFetchError] = React.useState('')
   const [isLoaded, setLoaded] = React.useState(false)
-
   const [tag, setTag] = React.useState({})
 
   const [releaseTag = props.releaseTag, setReleaseTag] = useQueryParam(
@@ -83,7 +89,7 @@ export default function ReleasePayloadDetails(props) {
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [releaseTag])
 
   if (fetchError !== '') {
     return <Alert severity="error">Failed to load data, {fetchError}</Alert>
@@ -109,7 +115,7 @@ export default function ReleasePayloadDetails(props) {
   }
 
   let streamSuffix = `-${tag.architecture}`
-  if (tag.architecture == 'amd64') {
+  if (tag.architecture === 'amd64') {
     streamSuffix = ''
   }
 
@@ -143,19 +149,19 @@ export default function ReleasePayloadDetails(props) {
                 label="Job runs"
                 value={releaseTag}
                 component={Link}
-                to={url}
+                to={resolvedPath.pathname}
               />
               <Tab
                 label="Test Failures"
                 value="failures"
                 component={Link}
-                to={url + '/testfailures'}
+                to={`${resolvedPath.pathname}/testfailures`}
               />
               <Tab
                 label="Pull requests"
                 value="pull_requests"
                 component={Link}
-                to={url + '/pull_requests'}
+                to={`${resolvedPath.pathname}/pull_requests`}
               />
               <Tab
                 label="Release controller"
@@ -171,42 +177,49 @@ export default function ReleasePayloadDetails(props) {
         <Card elevation={5} style={{ margin: 20 }}>
           {statusAlert}
         </Card>
-        <Switch>
-          <Route path={path + '/pull_requests'}>
-            <Card
-              elevation={5}
-              style={{ margin: 20, padding: 20, height: '100%' }}
-            >
-              <ReleasePayloadPullRequests
-                filterModel={{
-                  items: [filterFor('release_tag', 'equals', releaseTag)],
-                }}
-              />
-            </Card>
-          </Route>
-
-          <Route path={path + '/testfailures'}>
-            <Card
-              elevation={5}
-              style={{ margin: 20, padding: 20, height: '100%' }}
-            >
-              <PayloadTestFailures payload={props.releaseTag} />
-            </Card>
-          </Route>
-
-          <Route path={path + '/'}>
-            <Card
-              elevation={5}
-              style={{ margin: 20, padding: 20, height: '100%' }}
-            >
-              <ReleasePayloadJobRuns
-                filterModel={{
-                  items: [filterFor('release_tag', 'equals', releaseTag)],
-                }}
-              />
-            </Card>
-          </Route>
-        </Switch>
+        <Routes>
+          <Route
+            path="pull_requests"
+            element={
+              <Card
+                elevation={5}
+                style={{ margin: 20, padding: 20, height: '100%' }}
+              >
+                <ReleasePayloadPullRequests
+                  filterModel={{
+                    items: [filterFor('release_tag', 'equals', releaseTag)],
+                  }}
+                />
+              </Card>
+            }
+          />
+          <Route
+            path="testfailures"
+            element={
+              <Card
+                elevation={5}
+                style={{ margin: 20, padding: 20, height: '100%' }}
+              >
+                <PayloadTestFailures payload={props.releaseTag} />
+              </Card>
+            }
+          />
+          <Route
+            path="/"
+            element={
+              <Card
+                elevation={5}
+                style={{ margin: 20, padding: 20, height: '100%' }}
+              >
+                <ReleasePayloadJobRuns
+                  filterModel={{
+                    items: [filterFor('release_tag', 'equals', releaseTag)],
+                  }}
+                />
+              </Card>
+            }
+          />
+        </Routes>
       </Container>
     </Fragment>
   )

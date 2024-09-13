@@ -17,7 +17,7 @@ import {
 } from '@mui/material'
 import { CircularProgress } from '@mui/material'
 import { stringify } from 'query-string'
-import { useHistory } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import Alert from '@mui/material/Alert'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import FormGroup from '@mui/material/FormGroup'
@@ -173,7 +173,7 @@ const intervalColorizers = {
 }
 
 export default function ProwJobRun(props) {
-  const history = useHistory()
+  const navigate = useNavigate()
 
   const [fetchError, setFetchError] = React.useState('')
   const [isLoaded, setLoaded] = React.useState(false)
@@ -305,7 +305,7 @@ export default function ProwJobRun(props) {
 
   useEffect(() => {
     updateFiltering()
-  }, [selectedSources, history, eventIntervals, overrideDisplayFlag])
+  }, [selectedSources, navigate, eventIntervals, overrideDisplayFlag])
 
   useEffect(() => {
     // Delayed processing of the filter text input to allow the user to finish typing before
@@ -331,9 +331,12 @@ export default function ProwJobRun(props) {
       { selectedSources, intervalFile, filterText, overrideDisplayFlag }
     )
 
-    history.replace({
-      search: stringify(queryString),
-    })
+    navigate(
+      {
+        search: stringify(queryString),
+      },
+      { replace: true }
+    )
 
     let filteredIntervals = filterIntervals(
       eventIntervals,

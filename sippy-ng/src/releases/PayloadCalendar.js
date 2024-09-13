@@ -1,7 +1,6 @@
 import FullCalendar from '@fullcalendar/react'
 
 import { filterFor } from '../helpers'
-import { useHistory } from 'react-router-dom'
 import { useTheme } from '@mui/material/styles'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import PayloadCalendarLegend from './PayloadCalendarLegend'
@@ -10,7 +9,7 @@ import React, { Fragment } from 'react'
 
 export default function PayloadCalendar(props) {
   const theme = useTheme()
-  const history = useHistory()
+  const navigate = useNavigate()
 
   const eventSources = [
     {
@@ -64,7 +63,7 @@ export default function PayloadCalendar(props) {
         '_blank'
       )
     } else {
-      history.push(`/release/${props.release}/tags/${info.event.title}`)
+      navigate(`/release/${props.release}/tags/${info.event.title}`)
     }
   }
 
