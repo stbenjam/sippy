@@ -3,7 +3,6 @@ package db
 import (
 	"crypto/sha256"
 	"encoding/base64"
-	"fmt"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -228,19 +227,4 @@ func syncSchema(db *gorm.DB, hashType SchemaHashType, name, desiredSchema, dropS
 		vlog.Debug("no schema update required")
 	}
 	return updateRequired, nil
-}
-
-func ParseGormLogLevel(logLevel string) (gormlogger.LogLevel, error) {
-	switch logLevel {
-	case "info":
-		return gormlogger.Info, nil
-	case "warn":
-		return gormlogger.Warn, nil
-	case "error":
-		return gormlogger.Error, nil
-	case "silent":
-		return gormlogger.Silent, nil
-	default:
-		return gormlogger.Info, fmt.Errorf("Unknown gorm LogLevel: %s", logLevel)
-	}
 }

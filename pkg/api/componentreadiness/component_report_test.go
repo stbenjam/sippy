@@ -3,15 +3,17 @@ package componentreadiness
 
 import (
 	"encoding/json"
-	crtype "github.com/openshift/sippy/pkg/apis/api/componentreport"
 	"strings"
 	"testing"
 
-	"github.com/openshift/sippy/pkg/util/sets"
+	crtype "github.com/openshift/sippy/pkg/apis/api/componentreport"
+
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openshift/sippy/pkg/util/sets"
 )
 
-func fakeComponentAndCapabilityGetter(test crtype.TestIdentification, stats crtype.TestStatus) (string, []string) {
+func fakeComponentAndCapabilityGetter(_ crtype.TestIdentification, stats crtype.TestStatus) (string, []string) {
 	name := stats.TestName
 	known := map[string]struct {
 		component    string

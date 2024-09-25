@@ -3,6 +3,7 @@ package componentreadiness
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"sort"
@@ -13,12 +14,13 @@ import (
 
 	"cloud.google.com/go/bigquery"
 	fischer "github.com/glycerine/golang-fisher-exact"
-	"github.com/openshift/sippy/pkg/api"
-	"github.com/openshift/sippy/pkg/componentreadiness/resolvedissues"
-	"github.com/openshift/sippy/pkg/componentreadiness/tracker"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"
+
+	"github.com/openshift/sippy/pkg/api"
+	"github.com/openshift/sippy/pkg/componentreadiness/resolvedissues"
+	"github.com/openshift/sippy/pkg/componentreadiness/tracker"
 
 	crtype "github.com/openshift/sippy/pkg/apis/api/componentreport"
 	"github.com/openshift/sippy/pkg/apis/cache"
@@ -120,29 +122,8 @@ type GeneratorType string
 var (
 	// Default filters, these are also hardcoded in the UI. Both must be updated.
 	// TODO: TRT-1237 should centralize these configurations for consumption by both the front and backends
-
-	DefaultColumnGroupBy   = "Platform,Architecture,Network"
-	DefaultDBGroupBy       = "Platform,Architecture,Network,Topology,FeatureSet,Upgrade,Suite,Installer"
-	DefaultIncludeVariants = []string{
-		"Architecture:amd64",
-		"FeatureSet:default",
-		"Installer:ipi",
-		"Installer:upi",
-		"Owner:eng",
-		"Platform:aws",
-		"Platform:azure",
-		"Platform:gcp",
-		"Platform:metal",
-		"Platform:vsphere",
-		"Topology:ha",
-		"CGroupMode:v2",
-		"ContainerRuntime:runc",
-	}
-	DefaultMinimumFailure   = 3
-	DefaultConfidence       = 95
-	DefaultPityFactor       = 5
-	DefaultIgnoreMissing    = false
-	DefaultIgnoreDisruption = true
+	DefaultColumnGroupBy = "Platform,Architecture,Network"
+	DefaultDBGroupBy     = "Platform,Architecture,Network,Topology,FeatureSet,Upgrade,Suite,Installer"
 )
 
 func getSingleColumnResultToSlice(query *bigquery.Query) ([]string, error) {
@@ -156,7 +137,7 @@ func getSingleColumnResultToSlice(query *bigquery.Query) ([]string, error) {
 	for {
 		row := struct{ Name string }{}
 		err := it.Next(&row)
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
@@ -281,7 +262,7 @@ func (c *componentReportGenerator) GenerateJobVariants() (crtype.JobVariants, []
 	for {
 		row := crtype.JobVariant{}
 		err := it.Next(&row)
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
@@ -731,7 +712,7 @@ func fetchTestStatus(query *bigquery.Query) (map[string]crtype.TestStatus, []err
 		var row []bigquery.Value
 
 		err := it.Next(&row)
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
@@ -891,7 +872,7 @@ func (c *componentReportGenerator) fetchJobRunTestStatus(query *bigquery.Query) 
 	for {
 		testStatus := crtype.JobRunTestStatusRow{}
 		err := it.Next(&testStatus)
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
@@ -1132,7 +1113,7 @@ func (t *triagedIncidentsModifiedTimeGenerator) fetchLastModified(query *bigquer
 		LastModification bigquery.NullTimestamp
 	}
 	err = it.Next(&triagedIncidentModifiedTime)
-	if err != nil && err != iterator.Done {
+	if err != nil && !errors.Is(err, iterator.Done) {
 		log.WithError(err).Error("error parsing triaged incident last modification time from bigquery")
 		return nil, []error{err}
 	}
@@ -1263,7 +1244,7 @@ func (t *triagedIncidentsGenerator) fetchTriagedIssues(query *bigquery.Query) ([
 	for {
 		var triagedIncident crtype.TriagedIncident
 		err := it.Next(&triagedIncident)
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {

@@ -2,17 +2,19 @@ package tracker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"time"
 
 	"cloud.google.com/go/bigquery"
 	"github.com/google/uuid"
-	crtype "github.com/openshift/sippy/pkg/apis/api/componentreport"
-	sippybigquery "github.com/openshift/sippy/pkg/bigquery"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"
+
+	crtype "github.com/openshift/sippy/pkg/apis/api/componentreport"
+	sippybigquery "github.com/openshift/sippy/pkg/bigquery"
 )
 
 const (
@@ -70,7 +72,7 @@ func (bq *BigQueryRegressionStore) ListCurrentRegressionsForRelease(release stri
 	for {
 		var regression crtype.TestRegression
 		err := it.Next(&regression)
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {

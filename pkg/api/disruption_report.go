@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -67,7 +68,7 @@ func (c *disruptionReportGenerator) getDisruptionDeltasFromBigQuery() (apitype.D
 	for {
 		r := apitype.DisruptionReportRow{}
 		err := it.Next(&r)
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {

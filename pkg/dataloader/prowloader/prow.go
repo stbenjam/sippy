@@ -322,17 +322,15 @@ func (pl *ProwLoader) syncPRStatus() error {
 			// if we see that any sha has merged for this pr then we should clear out any risk analysis pending comment records
 			// if we don't get them here we will catch them before writing the risk analysis comment
 			// but, we should clean up here if possible
-			if recentMergedAt != nil {
-				pendingComments, err := pl.ghCommenter.QueryPRPendingComments(pr.Org, pr.Repo, pr.Number, models.CommentTypeRiskAnalysis)
+			pendingComments, err := pl.ghCommenter.QueryPRPendingComments(pr.Org, pr.Repo, pr.Number, models.CommentTypeRiskAnalysis)
 
-				if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-					logger.WithError(err).Error("Unable to fetch pending comments ")
-				}
+			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				logger.WithError(err).Error("Unable to fetch pending comments ")
+			}
 
-				for _, pc := range pendingComments {
-					pcp := pc
-					pl.ghCommenter.ClearPendingRecord(pcp.Org, pcp.Repo, pcp.PullNumber, pcp.SHA, models.CommentTypeRiskAnalysis, &pcp)
-				}
+			for _, pc := range pendingComments {
+				pcp := pc
+				pl.ghCommenter.ClearPendingRecord(pcp.Org, pcp.Repo, pcp.PullNumber, pcp.SHA, models.CommentTypeRiskAnalysis, &pcp)
 			}
 		}
 	}
@@ -396,25 +394,6 @@ func GetClusterDataBytes(ctx context.Context, bkt *storage.BucketHandle, path st
 	}
 
 	return bytes, nil
-}
-
-func GetClusterData(ctx context.Context, bkt *storage.BucketHandle, path string, matches []string) models.ClusterData {
-	cd := models.ClusterData{}
-	bytes, err := GetClusterDataBytes(ctx, bkt, path, matches)
-	if err != nil {
-		log.WithError(err).Error("failed to get prow job variant data, returning empty cluster data and proceeding")
-		return cd
-	} else if bytes == nil {
-		log.Warnf("empty job variant data file, returning empty cluster data and proceeding")
-		return cd
-	}
-	err = json.Unmarshal(bytes, &cd)
-	if err != nil {
-		log.WithError(err).Error("failed to unmarshal cluster-data bytes, returning empty cluster data")
-		return cd
-	}
-
-	return cd
 }
 
 func ParseVariantDataFile(bytes []byte) (map[string]string, error) {

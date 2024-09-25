@@ -209,7 +209,7 @@ func NewLoadCommand() *cobra.Command {
 			log.WithField("elapsed", elapsed).Info("database load complete")
 
 			pinnedTime := f.DBFlags.GetPinnedTime()
-			sippyserver.RefreshData(dbc, pinnedTime, false)
+			sippyserver.RefreshData(dbc, false)
 
 			if len(allErrs) > 0 {
 				log.Warningf("%d errors were encountered while loading database:", len(allErrs))
@@ -274,13 +274,15 @@ func (f *LoadFlags) prowLoader(ctx context.Context, dbc *db.DB, sippyConfig *v1.
 		return nil, err
 	}
 
-	var bigQueryClient *bqcachedclient.Client
+	var bigQueryCacheClient *bqcachedclient.Client
+	var bigQueryClient *bigquery.Client
 	if f.LoadOpenShiftCIBigQuery {
-		bigQueryClient, err = bqcachedclient.New(ctx, f.GoogleCloudFlags.ServiceAccountCredentialFile, f.BigQueryFlags.BigQueryProject, f.BigQueryFlags.BigQueryDataset, nil)
+		bigQueryCacheClient, err = bqcachedclient.New(ctx, f.GoogleCloudFlags.ServiceAccountCredentialFile, f.BigQueryFlags.BigQueryProject, f.BigQueryFlags.BigQueryDataset, nil)
 		if err != nil {
 			log.WithError(err).Error("CRITICAL error getting BigQuery client which prevents importing prow jobs")
 			return nil, err
 		}
+		bigQueryClient = bigQueryCacheClient.BQ
 	}
 
 	var githubClient *github.Client
@@ -301,10 +303,10 @@ func (f *LoadFlags) prowLoader(ctx context.Context, dbc *db.DB, sippyConfig *v1.
 		ctx,
 		dbc,
 		gcsClient,
-		bigQueryClient.BQ,
+		bigQueryClient,
 		f.GoogleCloudFlags.StorageBucket,
 		githubClient,
-		f.ModeFlags.GetVariantManager(ctx, bigQueryClient),
+		f.ModeFlags.GetVariantManager(ctx, bigQueryCacheClient),
 		f.ModeFlags.GetSyntheticTestManager(),
 		f.Releases,
 		sippyConfig,

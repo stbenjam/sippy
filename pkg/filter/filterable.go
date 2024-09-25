@@ -61,7 +61,7 @@ type FilterItem struct {
 	Value    string   `json:"value"`
 }
 
-func (f FilterItem) orFilterToSQL(db *gorm.DB, filterable Filterable) (orFilter string, orParams interface{}) { //nolint
+func (f FilterItem) orFilterToSQL(filterable Filterable) (orFilter string, orParams interface{}) { //nolint
 	field := fmt.Sprintf("%q", f.Field)
 	if filterable != nil && filterable.GetFieldType(f.Field) == apitype.ColumnTypeTimestamp {
 		field = fmt.Sprintf("extract(epoch from %s at time zone 'utc') * 1000", f.Field)
@@ -360,7 +360,7 @@ func (filters Filter) ToSQL(db *gorm.DB, filterable Filterable) *gorm.DB {
 		if filters.LinkOperator == LinkOperatorAnd || filters.LinkOperator == "" {
 			db = f.andFilterToSQL(db, filterable)
 		} else if filters.LinkOperator == LinkOperatorOr {
-			q, p := f.orFilterToSQL(db, filterable)
+			q, p := f.orFilterToSQL(filterable)
 			orFilters = append(orFilters, q)
 			if p != nil {
 				orFilterParams = append(orFilterParams, p)

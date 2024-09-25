@@ -13,8 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openshift/sippy/pkg/api/componentreadiness"
 	"gorm.io/gorm"
+
+	"github.com/openshift/sippy/pkg/api/componentreadiness"
 
 	"cloud.google.com/go/storage"
 	"github.com/pkg/errors"
@@ -222,7 +223,7 @@ func refreshMatview(dbc *db.DB, refreshMatviewOnlyIfEmpty bool, ch chan string, 
 	wg.Done()
 }
 
-func RefreshData(dbc *db.DB, pinnedDateTime *time.Time, refreshMatviewsOnlyIfEmpty bool) {
+func RefreshData(dbc *db.DB, refreshMatviewsOnlyIfEmpty bool) {
 	log.Infof("Refreshing data")
 
 	refreshMaterializedViews(dbc, refreshMatviewsOnlyIfEmpty)
@@ -383,7 +384,7 @@ func (s *Server) jsonGetPayloadAnalysis(w http.ResponseWriter, req *http.Request
 		return
 	}
 	stream := req.URL.Query().Get("stream")
-	if release == "" {
+	if stream == "" {
 		api.RespondWithJSON(http.StatusBadRequest, w, map[string]interface{}{
 			"code":    http.StatusBadRequest,
 			"message": fmt.Errorf(`"stream" is required`),
@@ -391,7 +392,7 @@ func (s *Server) jsonGetPayloadAnalysis(w http.ResponseWriter, req *http.Request
 		return
 	}
 	arch := req.URL.Query().Get("arch")
-	if release == "" {
+	if arch == "" {
 		api.RespondWithJSON(http.StatusBadRequest, w, map[string]interface{}{
 			"code":    http.StatusBadRequest,
 			"message": fmt.Errorf(`"arch" is required`),
@@ -610,7 +611,7 @@ func (s *Server) jsonTestOutputsFromDB(w http.ResponseWriter, req *http.Request)
 	api.RespondWithJSON(http.StatusOK, w, outputs)
 }
 
-func (s *Server) jsonComponentTestVariantsFromBigQuery(w http.ResponseWriter, req *http.Request) {
+func (s *Server) jsonComponentTestVariantsFromBigQuery(w http.ResponseWriter, _ *http.Request) {
 	if s.bigQueryClient == nil {
 		api.RespondWithJSON(http.StatusBadRequest, w, map[string]interface{}{
 			"code":    http.StatusBadRequest,
@@ -633,7 +634,7 @@ func (s *Server) jsonComponentTestVariantsFromBigQuery(w http.ResponseWriter, re
 	api.RespondWithJSON(http.StatusOK, w, outputs)
 }
 
-func (s *Server) jsonJobVariantsFromBigQuery(w http.ResponseWriter, req *http.Request) {
+func (s *Server) jsonJobVariantsFromBigQuery(w http.ResponseWriter, _ *http.Request) {
 	if s.bigQueryClient == nil {
 		api.RespondWithJSON(http.StatusBadRequest, w, map[string]interface{}{
 			"code":    http.StatusBadRequest,
@@ -656,7 +657,7 @@ func (s *Server) jsonJobVariantsFromBigQuery(w http.ResponseWriter, req *http.Re
 	api.RespondWithJSON(http.StatusOK, w, outputs)
 }
 
-func (s *Server) jsonComponentReadinessViews(w http.ResponseWriter, req *http.Request) {
+func (s *Server) jsonComponentReadinessViews(w http.ResponseWriter, _ *http.Request) {
 	// deep copy the views and then we'll inject a fixed start/end time using the relative times
 	// the view is configured with, so the UI can pre-populate the pickers
 	viewsCopy := make([]crtype.View, len(s.views.ComponentReadiness))
@@ -948,7 +949,7 @@ func (s *Server) jsonJobsDetailsReportFromDB(w http.ResponseWriter, req *http.Re
 	}
 }
 
-func (s *Server) printReportDate(w http.ResponseWriter, req *http.Request) {
+func (s *Server) printReportDate(w http.ResponseWriter, _ *http.Request) {
 	reportDate := ""
 	if s.pinnedDateTime != nil {
 		reportDate = s.pinnedDateTime.Format(time.RFC3339)

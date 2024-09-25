@@ -21,7 +21,7 @@ type CountByDate struct {
 	Failures        int     `json:"failures"`
 }
 
-func GetTestAnalysisOverallFromDB(dbc *db.DB, filters *filter.Filter, release, testName string, reportEnd time.Time) (map[string][]CountByDate, error) {
+func GetTestAnalysisOverallFromDB(dbc *db.DB, filters *filter.Filter, release, testName string) (map[string][]CountByDate, error) {
 	var rows []CountByDate
 	jq := dbc.DB.Table("prow_test_analysis_by_job_14d_matview").
 		Select(`test_id,
@@ -77,7 +77,7 @@ func GetTestAnalysisByJobFromDB(dbc *db.DB, filters *filter.Filter, release, tes
 	var rows []CountByDate
 	results := make(map[string][]CountByDate)
 
-	overallResult, err := GetTestAnalysisOverallFromDB(dbc, filters, release, testName, reportEnd)
+	overallResult, err := GetTestAnalysisOverallFromDB(dbc, filters, release, testName)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +143,7 @@ func GetTestAnalysisByVariantFromDB(dbc *db.DB, filters *filter.Filter, release,
 	var rows []CountByDate
 	results := make(map[string][]CountByDate)
 
-	overallResult, err := GetTestAnalysisOverallFromDB(dbc, filters, release, testName, reportEnd)
+	overallResult, err := GetTestAnalysisOverallFromDB(dbc, filters, release, testName)
 	if err != nil {
 		return nil, err
 	}

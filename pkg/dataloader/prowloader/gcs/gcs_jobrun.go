@@ -3,11 +3,13 @@ package gcs
 import (
 	"context"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
 
 	"cloud.google.com/go/storage"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"
 
@@ -164,7 +166,7 @@ func (j *GCSJobRun) FindFirstFile(root string, filename *regexp.Regexp) []byte {
 	})
 	for {
 		attrs, err := it.Next()
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 
@@ -199,7 +201,7 @@ func (j *GCSJobRun) FindAllMatches(filenames []*regexp.Regexp) [][]string {
 	})
 	for {
 		attrs, err := it.Next()
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 

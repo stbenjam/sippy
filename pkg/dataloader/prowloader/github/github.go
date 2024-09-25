@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -256,7 +257,8 @@ func (c *Client) GetPREntry(org, repo string, number int) (*PREntry, error) {
 			WithField("number", prl.number).
 			Errorf("error retrieving pull request")
 
-		if resp, ok := err.(*gh.ErrorResponse); ok && resp.Response != nil && resp.Response.StatusCode == http.StatusNotFound {
+		var resp *gh.ErrorResponse
+		if errors.As(err, &resp) && resp.Response != nil && resp.Response.StatusCode == http.StatusNotFound {
 			// cache nil record to prevent additional fetching
 			c.cache[prl] = nil
 			return nil, nil

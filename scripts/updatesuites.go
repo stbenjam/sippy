@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -83,7 +84,7 @@ func testNameWithoutSuite(dbc *gorm.DB) error {
 			newTestName := strings.TrimPrefix(oldTest.Name, fmt.Sprintf("%s.", suite.Name))
 
 			if err := dbc.Where("name = ?", newTestName).First(&newTest).Error; err != nil {
-				if err == gorm.ErrRecordNotFound { //nolint
+				if errors.Is(err, gorm.ErrRecordNotFound) { //nolint
 					log.Infof("no existing test found, renaming and adding suite to prow job run tests...")
 					err := dbc.Transaction(func(tx *gorm.DB) error {
 						// Update the oldTest's name if there's no existing oldTest with the new name.
@@ -152,7 +153,7 @@ func testNameWithoutSuite(dbc *gorm.DB) error {
 	// Refresh materialized views
 	sippyserver.RefreshData(&db.DB{
 		DB: dbc,
-	}, nil, false)
+	}, false)
 
 	return nil
 }

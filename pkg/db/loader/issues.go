@@ -23,51 +23,6 @@ var (
 	regexMaxMatches = "100"
 )
 
-// FindIssuesForTests queries search.ci for Jira issues mapping based to the given test names.
-func FindIssuesForTests(testNames ...string) (map[string][]jira.Issue, error) {
-
-	issues := map[string][]jira.Issue{}
-
-	newBugs, lastUpdateError := findBugsForSearchStrings(false, testNames...)
-
-	for testName, bug := range newBugs {
-		issues[testName] = bug
-	}
-	return issues, lastUpdateError
-}
-
-// FindIssuesForJobs queries search.ci for Jira issues mapping based to the given job names.
-func FindIssuesForJobs(jobNames ...string) (map[string][]jira.Issue, error) {
-
-	issues := map[string][]jira.Issue{}
-
-	// To prevent jobs matching sub-strings of other jobs, we'll keep the old syntax
-	// from the bugzilla code where we search for job=[jobname]=all.
-	jobSearchStrings := make([]string, len(jobNames))
-	for i, jn := range jobNames {
-		jobSearchStrings[i] = fmt.Sprintf("job=%s=all", jn)
-	}
-
-	newBugs, lastUpdateError := findBugsForSearchStrings(false, jobSearchStrings...)
-
-	for jobKey, bug := range newBugs {
-		issues[jobKey] = bug
-	}
-	return issues, lastUpdateError
-}
-
-// FindIssuesForVariants queries search.ci for Jira issues with incident=variants= annotation.
-func FindIssuesForVariants() (map[string][]jira.Issue, error) {
-	issues := map[string][]jira.Issue{}
-	variantSearchStrings := []string{VariantSearchRegex}
-	newBugs, lastUpdateError := findBugsForSearchStrings(true, variantSearchStrings...)
-
-	for jobKey, bug := range newBugs {
-		issues[jobKey] = bug
-	}
-	return issues, lastUpdateError
-}
-
 // findBugsForSearchStrings finds issues in batches based on the given search strings. These can be test names,
 // job names or job variants.
 // isRegex defines whether the search is exact match or match by regex. If match by regex, the matched strings

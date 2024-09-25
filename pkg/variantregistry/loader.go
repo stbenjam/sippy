@@ -2,6 +2,7 @@ package variantregistry
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -200,7 +201,7 @@ func (s *JobVariantsLoader) loadCurrentJobVariants() (map[string]map[string]stri
 	for {
 		jv := jobVariant{}
 		err := it.Next(&jv)
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {

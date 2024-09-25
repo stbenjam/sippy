@@ -2,6 +2,7 @@ package variantregistry
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -119,7 +120,7 @@ ORDER BY j.prowjob_job_name;
 		// Two queries? Use the successful one for cluster-data?
 		jlr := prowJobLastRun{}
 		err := it.Next(&jlr)
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {

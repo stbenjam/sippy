@@ -13,7 +13,7 @@ import (
 )
 
 // PrintUpgradeJSONReportFromDB reports on the success/fail of operator upgrades.
-func PrintUpgradeJSONReportFromDB(w http.ResponseWriter, req *http.Request, dbc *db.DB, release string) {
+func PrintUpgradeJSONReportFromDB(w http.ResponseWriter, dbc *db.DB, release string) {
 
 	exactTestNames := sets.NewString(
 		testidentification.UpgradeTestName,

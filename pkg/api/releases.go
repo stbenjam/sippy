@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -27,6 +28,7 @@ import (
 func PrintPullRequestsReport(w http.ResponseWriter, req *http.Request, dbClient *db.DB) {
 	if dbClient == nil || dbClient.DB == nil {
 		RespondWithJSON(http.StatusOK, w, []struct{}{})
+		return
 	}
 
 	q := releaseFilter(req, dbClient.DB)
@@ -495,7 +497,7 @@ func GetReleasesFromBigQuery(client *bqcachedclient.Client) ([]query.Release, er
 	for {
 		r := apitype.ReleaseRow{}
 		err := it.Next(&r)
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {

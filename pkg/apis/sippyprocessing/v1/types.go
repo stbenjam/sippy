@@ -9,9 +9,8 @@ import (
 type ReportType string
 
 const (
-	CurrentReport  ReportType = "current"
-	TwoDayReport   ReportType = "twoDay"
-	PreviousReport ReportType = "previous"
+	CurrentReport ReportType = "current"
+	TwoDayReport  ReportType = "twoDay"
 )
 
 // Statistics is a type that contains statistical summaries.
@@ -181,9 +180,7 @@ type OperatorState struct {
 type TestStatus int
 
 const (
-	TestStatusAbsent  TestStatus = 0
 	TestStatusSuccess TestStatus = 1
-	TestStatusRunning TestStatus = 4
 	TestStatusFailure TestStatus = 12
 	TestStatusFlake   TestStatus = 13
 )

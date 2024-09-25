@@ -2,6 +2,7 @@ package prowloader
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"time"
 
@@ -72,7 +73,7 @@ func (pl *ProwLoader) fetchProwJobsFromOpenShiftBigQuery() ([]prow.ProwJob, []er
 	for {
 		bqjr := bigqueryProwJobRun{}
 		err := it.Next(&bqjr)
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
