@@ -16,6 +16,7 @@ import (
 	"google.golang.org/api/option"
 
 	bqcachedclient "github.com/openshift/sippy/pkg/bigquery"
+	"github.com/openshift/sippy/pkg/dataloader/configloader"
 	"github.com/openshift/sippy/pkg/dataloader/featuregateloader"
 	"github.com/openshift/sippy/pkg/dataloader/variantsyncer"
 	"github.com/openshift/sippy/pkg/flags/configflags"
@@ -53,6 +54,7 @@ type LoadFlags struct {
 	GoogleCloudFlags     *flags.GoogleCloudFlags
 	ModeFlags            *flags.ModeFlags
 	JobVariantsInputFile string
+	ReleaseRepoDir       string
 }
 
 func NewLoadFlags() *LoadFlags {
@@ -76,10 +78,11 @@ func (f *LoadFlags) BindFlags(fs *pflag.FlagSet) {
 
 	fs.BoolVar(&f.InitDatabase, "init-database", false, "Migrate the DB before loading")
 	fs.BoolVar(&f.LoadOpenShiftCIBigQuery, "load-openshift-ci-bigquery", false, "Load ProwJobs from OpenShift CI BigQuery")
-	fs.StringArrayVar(&f.Loaders, "loader", []string{"prow", "releases", "jira", "github", "bugs", "test-mapping"}, "Which data sources to use for data loading")
+	fs.StringArrayVar(&f.Loaders, "loader", []string{"config", "prow", "releases", "jira", "github", "bugs", "test-mapping"}, "Which data sources to use for data loading")
 	fs.StringArrayVar(&f.Releases, "release", f.Releases, "Which releases to load (one per arg instance)")
 	fs.StringArrayVar(&f.Architectures, "arch", f.Architectures, "Which architectures to load (one per arg instance)")
 	fs.StringVar(&f.JobVariantsInputFile, "job-variants-input-file", "expected-job-variants.json", "JSON input file for the job-variants loader")
+	fs.StringVar(&f.ReleaseRepoDir, "release-repo-dir", f.ReleaseRepoDir, "Path to the OpenShift release repository")
 }
 
 func NewLoadCommand() *cobra.Command {
@@ -123,6 +126,15 @@ func NewLoadCommand() *cobra.Command {
 						return dbErr
 					}
 					loaders = append(loaders, releaseloader.New(dbc, f.Releases, f.Architectures))
+				}
+
+				// Config Loader
+				if l == "config" {
+					configLoader, err := configloader.New(f.ReleaseRepoDir)
+					if err != nil {
+						return err
+					}
+					loaders = append(loaders, configLoader)
 				}
 
 				// Prow Loader
