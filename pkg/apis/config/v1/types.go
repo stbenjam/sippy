@@ -1,5 +1,7 @@
 package v1
 
+type JobsConfig map[string]ReleaseConfig
+
 type SippyConfig struct {
 	Prow                     ProwConfig               `yaml:"prow"`
 	Releases                 map[string]ReleaseConfig `yaml:"releases"`
