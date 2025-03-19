@@ -1,6 +1,10 @@
 package prow
 
-import "time"
+import (
+	"time"
+
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 // ProwJobState specifies whether the job is running
 type ProwJobState string
@@ -92,6 +96,7 @@ type ProwJobStatus struct {
 }
 
 type ProwJob struct {
-	Spec   ProwJobSpec   `json:"spec,omitempty"`
-	Status ProwJobStatus `json:"status,omitempty"`
+	ObjectMeta v1.ObjectMeta `json:"metadata,omitempty"`
+	Spec       ProwJobSpec   `json:"spec,omitempty"`
+	Status     ProwJobStatus `json:"status,omitempty"`
 }

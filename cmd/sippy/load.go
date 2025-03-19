@@ -309,6 +309,8 @@ func (f *LoadFlags) prowLoader(ctx context.Context, dbc *db.DB, sippyConfig *v1.
 		dbc,
 		gcsClient,
 		bigQueryClient,
+		f.BigQueryFlags.BigQueryProject,
+		f.BigQueryFlags.BigQueryDataset,
 		githubClient,
 		f.ModeFlags.GetVariantManager(ctx, bigQueryClient),
 		f.ModeFlags.GetSyntheticTestManager(),

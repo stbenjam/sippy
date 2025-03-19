@@ -4,11 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"net/url"
 	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -54,6 +53,8 @@ type ProwLoader struct {
 	errors                  []error
 	githubClient            *github.Client
 	bigQueryClient          *bqcachedclient.Client
+	bigQueryProject         string
+	bigQueryDataset         string
 	maxConcurrency          int
 	prowJobCache            map[string]*models.ProwJob
 	prowJobCacheLock        sync.RWMutex
@@ -77,6 +78,7 @@ func New(
 	dbc *db.DB,
 	gcsClient *storage.Client,
 	bigQueryClient *bqcachedclient.Client,
+	project, dataset string,
 	githubClient *github.Client,
 	variantManager testidentification.VariantManager,
 	syntheticTestManager synthetictests.SyntheticTestManager,
@@ -90,6 +92,8 @@ func New(
 		gcsClient:            gcsClient,
 		githubClient:         githubClient,
 		bigQueryClient:       bigQueryClient,
+		bigQueryProject:      project,
+		bigQueryDataset:      dataset,
 		maxConcurrency:       10,
 		prowJobRunCache:      loadProwJobRunCache(dbc),
 		prowJobCache:         loadProwJobCache(dbc),
@@ -161,23 +165,10 @@ func (pl *ProwLoader) Load() {
 	// ProwJob CRDs, not our sippy db model ProwJob.
 	var prowJobs []prow.ProwJob
 	// Fetch/update job data
-	if pl.bigQueryClient != nil {
-		var bqErrs []error
-		prowJobs, bqErrs = pl.fetchProwJobsFromOpenShiftBigQuery()
-		if len(bqErrs) > 0 {
-			pl.errors = append(pl.errors, bqErrs...)
-		}
-	} else {
-		jobsJSON, err := fetchJobsJSON(pl.config.Prow.URL)
-		if err != nil {
-			pl.errors = append(pl.errors, errors.Wrap(err, "error fetching job JSON data from prow"))
-			return
-		}
-		prowJobs, err = jobsJSONToProwJobs(jobsJSON)
-		if err != nil {
-			pl.errors = append(pl.errors, errors.Wrap(err, "error decoding job JSON data from prow"))
-			return
-		}
+	var bqErrs []error
+	prowJobs, bqErrs = pl.fetchProwJobsFromOpenShiftBigQuery()
+	if len(bqErrs) > 0 {
+		pl.errors = append(pl.errors, bqErrs...)
 	}
 
 	queue := make(chan *prow.ProwJob)
@@ -377,7 +368,7 @@ func (pl *ProwLoader) loadDailyTestAnalysisByJob(ctx context.Context) error {
   SELECT
     junit.*,
     ROW_NUMBER() OVER(PARTITION BY file_path, test_name, testsuite ORDER BY CASE WHEN flake_count > 0 THEN 0 WHEN success_val > 0 THEN 1 ELSE 2 END ) AS row_num,
-    jobs. prowjob_job_name AS variant_registry_job_name,
+    jobs.prowjob_job_name AS variant_registry_job_name,
     jobs.org,
     jobs.repo,
     jobs.pr_number,
@@ -507,42 +498,17 @@ func (pl *ProwLoader) processProwJob(ctx context.Context, pj *prow.ProwJob) erro
 		"buildID": pj.Status.BuildID,
 	})
 
-	for _, release := range pl.releases {
-		cfg, ok := pl.config.Releases[release]
-		if !ok {
-			log.Warningf("configuration not found for release %q", release)
-			continue
+	release := pj.ObjectMeta.Annotations["job-release"]
+	if release != "" && slices.Contains(pl.releases, release) {
+		if err := pl.prowJobToJobRun(ctx, pj, release); err != nil {
+			err = errors.Wrapf(err, "error converting prow job to job run: %s", pj.Spec.Job)
+			pjLog.WithError(err).Warning("prow import error")
+			return err
 		}
-
-		if val, ok := cfg.Jobs[pj.Spec.Job]; val && ok {
-			if err := pl.prowJobToJobRun(ctx, pj, release); err != nil {
-				err = errors.Wrapf(err, "error converting prow job to job run: %s", pj.Spec.Job)
-				pjLog.WithError(err).Warning("prow import error")
-				return err
-			}
-			return nil
-		}
-
-		for _, expr := range cfg.Regexp {
-			re, err := regexp.Compile(expr)
-			if err != nil {
-				err = errors.Wrap(err, "invalid regex in configuration")
-				log.WithError(err).Errorf("config regex error")
-				continue
-			}
-
-			if re.MatchString(pj.Spec.Job) {
-				if err := pl.prowJobToJobRun(ctx, pj, release); err != nil {
-					err = errors.Wrapf(err, "error converting prow job to job run: %s", pj.Spec.Job)
-					pjLog.WithError(err).Warning("prow import error")
-					return err
-				}
-				return nil
-			}
-		}
+		return nil
 	}
 
-	pjLog.Debugf("no match for release in sippy configuration, skipping")
+	pjLog.Debugf("no match for job release, skipping")
 	return nil
 }
 
@@ -609,23 +575,6 @@ func (pl *ProwLoader) syncPRStatus() error {
 	}
 
 	return nil
-}
-
-func fetchJobsJSON(prowURL string) ([]byte, error) {
-	resp, err := http.Get(prowURL) // #nosec G107
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	return io.ReadAll(resp.Body)
-}
-
-func jobsJSONToProwJobs(jobJSON []byte) ([]prow.ProwJob, error) {
-	results := make(map[string][]prow.ProwJob)
-	if err := json.Unmarshal(jobJSON, &results); err != nil {
-		return nil, err
-	}
-	return results["items"], nil
 }
 
 func (pl *ProwLoader) generateTestGridURL(release, jobName string) *url.URL {

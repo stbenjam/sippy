@@ -3,15 +3,22 @@ package prowloader
 import (
 	"context"
 	"strconv"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/bigquery"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openshift/sippy/pkg/apis/prow"
 )
+
+// unsyncedJobTiers are jobTiers we do not sync to Sippy
+var unsyncedJobTiers = []string{
+	"excluded",
+}
 
 func (pl *ProwLoader) fetchProwJobsFromOpenShiftBigQuery() ([]prow.ProwJob, []error) {
 	errs := []error{}
@@ -35,7 +42,7 @@ func (pl *ProwLoader) fetchProwJobsFromOpenShiftBigQuery() ([]prow.ProwJob, []er
 	// NOTE: casting a couple datetime columns to timestamps, it does appear they go in as UTC, and thus come out
 	// as the default UTC correctly.
 	// Annotations and labels can be queried here if we need them.
-	query := pl.bigQueryClient.BQ.Query(`SELECT
+	queryStr := `SELECT
 			prowjob_job_name,
 			prowjob_state,
 			prowjob_build_id,
@@ -49,17 +56,35 @@ func (pl *ProwLoader) fetchProwJobsFromOpenShiftBigQuery() ([]prow.ProwJob, []er
 			repo,
 			gcs_bucket,
 			TIMESTAMP(prowjob_start) AS prowjob_start_ts,
-			TIMESTAMP(prowjob_completion) AS prowjob_completion_ts ` +
-		"FROM `ci_analysis_us.jobs` " +
-		`WHERE TIMESTAMP(prowjob_completion) > @queryFrom
-	       AND prowjob_url IS NOT NULL
-	       ORDER BY prowjob_start_ts`)
+			TIMESTAMP(prowjob_completion) AS prowjob_completion_ts,
+			COALESCE(jv_release.variant_value, '') AS release
+		FROM TABLE_JOBS
+		INNER JOIN TABLE_JOB_VARIANTS jv_jobtier 
+			ON jv_jobtier.job_name = prowjob_job_name 
+			AND jv_jobtier.variant_name = 'JobTier'
+		LEFT JOIN TABLE_JOB_VARIANTS jv_release
+			ON jv_release.job_name = prowjob_job_name
+			AND jv_release.variant_name = 'Release'
+		WHERE TIMESTAMP(prowjob_completion) > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 2 DAY)
+			AND jv_jobtier.variant_value NOT IN ('excluded')
+			AND prowjob_url IS NOT NULL
+		ORDER BY prowjob_start_ts;`
+
+	queryStr = strings.ReplaceAll(queryStr, "TABLE_JOBS", "`"+pl.bigQueryProject+"."+pl.bigQueryDataset+".jobs`")
+	queryStr = strings.ReplaceAll(queryStr, "TABLE_JOB_VARIANTS", "`"+pl.bigQueryProject+"."+pl.bigQueryDataset+".job_variants`")
+
+	query := pl.bigQueryClient.BQ.Query(queryStr)
 	query.Parameters = []bigquery.QueryParameter{
 		{
 			Name:  "queryFrom",
 			Value: lastProwJobRun,
 		},
+		{
+			Name:  "unsyncedJobTiers",
+			Value: unsyncedJobTiers,
+		},
 	}
+
 	it, err := query.Read(context.TODO())
 	if err != nil {
 		errs = append(errs, err)
@@ -103,6 +128,11 @@ func (pl *ProwLoader) fetchProwJobsFromOpenShiftBigQuery() ([]prow.ProwJob, []er
 			continue
 		}
 		prowJobs[bqjr.BuildID] = prow.ProwJob{
+			ObjectMeta: v1.ObjectMeta{
+				Annotations: map[string]string{
+					"job-release": bqjr.Release,
+				},
+			},
 			Spec: prow.ProwJobSpec{
 				Type:    bqjr.Type,
 				Cluster: bqjr.Cluster,
@@ -145,6 +175,7 @@ type bigqueryProwJobRun struct {
 	StartTime      bigquery.NullTimestamp `bigquery:"prowjob_start_ts"`
 	CompletionTime time.Time              `bigquery:"prowjob_completion_ts"`
 	URL            string                 `bigquery:"prowjob_url"`
+	Release        string                 `bigquery:"release"`
 	PRSha          bigquery.NullString    `bigquery:"pr_sha"`
 	PRAuthor       bigquery.NullString    `bigquery:"pr_author"`
 	PRNumber       bigquery.NullString    `bigquery:"pr_number"`
