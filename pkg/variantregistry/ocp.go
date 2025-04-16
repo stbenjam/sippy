@@ -21,16 +21,17 @@ import (
 	"github.com/openshift/sippy/pkg/dataloader/prowloader"
 	"github.com/openshift/sippy/pkg/dataloader/prowloader/gcs"
 	"github.com/openshift/sippy/pkg/util"
+	"github.com/openshift/sippy/pkg/util/releaserepo"
 )
 
 // OCPVariantLoader generates a mapping of job names to their variant map for all known jobs.
 type OCPVariantLoader struct {
 	BigQueryClient  *bigquery.Client
-	config          *v1.SippyConfig
 	bigQueryProject string
 	bigQueryDataSet string
 	bigQueryTable   string
 	gcsClient       *storage.Client
+	releaseRepoJobs *releaserepo.ReleaseRepoJobs
 }
 
 func NewOCPVariantLoader(
@@ -38,16 +39,20 @@ func NewOCPVariantLoader(
 	bigQueryProject string,
 	bigQueryDataSet string,
 	bigQueryTable string,
-	gcsClient *storage.Client,
-	config *v1.SippyConfig) *OCPVariantLoader {
+	gcsClient *storage.Client) *OCPVariantLoader {
+
+	rrj, err := releaserepo.New()
+	if err != nil {
+		return nil, err
+	}
 
 	return &OCPVariantLoader{
 		BigQueryClient:  bigQueryClient,
 		gcsClient:       gcsClient,
-		config:          config,
 		bigQueryProject: bigQueryProject,
 		bigQueryDataSet: bigQueryDataSet,
 		bigQueryTable:   bigQueryTable,
+		releaseRepoJobs: rrj,
 	}
 }
 
@@ -566,12 +571,9 @@ func (v *OCPVariantLoader) setRelease(_ logrus.FieldLogger, variants map[string]
 		return
 	}
 
-	// Prefer core release from sippy config -- only if the job name references the release. Too many jobs
-	// are attached to "master" and move between releases.
-	for version, release := range v.config.Releases {
-		if _, ok := release.Jobs[jobName]; ok && strings.Contains(jobName, version) {
-			variants[VariantRelease] = version
-		}
+	// Prefer core release from release repo config
+	if j := v.releaseRepoJobs.Find(jobName); j != nil && j.Release != "" {
+		variants[VariantRelease] = j.Release
 	}
 
 	release, fromRelease := extractReleases(jobName)
@@ -669,17 +671,10 @@ func (v *OCPVariantLoader) setJobTier(_ logrus.FieldLogger, variants map[string]
 	}
 
 	// Determine job tier from release configuration
-	release := variants[VariantRelease]
-	switch {
-	case util.StrSliceContains(v.config.Releases[release].BlockingJobs, jobName):
-		variants[VariantJobTier] = "blocking"
-	case util.StrSliceContains(v.config.Releases[release].InformingJobs, jobName):
-		variants[VariantJobTier] = "informing"
-	case release == "Presubmits", v.config.Releases[release].Jobs[jobName]:
-		variants[VariantJobTier] = "standard"
-	default:
+	if j := v.releaseRepoJobs.Find(jobNameLower); j != nil && j.PayloadStatus != "" {
+		variants[VariantJobTier] = j.PayloadStatus
+	} else {
 		variants[VariantJobTier] = "candidate"
-
 	}
 }
 
