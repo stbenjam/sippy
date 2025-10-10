@@ -25,9 +25,9 @@ import ChatInput from './ChatInput'
 import ChatMessage from './ChatMessage'
 import ChatSettings from './ChatSettings'
 import PropTypes from 'prop-types'
+import Rating from './Rating'
 import React, { useEffect, useState } from 'react'
 import SippyLogo from '../components/SippyLogo'
-import StarRating from './StarRating'
 import ThinkingStep from './ThinkingStep'
 
 const DRAWER_HEIGHT = 600
@@ -155,7 +155,7 @@ const useStyles = makeStyles((theme) => ({
   sessionRatingContainer: {
     display: 'flex',
     justifyContent: 'center',
-    padding: theme.spacing(1, 2),
+    padding: theme.spacing(0.75, 2),
     borderTop: `1px solid ${theme.palette.divider}`,
     backgroundColor:
       theme.palette.mode === 'dark'
@@ -462,7 +462,7 @@ export default function ChatInterface({
 
       {hasAssistantMessages && !sessionRated && (
         <div className={classes.sessionRatingContainer}>
-          <StarRating messageId="session" onRate={handleSessionRate} />
+          <Rating messageId="session" onRate={handleSessionRate} />
         </div>
       )}
 
