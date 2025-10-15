@@ -10,16 +10,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// rewriteChatPath rewrites /api/chat paths to /chat for the target service
+// rewriteChatPath rewrites /api/chat prefix to /chat
 func rewriteChatPath(path string) string {
-	// Only replace /api/chat when it's followed by end of string or a slash
-	if path == "/api/chat" {
-		return "/chat"
-	}
-	if strings.HasPrefix(path, "/api/chat/") {
-		return "/chat" + strings.TrimPrefix(path, "/api/chat")
-	}
-	return path
+	return "/chat" + strings.TrimPrefix(path, "/api/chat")
 }
 
 // ChatProxy handles proxying HTTP and WebSocket requests to the sippy-chat service
@@ -29,7 +22,8 @@ type ChatProxy struct {
 	wsUpgrader websocket.Upgrader
 }
 
-// NewChatProxy creates a new chat proxy instance
+// NewChatProxy creates a new chat proxy instance.
+// chatAPIURL must be the base URL without any path, e.g., "http://localhost:8000"
 func NewChatProxy(chatAPIURL string) (*ChatProxy, error) {
 	targetURL, err := url.Parse(chatAPIURL)
 	if err != nil {
@@ -42,9 +36,8 @@ func NewChatProxy(chatAPIURL string) (*ChatProxy, error) {
 	// Modify the director to handle the path rewriting
 	originalDirector := httpProxy.Director
 	httpProxy.Director = func(req *http.Request) {
-		originalDirector(req)
-		// Rewrite /api/chat paths for the target service
 		req.URL.Path = rewriteChatPath(req.URL.Path)
+		originalDirector(req)
 		req.Host = targetURL.Host
 	}
 
