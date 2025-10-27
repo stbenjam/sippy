@@ -37,6 +37,7 @@ def common_options(f):
         click.option("--timeout", default=None, type=int, help="Maximum execution time in seconds (default: 1800 = 30 minutes)"),
         click.option("--google-credentials", default=None, help="Path to Google service account credentials JSON file"),
         click.option("--mcp-config", default=None, help="Path to MCP servers config file"),
+        click.option("--mcp-server/--no-mcp-server", default=None, help="Enable/disable MCP server (exposes prompts as MCP tools)"),
     ]
     for option in reversed(options):
         f = option(f)
@@ -65,6 +66,8 @@ def apply_config_overrides(config: Config, **kwargs) -> None:
         config.google_credentials_file = kwargs["google_credentials"]
     if kwargs.get("mcp_config") is not None:
         config.mcp_config_file = kwargs["mcp_config"]
+    if kwargs.get("mcp_server") is not None:
+        config.mcp_server_enabled = kwargs["mcp_server"]
 
 
 @click.group()

@@ -56,6 +56,12 @@ class Config(BaseModel):
         default_factory=lambda: os.getenv("MCP_CONFIG_FILE"), description="Path to the MCP servers JSON configuration file"
     )
 
+    # MCP Server Configuration
+    mcp_server_enabled: bool = Field(
+        default_factory=lambda: os.getenv("MCP_SERVER_ENABLED", "false").lower() == "true",
+        description="Enable MCP server to expose prompts as tools and prompts"
+    )
+
     # Database Configuration
     sippy_ro_database_dsn: Optional[str] = Field(
         default_factory=lambda: os.getenv("SIPPY_READ_ONLY_DATABASE_DSN"),

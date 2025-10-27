@@ -31,6 +31,7 @@ from .api_models import (
 from . import metrics
 from .metrics_server import start_metrics_server, stop_metrics_server
 from .prompts import PromptManager, render_prompt
+from .mcp_server import SippyMCPServer
 
 logger = logging.getLogger(__name__)
 
@@ -97,8 +98,19 @@ class SippyWebServer:
         # Initialize prompt manager
         self.prompt_manager = PromptManager()
         
+        # Initialize MCP server if enabled
+        self.mcp_server = None
+        if config.mcp_server_enabled:
+            logger.info("Initializing MCP server...")
+            self.mcp_server = SippyMCPServer(self.prompt_manager, self.agent)
+            logger.info("MCP server will be available at /mcp/sse")
+        
         self._setup_middleware()
         self._setup_routes()
+        
+        # Mount MCP server if enabled
+        if self.mcp_server:
+            self._mount_mcp_server()
         
         # Initialize agent info metrics
         metrics.agent_info.info({
@@ -139,14 +151,23 @@ class SippyWebServer:
             """Get agent status and configuration."""
             from .personas import list_persona_names
 
-            return AgentStatus(
-                available_tools=self.agent.list_tools(),
-                model_name=self.config.model_name,
-                endpoint=self.config.llm_endpoint,
-                thinking_enabled=self.config.show_thinking,
-                current_persona=self.config.persona,
-                available_personas=list_persona_names(),
-            )
+            status_data = {
+                "available_tools": self.agent.list_tools(),
+                "model_name": self.config.model_name,
+                "endpoint": self.config.llm_endpoint,
+                "thinking_enabled": self.config.show_thinking,
+                "current_persona": self.config.persona,
+                "available_personas": list_persona_names(),
+            }
+            
+            # Add MCP server status if enabled
+            if self.config.mcp_server_enabled:
+                status_data["mcp_server"] = {
+                    "enabled": True,
+                    "endpoint": "/mcp/sse",
+                }
+            
+            return AgentStatus(**status_data)
 
         @self.app.get("/chat/personas", response_model=PersonasResponse)
         async def get_personas():
@@ -444,6 +465,16 @@ class SippyWebServer:
                 logger.error(f"WebSocket error: {e}")
                 metrics.errors_total.labels(error_type="websocket_error").inc()
                 self.websocket_manager.disconnect(websocket)
+
+    def _mount_mcp_server(self):
+        """Mount the MCP server using FastMCP."""
+        # Get the FastMCP ASGI app (configured with /sse endpoint)
+        mcp_app = self.mcp_server.get_asgi_app()
+        
+        # Mount at /mcp so the endpoint becomes /mcp/sse
+        self.app.mount("/mcp", mcp_app)
+        
+        logger.info("MCP server mounted at /mcp/sse")
 
     def _format_page_context(self, page_context: Dict[str, Any]) -> str:
         """Format page context as JSON for the agent."""
