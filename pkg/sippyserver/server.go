@@ -334,14 +334,24 @@ func refreshMatview(dbc *db.DB, refreshMatviewOnlyIfEmpty bool, ch chan string, 
 		// Try to refresh concurrently, if we get an error that likely means the view has never been
 		// populated (could be a developer env, or a schema migration on the view), fall back to the normal
 		// refresh which locks reads.
+		//
+		// We run each refresh inside a transaction with SET LOCAL work_mem so the large
+		// sorts and hash joins spill less to disk. SET LOCAL scopes the change to the
+		// transaction and reverts automatically on commit/rollback.
 		tmpLog.Info("refreshing materialized view")
-		if res := dbc.DB.Exec(
-			fmt.Sprintf("REFRESH MATERIALIZED VIEW CONCURRENTLY %s", matView)); res.Error != nil {
-			tmpLog.WithError(res.Error).Warn("error refreshing materialized view concurrently, falling back to regular refresh")
+		err := dbc.DB.Transaction(func(tx *gorm.DB) error {
+			tx.Exec("SET LOCAL work_mem = '256MB'")
+			return tx.Exec(fmt.Sprintf("REFRESH MATERIALIZED VIEW CONCURRENTLY %s", matView)).Error
+		})
+		if err != nil {
+			tmpLog.WithError(err).Warn("error refreshing materialized view concurrently, falling back to regular refresh")
 
-			if res := dbc.DB.Exec(
-				fmt.Sprintf("REFRESH MATERIALIZED VIEW %s", matView)); res.Error != nil {
-				tmpLog.WithError(res.Error).Error("error refreshing materialized view")
+			err = dbc.DB.Transaction(func(tx *gorm.DB) error {
+				tx.Exec("SET LOCAL work_mem = '256MB'")
+				return tx.Exec(fmt.Sprintf("REFRESH MATERIALIZED VIEW %s", matView)).Error
+			})
+			if err != nil {
+				tmpLog.WithError(err).Error("error refreshing materialized view")
 			} else {
 				elapsed := time.Since(start)
 				tmpLog.WithField("elapsed", elapsed).Info("refreshed materialized view")
