@@ -121,7 +121,7 @@ func NewSippyDaemonCommand() *cobra.Command {
 				// could  lower to 3 seconds if we need, most writes likely won't have to delete
 				processes = append(processes, sippyserver.NewWorkProcessor(dbc,
 					gcsClient.Bucket(f.GoogleCloudFlags.StorageBucket),
-					10, bigQueryClient, 5*time.Minute, 5*time.Second, ghCommenter, f.GithubCommenterFlags.CommentProcessingDryRun))
+					10, bigQueryClient, cacheClient, 5*time.Minute, 5*time.Second, ghCommenter, f.GithubCommenterFlags.CommentProcessingDryRun))
 			}
 
 			daemonServer := sippyserver.NewDaemonServer(processes)
