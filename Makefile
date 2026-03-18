@@ -12,7 +12,7 @@ LDFLAGS := -ldflags "-X github.com/openshift/sippy/pkg/version.commitFromGit=$(G
 
 all: test build
 
-build: builddir clean npm frontend sippy sippy-daemon
+build: builddir clean npm frontend sippy sippy-daemon sippy-e2e
 
 verify: lint
 
@@ -28,6 +28,9 @@ sippy: builddir
 
 sippy-daemon: builddir
 	go build $(LDFLAGS) -mod=vendor ./cmd/sippy-daemon/...
+
+sippy-e2e: builddir
+	go build $(LDFLAGS) -mod=vendor ./cmd/sippy-e2e/...
 
 test: builddir npm
 ifeq ($(ARTIFACT_DIR),)
@@ -56,6 +59,7 @@ npm:
 clean:
 	rm -f sippy
 	rm -f sippy-daemon
+	rm -f sippy-e2e
 	rm -rf sippy-ng/build
 	rm -rf sippy-ng/node_modules
 

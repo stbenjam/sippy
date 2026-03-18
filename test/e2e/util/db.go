@@ -27,3 +27,23 @@ func CreateE2EPostgresConnection(t *testing.T) *db.DB {
 
 	return dbc
 }
+
+// MustCreateE2EPostgresConnection creates a DB connection or panics. For use in Ginkgo tests.
+func MustCreateE2EPostgresConnection() *db.DB {
+	if os.Getenv("SIPPY_E2E_DSN") == "" {
+		panic("SIPPY_E2E_DSN environment variable not set")
+	}
+
+	dbc, err := db.New(os.Getenv("SIPPY_E2E_DSN"), logger.Info)
+	if err != nil {
+		panic("error connecting to db: " + err.Error())
+	}
+
+	var totalRegressions int64
+	dbc.DB.Model(&models.TestRegression{}).Count(&totalRegressions)
+	if totalRegressions >= 300 {
+		panic("found too many test regressions in db, possible indicator someone is running e2e against prod")
+	}
+
+	return dbc
+}

@@ -56,6 +56,7 @@ export REDIS_URL="redis://localhost:$REDIS_PORT"
 echo "Loading database..."
 # use an old release here as they have very few job runs and thus import quickly, ~5 minutes
 go build -mod vendor ./cmd/sippy
+go build -mod vendor ./cmd/sippy-e2e
 ./sippy seed-data  \
   --init-database \
   --database-dsn="$SIPPY_E2E_DSN" \
@@ -97,7 +98,8 @@ if [ $ELAPSED -ge $TIMEOUT ]; then
 fi
 
 
-# Run our tests that request against the API, args ensure serially and fresh test code compile:
-gotestsum ./test/e2e/... -count 1 -p 1
+# Run e2e tests using the OTE binary:
+JUNIT_PATH="${ARTIFACT_DIR:-./}/junit-e2e.xml"
+./sippy-e2e run-suite sippy/e2e --junit-path "$JUNIT_PATH"
 
 # WARNING: do not place more commands here without addressing return code from go test not being overridden by the cleanup func
