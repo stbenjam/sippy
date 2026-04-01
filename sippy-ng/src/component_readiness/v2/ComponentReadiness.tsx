@@ -1,15 +1,17 @@
-import { Container, Typography } from '@mui/material'
+import { Box } from '@mui/material'
+import GridView from './components/GridView/GridView'
 import React from 'react'
+import Sidebar from './components/Sidebar/Sidebar'
 
-const ComponentReadinessV2: React.FC = () => {
+const ComponentReadiness: React.FC = () => {
   return (
-    <Container maxWidth="lg" sx={{ mt: 4 }}>
-      <Typography variant="h4">Component Readiness v2</Typography>
-      <Typography variant="body1" sx={{ mt: 2 }}>
-        This is the new Component Readiness interface. Under construction.
-      </Typography>
-    </Container>
+    <Box sx={{ display: 'flex', height: '100%' }}>
+      <Sidebar />
+      <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2 }}>
+        <GridView />
+      </Box>
+    </Box>
   )
 }
 
-export default ComponentReadinessV2
+export default ComponentReadiness
