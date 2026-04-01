@@ -1106,6 +1106,46 @@ func (s *Server) jsonDiagnoseJobFromBigQuery(w http.ResponseWriter, req *http.Re
 	api.RespondWithJSON(http.StatusOK, w, diagnosis)
 }
 
+func (s *Server) jsonComponentTestsFromBigQuery(w http.ResponseWriter, req *http.Request) {
+	if s.bigQueryClient == nil {
+		failureResponse(w, http.StatusBadRequest, "component report API is only available when google-service-account-credential-file is configured")
+		return
+	}
+
+	allJobVariants, errs := componentreadiness.GetJobVariantsFromBigQuery(req.Context(), s.bigQueryClient)
+	if len(errs) > 0 {
+		failureResponse(w, http.StatusInternalServerError, "failed to get variants from BigQuery")
+		return
+	}
+
+	allReleases, err := api.GetReleases(req.Context(), s.bigQueryClient, false)
+	if err != nil {
+		failureResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	reqOptions, _, err := utils.ParseComponentReportRequest(s.views.ComponentReadiness, allReleases, req, allJobVariants, s.crTimeRoundingFactor,
+		s.config.ComponentReadinessConfig.VariantJunitTableOverrides)
+	if err != nil {
+		failureResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	baseURL := api.GetBaseFrontendURL(req)
+	resp, err := componentreadiness.GetComponentTestsFromBigQuery(
+		req.Context(), s.bigQueryClient, s.db, reqOptions,
+		s.config.ComponentReadinessConfig.VariantJunitTableOverrides,
+		allReleases, baseURL,
+	)
+	if err != nil {
+		log.WithError(err).Error("error querying component tests")
+		failureResponse(w, http.StatusInternalServerError, "error querying component tests: "+err.Error())
+		return
+	}
+
+	api.RespondWithJSON(http.StatusOK, w, resp)
+}
+
 func (s *Server) jsonComponentReportTestDetailsFromBigQuery(w http.ResponseWriter, req *http.Request) {
 	if s.bigQueryClient == nil {
 		err := fmt.Errorf("component report API is only available when google-service-account-credential-file is configured")
@@ -2685,6 +2725,12 @@ func (s *Server) Serve() {
 			Description:  "Diagnoses why a job is or isn't included in a component readiness report",
 			Capabilities: []string{ComponentReadinessCapability},
 			HandlerFunc:  s.jsonDiagnoseJobFromBigQuery,
+		},
+		{
+			EndpointPath: "/api/component_readiness/tests",
+			Description:  "Returns all tests for a component with variant-level results",
+			Capabilities: []string{ComponentReadinessCapability},
+			HandlerFunc:  s.jsonComponentTestsFromBigQuery,
 		},
 		{
 			EndpointPath: "/api/component_readiness/test_details",

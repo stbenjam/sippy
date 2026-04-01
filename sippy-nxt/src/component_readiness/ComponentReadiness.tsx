@@ -1,5 +1,6 @@
 import { Box, Portal } from "@mui/material";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Routes, Route, useNavigate } from "react-router-dom";
 import { useComponentReadinessStore } from "./store/store";
 import { hydrateFromURL, initURLSync } from "./store/urlSync";
 import { buildReportParams, useReport } from "./hooks/useReport";
@@ -7,10 +8,12 @@ import { useTestCapabilities, useTestLifecycles } from "./hooks/useTestFilters";
 import { useVariants } from "./hooks/useVariants";
 import { useViewJobs } from "./hooks/useViewJobs";
 import { useViews } from "./hooks/useViews";
+import type { ColumnIdentification } from "./types";
 import ErrorState from "./components/shared/ErrorState";
 import GridView from "./components/GridView/GridView";
 import LoadingState from "./components/shared/LoadingState";
 import Sidebar from "./components/Sidebar/Sidebar";
+import TestsPage from "./components/TestsPage/TestsPage";
 import ViewJobsModal from "./components/ViewJobsModal/ViewJobsModal";
 
 export default function ComponentReadiness() {
@@ -121,6 +124,8 @@ export default function ComponentReadiness() {
     }
   }, [view, baseRelease, views, applyViewConfig, commitReport]);
 
+  const navigate = useNavigate();
+
   const handleViewChange = (viewName: string) => {
     const selected = views?.find((v) => v.name === viewName);
     if (selected) {
@@ -129,6 +134,27 @@ export default function ComponentReadiness() {
       setTimeout(commitReport, 0);
     }
   };
+
+  const handleCellClick = useCallback(
+    (component: string, column: ColumnIdentification) => {
+      const params = new URLSearchParams(window.location.search);
+      params.set("component", component);
+      for (const [k, v] of Object.entries(column.variants)) {
+        params.set(k, v);
+      }
+      navigate(`/component_readiness/tests?${params.toString()}`);
+    },
+    [navigate],
+  );
+
+  const handleComponentClick = useCallback(
+    (component: string) => {
+      const params = new URLSearchParams(window.location.search);
+      params.set("component", component);
+      navigate(`/component_readiness/tests?${params.toString()}`);
+    },
+    [navigate],
+  );
 
   return (
     <>
@@ -169,22 +195,32 @@ export default function ComponentReadiness() {
           overflow: "hidden",
         }}
       >
-        {viewsError ? (
-          <ErrorState message={viewsError.message} />
-        ) : viewsLoading ? (
-          <LoadingState message="Loading views..." />
-        ) : reportLoading ? (
-          <LoadingState message="Loading component readiness data..." />
-        ) : reportError ? (
-          <ErrorState message={reportError.message} />
-        ) : (
-          <GridView
-            report={report}
-            redOnlyFilter={redOnlyFilter}
-            searchFilter={searchFilter}
-            onViewJobs={() => setJobsModalOpen(true)}
+        <Routes>
+          <Route
+            index
+            element={
+              viewsError ? (
+                <ErrorState message={viewsError.message} />
+              ) : viewsLoading ? (
+                <LoadingState message="Loading views..." />
+              ) : reportLoading ? (
+                <LoadingState message="Loading component readiness data..." />
+              ) : reportError ? (
+                <ErrorState message={reportError.message} />
+              ) : (
+                <GridView
+                  report={report}
+                  redOnlyFilter={redOnlyFilter}
+                  searchFilter={searchFilter}
+                  onViewJobs={() => setJobsModalOpen(true)}
+                  onCellClick={handleCellClick}
+                  onComponentClick={handleComponentClick}
+                />
+              )
+            }
           />
-        )}
+          <Route path="tests" element={<TestsPage />} />
+        </Routes>
       </Box>
 
       <ViewJobsModal

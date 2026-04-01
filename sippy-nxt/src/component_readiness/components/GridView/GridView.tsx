@@ -25,6 +25,7 @@ const COMPONENT_COL_WIDTH = 260;
 interface GridViewProps {
   report?: ComponentReport;
   onCellClick?: (component: string, column: ColumnIdentification) => void;
+  onComponentClick?: (component: string) => void;
   searchFilter?: string;
   redOnlyFilter?: boolean;
   onViewJobs?: () => void;
@@ -42,6 +43,7 @@ function hasRegression(row: ReportRow): boolean {
 export default function GridView({
   report,
   onCellClick,
+  onComponentClick,
   searchFilter: externalSearch,
   redOnlyFilter: externalRedOnly,
   onViewJobs,
@@ -248,6 +250,19 @@ export default function GridView({
                     }),
                   }}
                   title={row.component}
+                  onClick={
+                    onComponentClick
+                      ? () => onComponentClick(row.component)
+                      : undefined
+                  }
+                  sx={{
+                    ...({
+                      cursor: onComponentClick ? "pointer" : "default",
+                      "&:hover": onComponentClick
+                        ? { bgcolor: "action.hover" }
+                        : undefined,
+                    }),
+                  }}
                 >
                   {row.component}
                 </TableCell>
