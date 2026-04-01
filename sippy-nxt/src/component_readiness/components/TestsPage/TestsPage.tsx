@@ -291,10 +291,9 @@ export default function TestsPage() {
           >
             {component}
           </Typography>
-          {data.column_variants &&
-            Object.keys(data.column_variants).length > 0 && (
+          {columnVariants && (
               <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-                {Object.entries(data.column_variants).map(([k, v]) => (
+                {Object.entries(columnVariants).map(([k, v]) => (
                   <Chip
                     key={k}
                     label={`${k}: ${v}`}

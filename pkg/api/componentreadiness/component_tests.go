@@ -21,15 +21,15 @@ import (
 )
 
 // ComponentTestsResponse is the response for the component tests endpoint,
-// returning all tests for a component with their full variant-level results.
+// returning all tests with their full variant-level results.
+// When fetched without a component filter, it contains every test in the view
+// and can be cached once then filtered client-side for any drill-down.
 type ComponentTestsResponse struct {
-	Component      string            `json:"component"`
-	ColumnVariants map[string]string `json:"column_variants,omitempty"`
-	DBGroupBy      []string          `json:"db_group_by"`
-	ColumnGroupBy  []string          `json:"column_group_by"`
-	TotalTests     int               `json:"total_tests"`
-	GeneratedAt    *time.Time        `json:"generated_at,omitempty"`
-	Tests          []ComponentTestRow `json:"tests"`
+	DBGroupBy   []string           `json:"db_group_by"`
+	ColumnGroupBy []string         `json:"column_group_by"`
+	TotalTests  int                `json:"total_tests"`
+	GeneratedAt *time.Time         `json:"generated_at,omitempty"`
+	Tests       []ComponentTestRow `json:"tests"`
 }
 
 // ComponentTestRow represents a single test with all its variant-level results.
@@ -45,14 +45,16 @@ type ComponentTestRow struct {
 
 // TestVariantResult is one result per dbGroupBy combination for a test.
 type TestVariantResult struct {
-	Variants    map[string]string      `json:"variants"`
-	Status      crtest.Status          `json:"status"`
+	Variants    map[string]string        `json:"variants"`
+	Status      crtest.Status            `json:"status"`
 	SampleStats testdetails.ReleaseStats `json:"sample_stats"`
 	BaseStats   *testdetails.ReleaseStats `json:"base_stats,omitempty"`
-	FisherExact *float64               `json:"fisher_exact,omitempty"`
+	FisherExact *float64                 `json:"fisher_exact,omitempty"`
 }
 
-// GetComponentTestsFromBigQuery returns all tests for a component, across all variant combinations.
+// GetComponentTestsFromBigQuery returns all tests across all variant combinations.
+// The component and variant params in reqOptions are intentionally ignored so
+// the result can be cached once per view and filtered client-side.
 func GetComponentTestsFromBigQuery(
 	ctx context.Context,
 	client *bqcachedclient.Client,
@@ -62,27 +64,39 @@ func GetComponentTestsFromBigQuery(
 	releaseConfigs []v1.Release,
 	baseURL string,
 ) (*ComponentTestsResponse, error) {
+	// Strip component/variant filters so the cache key is view-level,
+	// not per-component. The full dataset is returned and filtered client-side.
+	reqOptions.TestIDOptions = nil
+
 	generator := NewComponentReportGenerator(client, reqOptions, dbc, variantJunitTableOverrides, releaseConfigs, baseURL)
-	return generator.generateComponentTestsPage(ctx)
+
+	result, errs := api.GetDataFromCacheOrGenerate[ComponentTestsResponse](
+		ctx,
+		generator.client.Cache, generator.ReqOptions.CacheOption,
+		api.GetPrefixedCacheKey("ComponentTests~", generator.GetCacheKey(ctx)),
+		func(ctx context.Context) (ComponentTestsResponse, []error) {
+			resp, err := generator.generateAllTests(ctx)
+			if err != nil {
+				return ComponentTestsResponse{}, []error{err}
+			}
+			return *resp, nil
+		},
+		ComponentTestsResponse{})
+
+	if len(errs) > 0 {
+		return nil, fmt.Errorf("errors generating component tests: %v", errs)
+	}
+	return &result, nil
 }
 
-func (c *ComponentReportGenerator) generateComponentTestsPage(ctx context.Context) (*ComponentTestsResponse, error) {
+// generateAllTests iterates every test in the view, runs the full analysis
+// pipeline, and returns results for all tests grouped by test_id.
+func (c *ComponentReportGenerator) generateAllTests(ctx context.Context) (*ComponentTestsResponse, error) {
 	before := time.Now()
 
-	// Reuses the same cached BigQuery data as the main report
 	componentReportTestStatus, errs := c.getTestStatusFromBigQuery(ctx)
 	if len(errs) > 0 {
 		return nil, fmt.Errorf("error fetching test status: %v", errs)
-	}
-
-	requestedComponent := ""
-	requestedVariants := map[string]string{}
-	if len(c.ReqOptions.TestIDOptions) > 0 {
-		requestedComponent = c.ReqOptions.TestIDOptions[0].Component
-		requestedVariants = c.ReqOptions.TestIDOptions[0].RequestedVariants
-	}
-	if requestedComponent == "" {
-		return nil, fmt.Errorf("component parameter is required")
 	}
 
 	basisStatusMap := componentReportTestStatus.BaseStatus
@@ -93,7 +107,6 @@ func (c *ComponentReportGenerator) generateComponentTestsPage(ctx context.Contex
 	sort.Strings(columnGroupBy)
 	sort.Strings(dbGroupBy)
 
-	// Collect results grouped by test_id
 	type testEntry struct {
 		testID     string
 		testName   string
@@ -105,7 +118,7 @@ func (c *ComponentReportGenerator) generateComponentTestsPage(ctx context.Contex
 	testMap := map[string]*testEntry{}
 
 	// Merge all test keys from both basis and sample
-	allKeys := map[string]bool{}
+	allKeys := make(map[string]bool, len(sampleStatusMap)+len(basisStatusMap))
 	for k := range sampleStatusMap {
 		allKeys[k] = true
 	}
@@ -117,30 +130,17 @@ func (c *ComponentReportGenerator) generateComponentTestsPage(ctx context.Contex
 		sampleStatus, sampleThere := sampleStatusMap[testKeyStr]
 		basisStatus, basisThere := basisStatusMap[testKeyStr]
 
-		// Need at least one to get metadata
 		status := sampleStatus
 		if !sampleThere {
 			status = basisStatus
 		}
 
-		// Filter by component
-		if status.Component != requestedComponent {
-			continue
-		}
-
-		// Parse the test key for variant info
 		var testKey crtest.KeyWithVariants
 		if err := json.Unmarshal([]byte(testKeyStr), &testKey); err != nil {
 			log.WithError(err).Errorf("error parsing test key: %s", testKeyStr)
 			continue
 		}
 
-		// Filter by requested column variants (e.g., Platform=aws from URL)
-		if !matchesRequestedVariants(testKey.Variants, requestedVariants) {
-			continue
-		}
-
-		// Run the same analysis as the main report
 		var cellReport testdetails.TestComparison
 		if !sampleThere {
 			cellReport.ReportStatus = crtest.MissingSample
@@ -164,7 +164,6 @@ func (c *ComponentReportGenerator) generateComponentTestsPage(ctx context.Contex
 			c.assessComponentStatus(&cellReport, log.NewEntry(log.New()))
 		}
 
-		// Build the variant result
 		result := TestVariantResult{
 			Variants:    testKey.Variants,
 			Status:      cellReport.ReportStatus,
@@ -173,7 +172,6 @@ func (c *ComponentReportGenerator) generateComponentTestsPage(ctx context.Contex
 			FisherExact: cellReport.FisherExact,
 		}
 
-		// Group by test_id
 		entry, exists := testMap[testKey.TestID]
 		if !exists {
 			cap := ""
@@ -192,18 +190,15 @@ func (c *ComponentReportGenerator) generateComponentTestsPage(ctx context.Contex
 		entry.results = append(entry.results, result)
 	}
 
-	// Build the response
 	tests := make([]ComponentTestRow, 0, len(testMap))
 	for _, entry := range testMap {
-		// Compute worst status across all results
-		worstStatus := crtest.SignificantImprovement // start with best possible
+		worstStatus := crtest.SignificantImprovement
 		for _, r := range entry.results {
 			if r.Status < worstStatus {
 				worstStatus = r.Status
 			}
 		}
 
-		// Sort results by status (worst first)
 		sort.Slice(entry.results, func(i, j int) bool {
 			return entry.results[i].Status < entry.results[j].Status
 		})
@@ -219,7 +214,6 @@ func (c *ComponentReportGenerator) generateComponentTestsPage(ctx context.Contex
 		})
 	}
 
-	// Sort tests: worst status first, then by name
 	sort.Slice(tests, func(i, j int) bool {
 		if tests[i].WorstStatus != tests[j].WorstStatus {
 			return tests[i].WorstStatus < tests[j].WorstStatus
@@ -227,62 +221,13 @@ func (c *ComponentReportGenerator) generateComponentTestsPage(ctx context.Contex
 		return tests[i].TestName < tests[j].TestName
 	})
 
-	columnVariants := map[string]string{}
-	if len(requestedVariants) > 0 {
-		columnVariants = requestedVariants
-	}
-
-	log.Infof("GenerateComponentTestsPage completed in %s with %d tests for component %q",
-		time.Since(before), len(tests), requestedComponent)
+	log.Infof("generateAllTests completed in %s with %d tests", time.Since(before), len(tests))
 
 	return &ComponentTestsResponse{
-		Component:      requestedComponent,
-		ColumnVariants: columnVariants,
-		DBGroupBy:      dbGroupBy,
-		ColumnGroupBy:  columnGroupBy,
-		TotalTests:     len(tests),
-		GeneratedAt:    componentReportTestStatus.GeneratedAt,
-		Tests:          tests,
+		DBGroupBy:   dbGroupBy,
+		ColumnGroupBy: columnGroupBy,
+		TotalTests:  len(tests),
+		GeneratedAt: componentReportTestStatus.GeneratedAt,
+		Tests:       tests,
 	}, nil
-}
-
-// matchesRequestedVariants checks if a test's variants match the requested filter values.
-func matchesRequestedVariants(testVariants, requestedVariants map[string]string) bool {
-	for k, v := range requestedVariants {
-		if testVariants[k] != v {
-			return false
-		}
-	}
-	return true
-}
-
-// GetComponentTestsFromCache wraps the generation with caching.
-func GetComponentTestsFromCache(
-	ctx context.Context,
-	client *bqcachedclient.Client,
-	dbc *db.DB,
-	reqOptions reqopts.RequestOptions,
-	variantJunitTableOverrides []configv1.VariantJunitTableOverride,
-	releaseConfigs []v1.Release,
-	baseURL string,
-) (*ComponentTestsResponse, error) {
-	generator := NewComponentReportGenerator(client, reqOptions, dbc, variantJunitTableOverrides, releaseConfigs, baseURL)
-
-	result, errs := api.GetDataFromCacheOrGenerate[ComponentTestsResponse](
-		ctx,
-		generator.client.Cache, generator.ReqOptions.CacheOption,
-		api.GetPrefixedCacheKey("ComponentTests~", generator.GetCacheKey(ctx)),
-		func(ctx context.Context) (ComponentTestsResponse, []error) {
-			resp, err := generator.generateComponentTestsPage(ctx)
-			if err != nil {
-				return ComponentTestsResponse{}, []error{err}
-			}
-			return *resp, nil
-		},
-		ComponentTestsResponse{})
-
-	if len(errs) > 0 {
-		return nil, fmt.Errorf("errors generating component tests: %v", errs)
-	}
-	return &result, nil
 }
