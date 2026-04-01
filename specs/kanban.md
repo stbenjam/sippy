@@ -8,23 +8,6 @@ kanban-plugin: basic
 
 ### MVP 0: Skeleton & Tooling
 
-- [ ] **M0-001**: Configure TypeScript in sippy-ng @ui-engineer
-  Add tsconfig.json with strict mode. Update build to handle .ts/.tsx alongside .js/.jsx. Verify existing code still builds.
-
-- [ ] **M0-002**: Install Zustand and React Query @ui-engineer
-  Add zustand and @tanstack/react-query. Set up QueryClientProvider. Create skeleton store. Verify basic state works.
-
-- [ ] **M0-003**: Create v2 route with placeholder page @ui-engineer
-  Add /component_readiness/v2/ route in App.js. Render placeholder "CR v2" page. Verify routing works.
-
-- [ ] **M0-004**: Create v2 backend route scaffold @api-engineer
-  Register /api/v2/component_readiness/ routes in server.go. Implement /views endpoint as thin wrapper over existing view loader. Return JSON with HATEOAS links.
-
-- [ ] **M0-005**: Set up Playwright for e2e testing @qa-engineer
-  Install Playwright. Create playwright.config.ts. Write one test: navigate to CR v2 placeholder, verify it renders.
-
-- [ ] **M0-006**: Set up Vitest for frontend unit tests @qa-engineer
-  Configure Vitest in sippy-ng. Write one trivial test to verify the pipeline works.
 
 ### MVP 1: Grid View (CHECKPOINT - STOP FOR REVIEW)
 
@@ -198,4 +181,13 @@ kanban-plugin: basic
 
 
 ## Done
+
+### MVP 0: Skeleton & Tooling
+
+- [x] **M0-001**: Configure TypeScript in sippy-ng @ui-engineer
+- [x] **M0-002**: Install Zustand and React Query @ui-engineer
+- [x] **M0-003**: Create v2 route with placeholder page @ui-engineer
+- [x] **M0-004**: Create v2 backend route scaffold @api-engineer
+- [x] **M0-005**: Set up Playwright for e2e testing @qa-engineer
+- [x] **M0-006**: Set up Vitest for frontend unit tests @qa-engineer
 
