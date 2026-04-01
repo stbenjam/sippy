@@ -1,6 +1,7 @@
 package v2
 
 import (
+	componentreadiness "github.com/openshift/sippy/pkg/api/componentreadiness"
 	"github.com/openshift/sippy/pkg/apis/api/componentreport/crview"
 )
 
@@ -19,4 +20,10 @@ type ViewResponse struct {
 type ViewsResponse struct {
 	Views []ViewResponse  `json:"views"`
 	Links map[string]Link `json:"_links"`
+}
+
+// VariantsResponse wraps test variants with HATEOAS links.
+type VariantsResponse struct {
+	Variants componentreadiness.CacheVariants `json:"variants"`
+	Links    map[string]Link                  `json:"_links"`
 }

@@ -6,7 +6,10 @@ import (
 	"net/url"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/openshift/sippy/pkg/api"
+	componentreadiness "github.com/openshift/sippy/pkg/api/componentreadiness"
 	"github.com/openshift/sippy/pkg/api/componentreadiness/utils"
 	"github.com/openshift/sippy/pkg/apis/api/componentreport/crview"
 	sippybq "github.com/openshift/sippy/pkg/bigquery"
@@ -62,6 +65,30 @@ func (h *Handler) ServeViews(w http.ResponseWriter, req *http.Request) {
 		Views: responses,
 		Links: map[string]Link{
 			"self": {Href: "/api/v2/component_readiness/views"},
+		},
+	})
+}
+
+// ServeVariants handles GET /api/v2/component_readiness/variants.
+// It returns all test variants from BigQuery with HATEOAS links.
+func (h *Handler) ServeVariants(w http.ResponseWriter, req *http.Request) {
+	if h.BigQueryClient == nil {
+		api.RespondWithJSON(http.StatusBadRequest, w, map[string]string{"error": "component report API is only available when google-service-account-credential-file is configured"})
+		return
+	}
+	outputs, errs := componentreadiness.GetComponentTestVariantsFromBigQuery(req.Context(), h.BigQueryClient)
+	if len(errs) > 0 {
+		log.Warningf("%d errors were encountered while querying test variants from big query:", len(errs))
+		for _, err := range errs {
+			log.Error(err.Error())
+		}
+		api.RespondWithJSON(http.StatusInternalServerError, w, map[string]string{"error": fmt.Sprintf("error querying test variants from big query: %v", errs)})
+		return
+	}
+	api.RespondWithJSON(http.StatusOK, w, VariantsResponse{
+		Variants: outputs,
+		Links: map[string]Link{
+			"self": {Href: "/api/v2/component_readiness/variants"},
 		},
 	})
 }

@@ -1031,6 +1031,29 @@ func (s *Server) jsonComponentReportFromBigQuery(w http.ResponseWriter, req *htt
 	api.RespondWithJSON(http.StatusOK, w, outputs)
 }
 
+// jsonV2ComponentReport handles GET /api/v2/component_readiness/views/{viewName}/report.
+// It extracts the viewName from the URL path and delegates to getComponentReportFromRequest.
+func (s *Server) jsonV2ComponentReport(w http.ResponseWriter, req *http.Request) {
+	viewName := mux.Vars(req)["viewName"]
+	if viewName == "" {
+		api.RespondWithJSON(http.StatusBadRequest, w, map[string]string{"error": "viewName is required"})
+		return
+	}
+
+	// Inject the view name as a query parameter so getComponentReportFromRequest can find it
+	q := req.URL.Query()
+	q.Set("view", viewName)
+	req.URL.RawQuery = q.Encode()
+
+	outputs, err := s.getComponentReportFromRequest(req)
+	if err != nil {
+		api.RespondWithJSON(http.StatusBadRequest, w, map[string]string{"error": err.Error()})
+		return
+	}
+
+	api.RespondWithJSON(http.StatusOK, w, outputs)
+}
+
 func (s *Server) jsonComponentReportTestDetailsFromBigQuery(w http.ResponseWriter, req *http.Request) {
 	if s.bigQueryClient == nil {
 		err := fmt.Errorf("component report API is only available when google-service-account-credential-file is configured")
@@ -2627,6 +2650,22 @@ func (s *Server) Serve() {
 				BigQueryClient:     s.bigQueryClient,
 				TimeRoundingFactor: s.crTimeRoundingFactor,
 			}).ServeViews,
+		},
+		{
+			EndpointPath: "/api/v2/component_readiness/views/{viewName}/report",
+			Description:  "Returns the component readiness report for a specific view",
+			Methods:      []string{http.MethodGet},
+			Capabilities: []string{ComponentReadinessCapability},
+			HandlerFunc:  s.jsonV2ComponentReport,
+		},
+		{
+			EndpointPath: "/api/v2/component_readiness/variants",
+			Description:  "Returns all test variants for component readiness",
+			Methods:      []string{http.MethodGet},
+			Capabilities: []string{ComponentReadinessCapability},
+			HandlerFunc: (&crv2.Handler{
+				BigQueryClient: s.bigQueryClient,
+			}).ServeVariants,
 		},
 		{
 			EndpointPath: "/api/component_readiness/triages",
