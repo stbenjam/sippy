@@ -2,6 +2,7 @@ import { Box, Portal } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useComponentReadinessStore } from "./store/store";
 import { useReport } from "./hooks/useReport";
+import { useTestCapabilities, useTestLifecycles } from "./hooks/useTestFilters";
 import { useVariants } from "./hooks/useVariants";
 import { useViews } from "./hooks/useViews";
 import ErrorState from "./components/shared/ErrorState";
@@ -16,6 +17,8 @@ export default function ComponentReadiness() {
     error: viewsError,
   } = useViews();
   const { data: variantsData } = useVariants();
+  const { data: availableCapabilities } = useTestCapabilities();
+  const { data: availableLifecycles } = useTestLifecycles();
   const {
     data: report,
     isLoading: reportLoading,
@@ -48,6 +51,10 @@ export default function ComponentReadiness() {
   const setColumnGroupBy = useComponentReadinessStore(
     (s) => s.setColumnGroupBy,
   );
+  const capabilities = useComponentReadinessStore((s) => s.capabilities);
+  const lifecycles = useComponentReadinessStore((s) => s.lifecycles);
+  const setCapabilities = useComponentReadinessStore((s) => s.setCapabilities);
+  const setLifecycles = useComponentReadinessStore((s) => s.setLifecycles);
 
   // Wait for the drawer portal target
   const [portalTarget, setPortalTarget] = useState<Element | null>(null);
@@ -100,6 +107,12 @@ export default function ComponentReadiness() {
             onVariantsChange={setIncludeVariants}
             columnGroupBy={columnGroupBy}
             onColumnGroupByChange={setColumnGroupBy}
+            availableCapabilities={availableCapabilities ?? []}
+            selectedCapabilities={capabilities}
+            onCapabilitiesChange={setCapabilities}
+            availableLifecycles={availableLifecycles ?? []}
+            selectedLifecycles={lifecycles}
+            onLifecyclesChange={setLifecycles}
             onGenerateReport={() => refetch()}
           />
         </Portal>

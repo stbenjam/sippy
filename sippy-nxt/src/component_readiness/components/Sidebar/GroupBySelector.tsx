@@ -1,6 +1,17 @@
-import { alpha, Box, Chip, Typography, useTheme } from "@mui/material";
-import { ViewColumn as GroupByIcon } from "@mui/icons-material";
-import { useCallback } from "react";
+import {
+  alpha,
+  Box,
+  ButtonBase,
+  Chip,
+  Collapse,
+  Typography,
+  useTheme,
+} from "@mui/material";
+import {
+  Add as AddIcon,
+  ViewColumn as GroupByIcon,
+} from "@mui/icons-material";
+import { useCallback, useState } from "react";
 
 interface GroupBySelectorProps {
   availableGroups: string[];
@@ -13,8 +24,11 @@ export default function GroupBySelector({
   selectedGroups: selectedGroupsProp,
   onChange,
 }: GroupBySelectorProps) {
-  const selectedGroups = Array.isArray(selectedGroupsProp) ? selectedGroupsProp : [];
+  const selectedGroups = Array.isArray(selectedGroupsProp)
+    ? selectedGroupsProp
+    : [];
   const theme = useTheme();
+  const [expanded, setExpanded] = useState(false);
 
   const handleToggle = useCallback(
     (group: string) => {
@@ -34,6 +48,35 @@ export default function GroupBySelector({
     );
   }
 
+  const unselected = availableGroups.filter(
+    (g) => !selectedGroups.includes(g),
+  );
+
+  const chipSx = (isSelected: boolean) =>
+    ({
+      height: 26,
+      fontSize: "0.7rem",
+      fontWeight: isSelected ? 600 : 400,
+      borderRadius: 1,
+      bgcolor: isSelected
+        ? alpha(theme.palette.primary.main, 0.12)
+        : alpha(theme.palette.action.hover, 0.06),
+      color: isSelected ? "primary.main" : "text.secondary",
+      border: "1px solid",
+      borderColor: isSelected
+        ? alpha(theme.palette.primary.main, 0.3)
+        : "transparent",
+      transition: "all 0.15s ease",
+      "&:hover": {
+        bgcolor: isSelected
+          ? alpha(theme.palette.primary.main, 0.18)
+          : alpha(theme.palette.action.hover, 0.1),
+      },
+      "& .MuiChip-label": {
+        px: 0.75,
+      },
+    }) as const;
+
   return (
     <Box>
       <Box
@@ -41,7 +84,7 @@ export default function GroupBySelector({
           display: "flex",
           alignItems: "center",
           gap: 0.5,
-          mb: 1,
+          mb: 0.75,
         }}
       >
         <GroupByIcon sx={{ fontSize: 14, color: "text.secondary" }} />
@@ -58,42 +101,61 @@ export default function GroupBySelector({
           Column Grouping
         </Typography>
       </Box>
+
+      {/* Selected chips — always visible */}
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-        {availableGroups.map((group) => {
-          const isSelected = selectedGroups.includes(group);
-          return (
+        {selectedGroups.map((group) => (
+          <Chip
+            key={group}
+            label={group}
+            size="small"
+            onDelete={() => handleToggle(group)}
+            onClick={() => handleToggle(group)}
+            sx={chipSx(true)}
+          />
+        ))}
+
+        {/* Expand button */}
+        {unselected.length > 0 && (
+          <ButtonBase
+            onClick={() => setExpanded(!expanded)}
+            sx={{
+              height: 26,
+              px: 1,
+              borderRadius: 1,
+              fontSize: "0.65rem",
+              fontWeight: 600,
+              color: "text.secondary",
+              bgcolor: alpha(theme.palette.action.hover, 0.06),
+              transition: "all 0.15s ease",
+              display: "flex",
+              alignItems: "center",
+              gap: 0.25,
+              "&:hover": {
+                bgcolor: alpha(theme.palette.action.hover, 0.12),
+              },
+            }}
+          >
+            <AddIcon sx={{ fontSize: 14 }} />
+            {expanded ? "Less" : `${unselected.length} more`}
+          </ButtonBase>
+        )}
+      </Box>
+
+      {/* Unselected chips — expandable */}
+      <Collapse in={expanded}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.5 }}>
+          {unselected.map((group) => (
             <Chip
               key={group}
               label={group}
               size="small"
               onClick={() => handleToggle(group)}
-              sx={{
-                height: 26,
-                fontSize: "0.72rem",
-                fontWeight: isSelected ? 600 : 400,
-                borderRadius: 1,
-                bgcolor: isSelected
-                  ? alpha(theme.palette.primary.main, 0.12)
-                  : alpha(theme.palette.action.hover, 0.06),
-                color: isSelected ? "primary.main" : "text.secondary",
-                border: "1px solid",
-                borderColor: isSelected
-                  ? alpha(theme.palette.primary.main, 0.3)
-                  : "transparent",
-                transition: "all 0.15s ease",
-                "&:hover": {
-                  bgcolor: isSelected
-                    ? alpha(theme.palette.primary.main, 0.18)
-                    : alpha(theme.palette.action.hover, 0.1),
-                },
-                "& .MuiChip-label": {
-                  px: 1,
-                },
-              }}
+              sx={chipSx(false)}
             />
-          );
-        })}
-      </Box>
+          ))}
+        </Box>
+      </Collapse>
     </Box>
   );
 }

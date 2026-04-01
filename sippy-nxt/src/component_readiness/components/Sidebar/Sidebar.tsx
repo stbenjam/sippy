@@ -15,6 +15,7 @@ import {
 } from "@mui/icons-material";
 import { useState } from "react";
 import type { Release, View } from "../../types";
+import { useComponentReadinessStore } from "../../store/store";
 import AdvancedOptions from "./AdvancedOptions";
 import GroupBySelector from "./GroupBySelector";
 import ReleaseSelector from "./ReleaseSelector";
@@ -70,6 +71,7 @@ export default function Sidebar({
   onGenerateReport,
 }: SidebarProps) {
   const theme = useTheme();
+  const hasChanges = useComponentReadinessStore((s) => s.hasUnsavedChanges)();
   const HIDDEN_GROUPS = new Set([
     "Aggregation", "FromRelease", "FromReleaseMajor", "FromReleaseMinor",
     "NetworkStack", "Release", "ReleaseMajor", "ReleaseMinor",
@@ -196,6 +198,7 @@ export default function Sidebar({
           <Button
             variant="contained"
             fullWidth
+            disabled={!hasChanges}
             startIcon={<GenerateIcon />}
             onClick={onGenerateReport}
             sx={{

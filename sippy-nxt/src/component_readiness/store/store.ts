@@ -17,6 +17,10 @@ export interface ComponentReadinessState {
   compareVariants: Record<string, string[]>
   variantCrossCompare: string[]
 
+  // Test filters
+  capabilities: string[]
+  lifecycles: string[]
+
   // Advanced options
   confidence: number
   pityFactor: number
@@ -33,9 +37,15 @@ export interface ComponentReadinessState {
   selectedVariants: Record<string, string> | null
   groupBy: 'cloud' | 'platform' | 'network' | 'arch' | 'upgrade'
 
+  // Snapshot of last applied view config (for dirty detection)
+  _appliedSnapshot: string | null
+
   // UI state
   redOnlyFilter: boolean
   searchFilter: string
+
+  // Derived
+  hasUnsavedChanges: () => boolean
 
   // Actions
   setView: (view: string) => void
@@ -52,6 +62,10 @@ export interface ComponentReadinessState {
   // Variant actions
   setColumnGroupBy: (groups: string[]) => void
   setIncludeVariants: (variants: Record<string, string[]>) => void
+
+  // Test filter actions
+  setCapabilities: (caps: string[]) => void
+  setLifecycles: (lifecycles: string[]) => void
 
   // Advanced option actions
   setConfidence: (v: number) => void
@@ -87,8 +101,28 @@ const defaultAdvanced: AdvancedOptions = {
   include_multi_release_analysis: false,
 }
 
+function makeSnapshot(s: ComponentReadinessState): string {
+  return JSON.stringify({
+    baseRelease: s.baseRelease,
+    sampleRelease: s.sampleRelease,
+    columnGroupBy: [...s.columnGroupBy].sort(),
+    includeVariants: s.includeVariants,
+    capabilities: [...s.capabilities].sort(),
+    lifecycles: [...s.lifecycles].sort(),
+    confidence: s.confidence,
+    pityFactor: s.pityFactor,
+    minimumFailure: s.minimumFailure,
+    passRateRequiredNewTests: s.passRateRequiredNewTests,
+    passRateRequiredAllTests: s.passRateRequiredAllTests,
+    ignoreMissing: s.ignoreMissing,
+    ignoreDisruption: s.ignoreDisruption,
+    flakeAsFailure: s.flakeAsFailure,
+    includeMultiReleaseAnalysis: s.includeMultiReleaseAnalysis,
+  })
+}
+
 export const useComponentReadinessStore = create<ComponentReadinessState>()(
-  subscribeWithSelector((set) => ({
+  subscribeWithSelector((set, get) => ({
     // View
     view: null,
 
@@ -102,6 +136,10 @@ export const useComponentReadinessStore = create<ComponentReadinessState>()(
     includeVariants: {},
     compareVariants: {},
     variantCrossCompare: [],
+
+    // Test filters
+    capabilities: [],
+    lifecycles: [],
 
     // Advanced options
     confidence: defaultAdvanced.confidence,
@@ -119,14 +157,24 @@ export const useComponentReadinessStore = create<ComponentReadinessState>()(
     selectedVariants: null,
     groupBy: 'cloud',
 
+    // Snapshot
+    _appliedSnapshot: null,
+
     // UI state
     redOnlyFilter: false,
     searchFilter: '',
 
+    // Derived
+    hasUnsavedChanges: () => {
+      const s = get()
+      if (!s._appliedSnapshot) return false
+      return makeSnapshot(s) !== s._appliedSnapshot
+    },
+
     // Actions
     setView: (view) => set({ view }),
 
-    applyViewConfig: (config) =>
+    applyViewConfig: (config) => {
       set({
         view: config.name,
         baseRelease: config.base_release,
@@ -140,6 +188,8 @@ export const useComponentReadinessStore = create<ComponentReadinessState>()(
         includeVariants: config.variant_options.include_variants ?? {},
         compareVariants: config.variant_options.compare_variants ?? {},
         variantCrossCompare: config.variant_options.variant_cross_compare ?? [],
+        capabilities: config.test_filters?.capabilities ?? [],
+        lifecycles: config.test_filters?.lifecycles ?? [],
         confidence: config.advanced_options.confidence,
         pityFactor: config.advanced_options.pity_factor,
         minimumFailure: config.advanced_options.minimum_failure,
@@ -154,7 +204,10 @@ export const useComponentReadinessStore = create<ComponentReadinessState>()(
           config.advanced_options.include_multi_release_analysis,
         selectedComponent: null,
         selectedVariants: null,
-      }),
+      })
+      // Capture snapshot after state is applied
+      set({ _appliedSnapshot: makeSnapshot(get()) })
+    },
 
     // Release actions
     setSampleRelease: (release) =>
@@ -185,6 +238,10 @@ export const useComponentReadinessStore = create<ComponentReadinessState>()(
     // Variant actions
     setColumnGroupBy: (groups) => set({ columnGroupBy: groups }),
     setIncludeVariants: (variants) => set({ includeVariants: variants }),
+
+    // Test filter actions
+    setCapabilities: (capabilities) => set({ capabilities }),
+    setLifecycles: (lifecycles) => set({ lifecycles }),
 
     // Advanced option actions
     setConfidence: (confidence) => set({ confidence }),
