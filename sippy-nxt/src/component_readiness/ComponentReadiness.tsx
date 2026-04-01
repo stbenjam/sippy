@@ -22,7 +22,7 @@ export default function ComponentReadiness() {
   const { data: variantsData } = useVariants();
   const { data: availableCapabilities } = useTestCapabilities();
   const { data: availableLifecycles } = useTestLifecycles();
-  const { data: viewJobs } = useViewJobs();
+  const { data: viewJobs, isLoading: viewJobsLoading } = useViewJobs();
   const [jobsModalOpen, setJobsModalOpen] = useState(false);
 
   // Committed params: only updated when Generate Report is clicked (or on initial load).
@@ -191,6 +191,7 @@ export default function ComponentReadiness() {
         open={jobsModalOpen}
         onClose={() => setJobsModalOpen(false)}
         data={viewJobs}
+        isLoading={viewJobsLoading}
       />
     </>
   );

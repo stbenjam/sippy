@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Chip,
+  CircularProgress,
   Collapse,
   Dialog,
   DialogContent,
@@ -35,10 +36,16 @@ import type {
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
+function formatDateRange(start: string, end: string): string {
+  const fmt = (s: string) => s.slice(0, 10); // "2026-03-18T00:00:00Z" → "2026-03-18"
+  return `${fmt(start)} – ${fmt(end)}`;
+}
+
 interface ViewJobsModalProps {
   open: boolean;
   onClose: () => void;
   data?: ViewJobsResponse;
+  isLoading?: boolean;
 }
 
 /** Build a classic Sippy job analysis link. */
@@ -53,6 +60,7 @@ export default function ViewJobsModal({
   open,
   onClose,
   data,
+  isLoading,
 }: ViewJobsModalProps) {
   const theme = useTheme();
   const [search, setSearch] = useState("");
@@ -356,6 +364,23 @@ export default function ViewJobsModal({
         </Box>
 
         {/* Job table */}
+        {isLoading ? (
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 2,
+            }}
+          >
+            <CircularProgress size={32} />
+            <Typography variant="body2" color="text.secondary">
+              Loading jobs...
+            </Typography>
+          </Box>
+        ) : (
         <Box
           sx={{
             flex: 1,
@@ -376,21 +401,37 @@ export default function ViewJobsModal({
             }}
           >
             <colgroup>
-              <col style={{ width: "40%" }} />
-              <col style={{ width: "25%" }} />
-              <col style={{ width: "25%" }} />
+              <col style={{ width: "38%" }} />
+              <col style={{ width: "24%" }} />
               <col style={{ width: "10%" }} />
+              <col style={{ width: "24%" }} />
             </colgroup>
             <thead>
               <tr>
                 <Th>Job</Th>
                 <Th align="center">
                   Sample ({data?.sample_release ?? "—"})
-                </Th>
-                <Th align="center">
-                  Basis ({data?.basis_release ?? "—"})
+                  {data?.sample_period && (
+                    <Typography
+                      component="div"
+                      sx={{ fontSize: "0.55rem", fontWeight: 400, textTransform: "none", letterSpacing: 0, color: "text.disabled" }}
+                    >
+                      {formatDateRange(data.sample_period.start, data.sample_period.end)}
+                    </Typography>
+                  )}
                 </Th>
                 <Th align="center">Net</Th>
+                <Th align="center">
+                  Basis ({data?.basis_release ?? "—"})
+                  {data?.basis_period && (
+                    <Typography
+                      component="div"
+                      sx={{ fontSize: "0.55rem", fontWeight: 400, textTransform: "none", letterSpacing: 0, color: "text.disabled" }}
+                    >
+                      {formatDateRange(data.basis_period.start, data.basis_period.end)}
+                    </Typography>
+                  )}
+                </Th>
               </tr>
             </thead>
             <tbody>
@@ -419,6 +460,7 @@ export default function ViewJobsModal({
             </tbody>
           </table>
         </Box>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -634,13 +676,12 @@ function JobRow({
       </td>
 
       <ReleaseCell stats={job.sample} release={sampleRelease} />
-      <ReleaseCell stats={job.basis} release={basisRelease} />
 
       {/* Net change */}
       <td
         style={{
           padding: "6px 10px",
-          textAlign: "right",
+          textAlign: "center",
           whiteSpace: "nowrap",
           borderLeft: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
         }}
@@ -667,6 +708,8 @@ function JobRow({
           </Typography>
         )}
       </td>
+
+      <ReleaseCell stats={job.basis} release={basisRelease} />
     </tr>
   );
 }
