@@ -4,11 +4,13 @@ import { useComponentReadinessStore } from "./store/store";
 import { useReport } from "./hooks/useReport";
 import { useTestCapabilities, useTestLifecycles } from "./hooks/useTestFilters";
 import { useVariants } from "./hooks/useVariants";
+import { useViewJobs } from "./hooks/useViewJobs";
 import { useViews } from "./hooks/useViews";
 import ErrorState from "./components/shared/ErrorState";
 import GridView from "./components/GridView/GridView";
 import LoadingState from "./components/shared/LoadingState";
 import Sidebar from "./components/Sidebar/Sidebar";
+import ViewJobsModal from "./components/ViewJobsModal/ViewJobsModal";
 
 export default function ComponentReadiness() {
   const {
@@ -19,6 +21,8 @@ export default function ComponentReadiness() {
   const { data: variantsData } = useVariants();
   const { data: availableCapabilities } = useTestCapabilities();
   const { data: availableLifecycles } = useTestLifecycles();
+  const { data: viewJobs } = useViewJobs();
+  const [jobsModalOpen, setJobsModalOpen] = useState(false);
   const {
     data: report,
     isLoading: reportLoading,
@@ -132,9 +136,16 @@ export default function ComponentReadiness() {
             report={report}
             redOnlyFilter={redOnlyFilter}
             searchFilter={searchFilter}
+            onViewJobs={() => setJobsModalOpen(true)}
           />
         )}
       </Box>
+
+      <ViewJobsModal
+        open={jobsModalOpen}
+        onClose={() => setJobsModalOpen(false)}
+        data={viewJobs}
+      />
     </>
   );
 }

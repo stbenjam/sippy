@@ -16,6 +16,7 @@ import {
   ContentCopy as ContentCopyIcon,
   ErrorOutline as ErrorIcon,
   Search as SearchIcon,
+  Work as JobIcon,
 } from "@mui/icons-material";
 import { useCallback, useState } from "react";
 
@@ -27,6 +28,7 @@ interface GridToolbarProps {
   generatedAt?: string;
   totalRows?: number;
   visibleRows?: number;
+  onViewJobs?: () => void;
 }
 
 export default function GridToolbar({
@@ -37,6 +39,7 @@ export default function GridToolbar({
   generatedAt,
   totalRows,
   visibleRows,
+  onViewJobs,
 }: GridToolbarProps) {
   const [copyAnchor, setCopyAnchor] = useState<HTMLElement | null>(null);
 
@@ -193,6 +196,29 @@ export default function GridToolbar({
           tabIndex={-1}
         />
       </Box>
+
+      {onViewJobs && (
+        <Tooltip title="View CI jobs in this report" arrow>
+          <IconButton
+            size="small"
+            onClick={onViewJobs}
+            sx={{
+              borderRadius: 2,
+              border: 1,
+              borderColor: "divider",
+              width: 34,
+              height: 34,
+              transition: "all 0.2s ease",
+              "&:hover": {
+                borderColor: "primary.main",
+                bgcolor: (t) => alpha(t.palette.primary.main, 0.06),
+              },
+            }}
+          >
+            <JobIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Tooltip>
+      )}
 
       <Tooltip title="Copy shareable link" arrow>
         <IconButton

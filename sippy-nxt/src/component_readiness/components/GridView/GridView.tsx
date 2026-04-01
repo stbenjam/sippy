@@ -27,6 +27,7 @@ interface GridViewProps {
   onCellClick?: (component: string, column: ColumnIdentification) => void;
   searchFilter?: string;
   redOnlyFilter?: boolean;
+  onViewJobs?: () => void;
 }
 
 function getColumns(report: ComponentReport): ColumnIdentification[] {
@@ -43,6 +44,7 @@ export default function GridView({
   onCellClick,
   searchFilter: externalSearch,
   redOnlyFilter: externalRedOnly,
+  onViewJobs,
 }: GridViewProps) {
   const setRedOnlyFilter = useComponentReadinessStore(
     (s) => s.setRedOnlyFilter,
@@ -154,6 +156,7 @@ export default function GridView({
         generatedAt={report.generated_at}
         totalRows={report.rows?.length}
         visibleRows={filteredRows.length}
+        onViewJobs={onViewJobs}
       />
 
       <TableContainer
