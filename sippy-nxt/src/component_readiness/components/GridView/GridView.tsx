@@ -243,7 +243,10 @@ export default function GridView({
                     borderRightColor: "divider",
                     color: "text.primary",
                     letterSpacing: "-0.01em",
-                    // Subtle indicator for rows with regressions
+                    cursor: onComponentClick ? "pointer" : "default",
+                    "&:hover": onComponentClick
+                      ? { bgcolor: "action.hover" }
+                      : undefined,
                     ...(hasRegression(row) && {
                       borderLeft: 3,
                       borderLeftColor: "error.main",
@@ -255,14 +258,6 @@ export default function GridView({
                       ? () => onComponentClick(row.component)
                       : undefined
                   }
-                  sx={{
-                    ...({
-                      cursor: onComponentClick ? "pointer" : "default",
-                      "&:hover": onComponentClick
-                        ? { bgcolor: "action.hover" }
-                        : undefined,
-                    }),
-                  }}
                 >
                   {row.component}
                 </TableCell>
