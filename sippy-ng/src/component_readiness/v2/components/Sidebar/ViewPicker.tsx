@@ -5,21 +5,22 @@ import {
   Select,
   SelectChangeEvent,
 } from '@mui/material'
+import { ViewResponse } from '../../types'
 import React from 'react'
 
 interface ViewPickerProps {
-  views: string[]
+  views: ViewResponse[]
   selectedView: string | null
-  onChange: (view: string) => void
+  onViewChange: (view: string) => void
 }
 
 const ViewPicker: React.FC<ViewPickerProps> = ({
   views,
   selectedView,
-  onChange,
+  onViewChange,
 }) => {
   const handleChange = (event: SelectChangeEvent) => {
-    onChange(event.target.value)
+    onViewChange(event.target.value)
   }
 
   return (
@@ -32,8 +33,8 @@ const ViewPicker: React.FC<ViewPickerProps> = ({
         onChange={handleChange}
       >
         {views.map((view) => (
-          <MenuItem key={view} value={view}>
-            {view}
+          <MenuItem key={view.name} value={view.name}>
+            {view.name}
           </MenuItem>
         ))}
       </Select>

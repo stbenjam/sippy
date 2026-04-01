@@ -19,42 +19,43 @@ import LoadingState from '../shared/LoadingState'
 import React, { useMemo, useState } from 'react'
 
 interface GridViewProps {
-  data?: ComponentReport
-  loading?: boolean
+  report?: ComponentReport
   onCellClick?: (component: string, column: ColumnIdentification) => void
+  searchFilter?: string
+  redOnlyFilter?: boolean
 }
 
-function getColumns(data: ComponentReport): ColumnIdentification[] {
-  if (!data.rows || data.rows.length === 0) return []
-  return data.rows[0].columns.map((col) => ({ variants: col.variants }))
+function getColumns(report: ComponentReport): ColumnIdentification[] {
+  if (!report.rows || report.rows.length === 0) return []
+  return report.rows[0].columns.map((col) => ({ variants: col.variants }))
 }
 
 function hasRegression(row: ReportRow): boolean {
   return row.columns.some((col) => isRegression(col.status))
 }
 
-function regressedTestCount(
-  row: ReportRow,
-  colIndex: number
-): number | undefined {
-  const col = row.columns[colIndex]
-  if (!col.regressed_tests) return undefined
-  return col.regressed_tests.length
-}
+const GridView: React.FC<GridViewProps> = ({
+  report,
+  onCellClick,
+  searchFilter: externalSearch,
+  redOnlyFilter: externalRedOnly,
+}) => {
+  const [internalSearch, setInternalSearch] = useState('')
+  const [internalRedOnly, setInternalRedOnly] = useState(false)
 
-const GridView: React.FC<GridViewProps> = ({ data, loading, onCellClick }) => {
-  const [searchRowRegex, setSearchRowRegex] = useState('')
-  const [redOnlyChecked, setRedOnlyChecked] = useState(false)
+  // Use external values if provided, otherwise fall back to internal state
+  const searchRowRegex = externalSearch ?? internalSearch
+  const redOnlyChecked = externalRedOnly ?? internalRedOnly
 
   const columns = useMemo(() => {
-    if (!data) return []
-    return getColumns(data)
-  }, [data])
+    if (!report) return []
+    return getColumns(report)
+  }, [report])
 
   const filteredRows = useMemo(() => {
-    if (!data?.rows) return []
+    if (!report?.rows) return []
 
-    let rows = [...data.rows].sort((a, b) =>
+    let rows = [...report.rows].sort((a, b) =>
       a.component.localeCompare(b.component)
     )
 
@@ -63,7 +64,6 @@ const GridView: React.FC<GridViewProps> = ({ data, loading, onCellClick }) => {
         const regex = new RegExp(searchRowRegex, 'i')
         rows = rows.filter((row) => regex.test(row.component))
       } catch {
-        // If invalid regex, fall back to simple string match
         const lower = searchRowRegex.toLowerCase()
         rows = rows.filter((row) => row.component.toLowerCase().includes(lower))
       }
@@ -74,9 +74,9 @@ const GridView: React.FC<GridViewProps> = ({ data, loading, onCellClick }) => {
     }
 
     return rows
-  }, [data, searchRowRegex, redOnlyChecked])
+  }, [report, searchRowRegex, redOnlyChecked])
 
-  if (loading || !data) {
+  if (!report) {
     return <LoadingState message="Loading component readiness data..." />
   }
 
@@ -84,10 +84,10 @@ const GridView: React.FC<GridViewProps> = ({ data, loading, onCellClick }) => {
     <Box>
       <GridToolbar
         searchRowRegex={searchRowRegex}
-        onSearchRowChange={setSearchRowRegex}
+        onSearchRowChange={setInternalSearch}
         redOnlyChecked={redOnlyChecked}
-        onRedOnlyChange={setRedOnlyChecked}
-        generatedAt={data.generated_at}
+        onRedOnlyChange={setInternalRedOnly}
+        generatedAt={report.generated_at}
       />
 
       <TableContainer sx={{ maxHeight: 'calc(100vh - 200px)' }}>
@@ -113,8 +113,7 @@ const GridView: React.FC<GridViewProps> = ({ data, loading, onCellClick }) => {
                 {row.columns.map((col, colIndex) => (
                   <GridCell
                     key={colIndex}
-                    status={col.status}
-                    regressedCount={regressedTestCount(row, colIndex)}
+                    column={col}
                     onClick={
                       onCellClick
                         ? () => onCellClick(row.component, columns[colIndex])

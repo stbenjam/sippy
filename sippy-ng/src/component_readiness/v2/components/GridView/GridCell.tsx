@@ -1,19 +1,16 @@
-import { Status } from '../../types'
+import { ReportColumn } from '../../types'
 import { TableCell } from '@mui/material'
 import React from 'react'
 import StatusIcon from '../shared/StatusIcon'
 
 interface GridCellProps {
-  status: Status
-  regressedCount?: number
+  column: ReportColumn
   onClick?: () => void
 }
 
-const GridCell: React.FC<GridCellProps> = ({
-  status,
-  regressedCount,
-  onClick,
-}) => {
+const GridCell: React.FC<GridCellProps> = ({ column, onClick }) => {
+  const regressedCount = column.regressed_tests?.length
+
   return (
     <TableCell
       onClick={onClick}
@@ -28,7 +25,7 @@ const GridCell: React.FC<GridCellProps> = ({
         '&:hover': onClick ? { backgroundColor: 'action.hover' } : undefined,
       }}
     >
-      <StatusIcon status={status} regressedCount={regressedCount} />
+      <StatusIcon status={column.status} regressedCount={regressedCount} />
     </TableCell>
   )
 }
