@@ -29,6 +29,7 @@ import {
   useParams,
 } from 'react-router-dom'
 import { parse, stringify } from 'query-string'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { QueryParamProvider } from 'use-query-params'
 import { ReactRouter6Adapter } from 'use-query-params/adapters/react-router-6'
 import { TestAnalysis } from './tests/TestAnalysis'
@@ -44,6 +45,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import CollapsibleChatDrawer from './chat/CollapsibleChatDrawer'
 import ComponentReadiness from './component_readiness/ComponentReadiness'
+import ComponentReadinessV2 from './component_readiness_v2/ComponentReadinessV2'
 import Drawer from '@mui/material/Drawer'
 import EventsChart from './prow_job_runs/EventsChart'
 import FeatureGates from './tests/FeatureGates'
@@ -68,6 +70,8 @@ import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
 import Upgrades from './releases/Upgrades'
 import VariantStatus from './jobs/VariantStatus'
+
+const queryClient = new QueryClient()
 
 const drawerWidth = 240
 
@@ -543,283 +547,296 @@ function App(props) {
   const startDate = getReportStartDate(reportDate)
 
   const content = (
-    <ColorModeContext.Provider value={colorMode}>
-      <ThemeProvider theme={createTheme(themes[mode])}>
-        <StyledEngineProvider injectFirst>
-          <ReleasesContext.Provider value={releases}>
-            <ReportEndContext.Provider value={reportDate}>
-              <SippyCapabilitiesContext.Provider value={sippyCapabilities}>
-                <AccessibilityModeProvider>
-                  <CssBaseline />
-                  <QueryParamProvider
-                    adapter={ReactRouter6Adapter}
-                    options={{
-                      searchStringToObject: parse,
-                      objectToSearchString: stringify,
-                    }}
-                  >
-                    <div className={classes.root}>
-                      <AIDisclaimerDialog />
+    <QueryClientProvider client={queryClient}>
+      <ColorModeContext.Provider value={colorMode}>
+        <ThemeProvider theme={createTheme(themes[mode])}>
+          <StyledEngineProvider injectFirst>
+            <ReleasesContext.Provider value={releases}>
+              <ReportEndContext.Provider value={reportDate}>
+                <SippyCapabilitiesContext.Provider value={sippyCapabilities}>
+                  <AccessibilityModeProvider>
+                    <CssBaseline />
+                    <QueryParamProvider
+                      adapter={ReactRouter6Adapter}
+                      options={{
+                        searchStringToObject: parse,
+                        objectToSearchString: stringify,
+                      }}
+                    >
+                      <div className={classes.root}>
+                        <AIDisclaimerDialog />
 
-                      <AppBar
-                        position="fixed"
-                        open={drawerOpen}
-                        sx={{ bgcolor: '#3f51b5' }}
-                      >
-                        <Toolbar edge="start">
-                          <IconButton
-                            color="inherit"
-                            aria-label="open drawer"
-                            onClick={handleDrawerOpen}
-                            edge="start"
-                            sx={{
-                              mr: 2,
-                              ...(drawerOpen && { display: 'none' }),
-                            }}
-                          >
-                            <MenuIcon />
-                          </IconButton>
-                          <Grid
-                            container
-                            justifyContent="space-between"
-                            alignItems="center"
-                          >
-                            <Typography variant="h6" className={classes.title}>
-                              Sippy
-                            </Typography>
-                            {showWithCapability(
-                              'local_db',
-                              <Fragment>
-                                Last updated{' '}
-                                {lastUpdated !== null
-                                  ? relativeTime(lastUpdated, startDate)
-                                  : 'unknown'}
-                              </Fragment>
-                            )}
-                          </Grid>
-                        </Toolbar>
-                      </AppBar>
-
-                      <Drawer
-                        sx={{
-                          width: drawerWidth,
-                          flexShrink: 0,
-                          '& .MuiDrawer-paper': {
-                            width: drawerWidth,
-                            boxSizing: 'border-box',
-                          },
-                        }}
-                        variant="persistent"
-                        anchor="left"
-                        open={drawerOpen}
-                      >
-                        <DrawerHeader>
-                          <Tooltip
-                            title={
-                              mode === 'dark'
-                                ? 'Toggle light mode'
-                                : 'Toggle dark mode'
-                            }
-                          >
+                        <AppBar
+                          position="fixed"
+                          open={drawerOpen}
+                          sx={{ bgcolor: '#3f51b5' }}
+                        >
+                          <Toolbar edge="start">
                             <IconButton
-                              sx={{ ml: 1 }}
-                              onClick={colorMode.toggleColorMode}
                               color="inherit"
+                              aria-label="open drawer"
+                              onClick={handleDrawerOpen}
+                              edge="start"
+                              sx={{
+                                mr: 2,
+                                ...(drawerOpen && { display: 'none' }),
+                              }}
                             >
-                              {mode === 'dark' ? <LightMode /> : <DarkMode />}
+                              <MenuIcon />
                             </IconButton>
-                          </Tooltip>
-                          <AccessibilityToggle />
-                          <Tooltip
-                            title={
-                              testTableDBSource === 'bigquery'
-                                ? 'BigQuery as test table DB source'
-                                : 'Postgres as test table DB source'
-                            }
-                          >
-                            <IconButton
-                              sx={{ ml: 1 }}
-                              onClick={
-                                testTableDBSourceToggle.toggleTestTableDBSource
-                              }
-                              color="inherit"
+                            <Grid
+                              container
+                              justifyContent="space-between"
+                              alignItems="center"
                             >
-                              {testTableDBSource === 'bigquery' ? (
-                                <ToggleOff />
+                              <Typography
+                                variant="h6"
+                                className={classes.title}
+                              >
+                                Sippy
+                              </Typography>
+                              {showWithCapability(
+                                'local_db',
+                                <Fragment>
+                                  Last updated{' '}
+                                  {lastUpdated !== null
+                                    ? relativeTime(lastUpdated, startDate)
+                                    : 'unknown'}
+                                </Fragment>
+                              )}
+                            </Grid>
+                          </Toolbar>
+                        </AppBar>
+
+                        <Drawer
+                          sx={{
+                            width: drawerWidth,
+                            flexShrink: 0,
+                            '& .MuiDrawer-paper': {
+                              width: drawerWidth,
+                              boxSizing: 'border-box',
+                            },
+                          }}
+                          variant="persistent"
+                          anchor="left"
+                          open={drawerOpen}
+                        >
+                          <DrawerHeader>
+                            <Tooltip
+                              title={
+                                mode === 'dark'
+                                  ? 'Toggle light mode'
+                                  : 'Toggle dark mode'
+                              }
+                            >
+                              <IconButton
+                                sx={{ ml: 1 }}
+                                onClick={colorMode.toggleColorMode}
+                                color="inherit"
+                              >
+                                {mode === 'dark' ? <LightMode /> : <DarkMode />}
+                              </IconButton>
+                            </Tooltip>
+                            <AccessibilityToggle />
+                            <Tooltip
+                              title={
+                                testTableDBSource === 'bigquery'
+                                  ? 'BigQuery as test table DB source'
+                                  : 'Postgres as test table DB source'
+                              }
+                            >
+                              <IconButton
+                                sx={{ ml: 1 }}
+                                onClick={
+                                  testTableDBSourceToggle.toggleTestTableDBSource
+                                }
+                                color="inherit"
+                              >
+                                {testTableDBSource === 'bigquery' ? (
+                                  <ToggleOff />
+                                ) : (
+                                  <ToggleOn />
+                                )}
+                              </IconButton>
+                            </Tooltip>
+                            <IconButton
+                              onClick={handleDrawerClose}
+                              size="large"
+                            >
+                              {theme.direction === 'ltr' ? (
+                                <ChevronLeftIcon />
                               ) : (
-                                <ToggleOn />
+                                <ChevronRightIcon />
                               )}
                             </IconButton>
-                          </Tooltip>
-                          <IconButton onClick={handleDrawerClose} size="large">
-                            {theme.direction === 'ltr' ? (
-                              <ChevronLeftIcon />
-                            ) : (
-                              <ChevronRightIcon />
-                            )}
-                          </IconButton>
-                        </DrawerHeader>
-                        <Sidebar
-                          releaseConfig={releases}
-                          defaultRelease={defaultRelease}
-                        />
-                      </Drawer>
+                          </DrawerHeader>
+                          <Sidebar
+                            releaseConfig={releases}
+                            defaultRelease={defaultRelease}
+                          />
+                        </Drawer>
 
-                      <Main open={drawerOpen}>
-                        <DrawerHeader />
-                        <ErrorBoundary
-                          fallback={<h2>An unknown error has occurred.</h2>}
-                        >
-                          <Routes>
-                            <Route
-                              path="/release/:release/tags/:tag/*"
-                              element={<ReleasePayloadDetailsWrapper />}
-                            />
+                        <Main open={drawerOpen}>
+                          <DrawerHeader />
+                          <ErrorBoundary
+                            fallback={<h2>An unknown error has occurred.</h2>}
+                          >
+                            <Routes>
+                              <Route
+                                path="/release/:release/tags/:tag/*"
+                                element={<ReleasePayloadDetailsWrapper />}
+                              />
 
-                            <Route
-                              path="/release/:release/streams/:arch/:stream/*"
-                              element={<PayloadStreamWrapper />}
-                            />
+                              <Route
+                                path="/release/:release/streams/:arch/:stream/*"
+                                element={<PayloadStreamWrapper />}
+                              />
 
-                            <Route
-                              path="/release/:release/streams"
-                              element={<PayloadStreamsWrapper />}
-                            />
+                              <Route
+                                path="/release/:release/streams"
+                                element={<PayloadStreamsWrapper />}
+                              />
 
-                            <Route
-                              path="/release/:release/tags"
-                              element={<ReleasePayloadsWrapper />}
-                            />
+                              <Route
+                                path="/release/:release/tags"
+                                element={<ReleasePayloadsWrapper />}
+                              />
 
-                            <Route
-                              path="/release/:release"
-                              element={<ReleaseOverviewWrapper />}
-                            />
+                              <Route
+                                path="/release/:release"
+                                element={<ReleaseOverviewWrapper />}
+                              />
 
-                            <Route
-                              path="/variants/:release/:variant"
-                              element={<VariantStatusWrapper />}
-                            />
+                              <Route
+                                path="/variants/:release/:variant"
+                                element={<VariantStatusWrapper />}
+                              />
 
-                            <Route
-                              path="/jobs/:release/analysis"
-                              element={<JobAnalysisWrapper />}
-                            />
+                              <Route
+                                path="/jobs/:release/analysis"
+                                element={<JobAnalysisWrapper />}
+                              />
 
-                            <Route
-                              path="/jobs/:release/*"
-                              element={<JobsWrapper />}
-                            />
+                              <Route
+                                path="/jobs/:release/*"
+                                element={<JobsWrapper />}
+                              />
 
-                            <Route
-                              path="/feature_gates/:release/:feature_gate"
-                              element={<FeatureGateRedirectWrapper />}
-                            />
+                              <Route
+                                path="/feature_gates/:release/:feature_gate"
+                                element={<FeatureGateRedirectWrapper />}
+                              />
 
-                            <Route
-                              path="/feature_gates/:release"
-                              element={<FeatureGatesWrapper />}
-                            />
+                              <Route
+                                path="/feature_gates/:release"
+                                element={<FeatureGatesWrapper />}
+                              />
 
-                            <Route
-                              path="/tests/:release/analysis"
-                              element={<TestAnalysisWrapper />}
-                            />
+                              <Route
+                                path="/tests/:release/analysis"
+                                element={<TestAnalysisWrapper />}
+                              />
 
-                            <Route
-                              path="/tests/:release/*"
-                              element={<TestsWrapper />}
-                            />
+                              <Route
+                                path="/tests/:release/*"
+                                element={<TestsWrapper />}
+                              />
 
-                            <Route
-                              path="/upgrade/:release/*"
-                              element={<UpgradesWrapper />}
-                            />
+                              <Route
+                                path="/upgrade/:release/*"
+                                element={<UpgradesWrapper />}
+                              />
 
-                            <Route
-                              path="/component_readiness/*"
-                              element={<ComponentReadinessWrapper />}
-                            />
+                              <Route
+                                path="/component_readiness/v2/*"
+                                element={<ComponentReadinessV2 />}
+                              />
 
-                            <Route
-                              path="/install/:release/*"
-                              element={<InstallWrapper />}
-                            />
+                              <Route
+                                path="/component_readiness/*"
+                                element={<ComponentReadinessWrapper />}
+                              />
 
-                            <Route
-                              path="/build_clusters/:cluster"
-                              element={<BuildClusterDetailsWrapper />}
-                            />
+                              <Route
+                                path="/install/:release/*"
+                                element={<InstallWrapper />}
+                              />
 
-                            <Route
-                              path="/build_clusters"
-                              element={<BuildClusterOverview />}
-                            />
+                              <Route
+                                path="/build_clusters/:cluster"
+                                element={<BuildClusterDetailsWrapper />}
+                              />
 
-                            <Route
-                              path="/repositories/:release/:org/:repo"
-                              element={<RepositoryDetailsWrapper />}
-                            />
+                              <Route
+                                path="/build_clusters"
+                                element={<BuildClusterOverview />}
+                              />
 
-                            <Route
-                              path="/repositories/:release"
-                              element={<RepositoriesWrapper />}
-                            />
+                              <Route
+                                path="/repositories/:release/:org/:repo"
+                                element={<RepositoryDetailsWrapper />}
+                              />
 
-                            <Route
-                              path="/pull_requests/:release"
-                              element={<PullRequestsWrapper />}
-                            />
+                              <Route
+                                path="/repositories/:release"
+                                element={<RepositoriesWrapper />}
+                              />
 
-                            <Route
-                              path="/job_runs/:jobrunid/:jobname?/:repoinfo?/:pullnumber?/intervals"
-                              element={<IntervalsChartWrapper />}
-                            />
-                            <Route
-                              path="/job_runs/:jobrunid/:jobname?/:repoinfo?/:pullnumber?/events"
-                              element={<EventsChartWrapper />}
-                            />
+                              <Route
+                                path="/pull_requests/:release"
+                                element={<PullRequestsWrapper />}
+                              />
 
-                            {sippyCapabilities.includes('chat') && (
-                              <>
-                                <Route
-                                  path="/chat"
-                                  element={<ChatInterface mode="fullPage" />}
-                                />
-                                <Route
-                                  path="/chat/:id"
-                                  element={<ChatInterfaceWrapper />}
-                                />
-                              </>
-                            )}
+                              <Route
+                                path="/job_runs/:jobrunid/:jobname?/:repoinfo?/:pullnumber?/intervals"
+                                element={<IntervalsChartWrapper />}
+                              />
+                              <Route
+                                path="/job_runs/:jobrunid/:jobname?/:repoinfo?/:pullnumber?/events"
+                                element={<EventsChartWrapper />}
+                              />
 
-                            <Route
-                              path="/"
-                              element={
-                                sippyCapabilities.includes('local_db') ? (
-                                  landingPage
-                                ) : (
-                                  <Navigate
-                                    to="/component_readiness/main"
-                                    replace
+                              {sippyCapabilities.includes('chat') && (
+                                <>
+                                  <Route
+                                    path="/chat"
+                                    element={<ChatInterface mode="fullPage" />}
                                   />
-                                )
-                              }
-                            />
-                          </Routes>
-                        </ErrorBoundary>
-                        {/* eslint-enable react/prop-types */}
-                      </Main>
-                    </div>
-                  </QueryParamProvider>
-                </AccessibilityModeProvider>
-                {showWithCapability('chat', <GlobalChatControls />)}
-              </SippyCapabilitiesContext.Provider>
-            </ReportEndContext.Provider>
-          </ReleasesContext.Provider>
-        </StyledEngineProvider>
-      </ThemeProvider>
-    </ColorModeContext.Provider>
+                                  <Route
+                                    path="/chat/:id"
+                                    element={<ChatInterfaceWrapper />}
+                                  />
+                                </>
+                              )}
+
+                              <Route
+                                path="/"
+                                element={
+                                  sippyCapabilities.includes('local_db') ? (
+                                    landingPage
+                                  ) : (
+                                    <Navigate
+                                      to="/component_readiness/main"
+                                      replace
+                                    />
+                                  )
+                                }
+                              />
+                            </Routes>
+                          </ErrorBoundary>
+                          {/* eslint-enable react/prop-types */}
+                        </Main>
+                      </div>
+                    </QueryParamProvider>
+                  </AccessibilityModeProvider>
+                  {showWithCapability('chat', <GlobalChatControls />)}
+                </SippyCapabilitiesContext.Provider>
+              </ReportEndContext.Provider>
+            </ReleasesContext.Provider>
+          </StyledEngineProvider>
+        </ThemeProvider>
+      </ColorModeContext.Provider>
+    </QueryClientProvider>
   )
 
   return content

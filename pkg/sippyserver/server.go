@@ -22,6 +22,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/openshift/sippy/pkg/api/componentreadiness/utils"
+	crv2 "github.com/openshift/sippy/pkg/api/componentreadiness/v2"
 	"github.com/openshift/sippy/pkg/api/jobartifacts"
 	"github.com/openshift/sippy/pkg/apis/api/componentreport"
 	"github.com/openshift/sippy/pkg/apis/api/componentreport/crview"
@@ -2615,6 +2616,17 @@ func (s *Server) Serve() {
 			Description:  "Lists all predefined server-side views over ComponentReadiness data",
 			Capabilities: []string{ComponentReadinessCapability},
 			HandlerFunc:  s.jsonComponentReadinessViews,
+		},
+		{
+			EndpointPath: "/api/v2/component_readiness/views",
+			Description:  "Lists all predefined server-side views for Component Readiness v2",
+			Methods:      []string{http.MethodGet},
+			Capabilities: []string{ComponentReadinessCapability},
+			HandlerFunc: (&crv2.Handler{
+				Views:              s.views.ComponentReadiness,
+				BigQueryClient:     s.bigQueryClient,
+				TimeRoundingFactor: s.crTimeRoundingFactor,
+			}).ServeViews,
 		},
 		{
 			EndpointPath: "/api/component_readiness/triages",
