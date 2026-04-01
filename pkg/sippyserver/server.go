@@ -22,8 +22,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/openshift/sippy/pkg/api/componentreadiness/utils"
-	crv2 "github.com/openshift/sippy/pkg/api/componentreadiness/v2"
-	"github.com/openshift/sippy/pkg/api/jobartifacts"
+"github.com/openshift/sippy/pkg/api/jobartifacts"
 	"github.com/openshift/sippy/pkg/apis/api/componentreport"
 	"github.com/openshift/sippy/pkg/apis/api/componentreport/crview"
 	"github.com/openshift/sippy/pkg/bigquery/bqlabel"
@@ -1031,27 +1030,80 @@ func (s *Server) jsonComponentReportFromBigQuery(w http.ResponseWriter, req *htt
 	api.RespondWithJSON(http.StatusOK, w, outputs)
 }
 
-// jsonV2ComponentReport handles GET /api/v2/component_readiness/views/{viewName}/report.
-// It extracts the viewName from the URL path and delegates to getComponentReportFromRequest.
-func (s *Server) jsonV2ComponentReport(w http.ResponseWriter, req *http.Request) {
-	viewName := mux.Vars(req)["viewName"]
-	if viewName == "" {
-		api.RespondWithJSON(http.StatusBadRequest, w, map[string]string{"error": "viewName is required"})
+func (s *Server) jsonComponentReportJobsFromBigQuery(w http.ResponseWriter, req *http.Request) {
+	if s.bigQueryClient == nil {
+		failureResponse(w, http.StatusBadRequest, "component report API is only available when google-service-account-credential-file is configured")
 		return
 	}
 
-	// Inject the view name as a query parameter so getComponentReportFromRequest can find it
-	q := req.URL.Query()
-	q.Set("view", viewName)
-	req.URL.RawQuery = q.Encode()
+	allJobVariants, errs := componentreadiness.GetJobVariantsFromBigQuery(req.Context(), s.bigQueryClient)
+	if len(errs) > 0 {
+		failureResponse(w, http.StatusInternalServerError, "failed to get variants from BigQuery")
+		return
+	}
 
-	outputs, err := s.getComponentReportFromRequest(req)
+	allReleases, err := api.GetReleases(req.Context(), s.bigQueryClient, false)
 	if err != nil {
-		api.RespondWithJSON(http.StatusBadRequest, w, map[string]string{"error": err.Error()})
+		failureResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	api.RespondWithJSON(http.StatusOK, w, outputs)
+	reqOptions, _, err := utils.ParseComponentReportRequest(s.views.ComponentReadiness, allReleases, req, allJobVariants, s.crTimeRoundingFactor,
+		s.config.ComponentReadinessConfig.VariantJunitTableOverrides)
+	if err != nil {
+		failureResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	resp, err := componentreadiness.GetViewJobsFromBigQuery(req.Context(), s.bigQueryClient, reqOptions, allJobVariants)
+	if err != nil {
+		log.WithError(err).Error("error querying view jobs")
+		failureResponse(w, http.StatusInternalServerError, "error querying view jobs")
+		return
+	}
+
+	api.RespondWithJSON(http.StatusOK, w, resp)
+}
+
+func (s *Server) jsonDiagnoseJobFromBigQuery(w http.ResponseWriter, req *http.Request) {
+	if s.bigQueryClient == nil {
+		failureResponse(w, http.StatusBadRequest, "component report API is only available when google-service-account-credential-file is configured")
+		return
+	}
+
+	jobName := param.SafeRead(req, "job")
+	if jobName == "" {
+		failureResponse(w, http.StatusBadRequest, "job query parameter is required")
+		return
+	}
+
+	allJobVariants, errs := componentreadiness.GetJobVariantsFromBigQuery(req.Context(), s.bigQueryClient)
+	if len(errs) > 0 {
+		failureResponse(w, http.StatusInternalServerError, "failed to get variants from BigQuery")
+		return
+	}
+
+	allReleases, err := api.GetReleases(req.Context(), s.bigQueryClient, false)
+	if err != nil {
+		failureResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	reqOptions, _, err := utils.ParseComponentReportRequest(s.views.ComponentReadiness, allReleases, req, allJobVariants, s.crTimeRoundingFactor,
+		s.config.ComponentReadinessConfig.VariantJunitTableOverrides)
+	if err != nil {
+		failureResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	diagnosis, err := componentreadiness.DiagnoseJob(req.Context(), s.bigQueryClient, reqOptions, jobName)
+	if err != nil {
+		log.WithError(err).Error("error diagnosing job")
+		failureResponse(w, http.StatusInternalServerError, "error diagnosing job")
+		return
+	}
+
+	api.RespondWithJSON(http.StatusOK, w, diagnosis)
 }
 
 func (s *Server) jsonComponentReportTestDetailsFromBigQuery(w http.ResponseWriter, req *http.Request) {
@@ -2623,6 +2675,18 @@ func (s *Server) Serve() {
 			HandlerFunc:  s.jsonComponentReportFromBigQuery,
 		},
 		{
+			EndpointPath: "/api/component_readiness/jobs",
+			Description:  "Returns CI jobs contributing to a component readiness report",
+			Capabilities: []string{ComponentReadinessCapability},
+			HandlerFunc:  s.jsonComponentReportJobsFromBigQuery,
+		},
+		{
+			EndpointPath: "/api/component_readiness/jobs/diagnose",
+			Description:  "Diagnoses why a job is or isn't included in a component readiness report",
+			Capabilities: []string{ComponentReadinessCapability},
+			HandlerFunc:  s.jsonDiagnoseJobFromBigQuery,
+		},
+		{
 			EndpointPath: "/api/component_readiness/test_details",
 			Description:  "Reports test details for component readiness from BigQuery",
 			Capabilities: []string{ComponentReadinessCapability},
@@ -2639,33 +2703,6 @@ func (s *Server) Serve() {
 			Description:  "Lists all predefined server-side views over ComponentReadiness data",
 			Capabilities: []string{ComponentReadinessCapability},
 			HandlerFunc:  s.jsonComponentReadinessViews,
-		},
-		{
-			EndpointPath: "/api/v2/component_readiness/views",
-			Description:  "Lists all predefined server-side views for Component Readiness v2",
-			Methods:      []string{http.MethodGet},
-			Capabilities: []string{ComponentReadinessCapability},
-			HandlerFunc: (&crv2.Handler{
-				Views:              s.views.ComponentReadiness,
-				BigQueryClient:     s.bigQueryClient,
-				TimeRoundingFactor: s.crTimeRoundingFactor,
-			}).ServeViews,
-		},
-		{
-			EndpointPath: "/api/v2/component_readiness/views/{viewName}/report",
-			Description:  "Returns the component readiness report for a specific view",
-			Methods:      []string{http.MethodGet},
-			Capabilities: []string{ComponentReadinessCapability},
-			HandlerFunc:  s.jsonV2ComponentReport,
-		},
-		{
-			EndpointPath: "/api/v2/component_readiness/variants",
-			Description:  "Returns all test variants for component readiness",
-			Methods:      []string{http.MethodGet},
-			Capabilities: []string{ComponentReadinessCapability},
-			HandlerFunc: (&crv2.Handler{
-				BigQueryClient: s.bigQueryClient,
-			}).ServeVariants,
 		},
 		{
 			EndpointPath: "/api/component_readiness/triages",

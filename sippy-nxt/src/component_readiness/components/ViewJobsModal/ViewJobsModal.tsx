@@ -10,6 +10,7 @@ import {
   IconButton,
   InputAdornment,
   LinearProgress,
+  Link,
   TextField,
   Tooltip,
   Typography,
@@ -20,6 +21,7 @@ import {
   Close as CloseIcon,
   HelpOutline as DiagnoseIcon,
   HighlightOff as ExcludedIcon,
+  OpenInNew as OpenInNewIcon,
   Search as SearchIcon,
   Work as JobIcon,
 } from "@mui/icons-material";
@@ -31,10 +33,20 @@ import type {
   ViewJobsResponse,
 } from "../../types/jobs";
 
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 interface ViewJobsModalProps {
   open: boolean;
   onClose: () => void;
   data?: ViewJobsResponse;
+}
+
+/** Build a classic Sippy job analysis link. */
+function jobAnalysisLink(release: string, jobName: string): string {
+  const filter = JSON.stringify({
+    items: [{ columnField: "name", operatorValue: "equals", value: jobName }],
+  });
+  return `/sippy-ng/jobs/${release}/analysis?filters=${encodeURIComponent(filter)}`;
 }
 
 export default function ViewJobsModal({
@@ -47,65 +59,53 @@ export default function ViewJobsModal({
   const [diagnoseOpen, setDiagnoseOpen] = useState(false);
   const [diagnoseQuery, setDiagnoseQuery] = useState("");
   const [diagnosis, setDiagnosis] = useState<JobDiagnosis | null>(null);
+  const [diagnoseLoading, setDiagnoseLoading] = useState(false);
+  const [diagnoseError, setDiagnoseError] = useState<string | null>(null);
 
-  // Mock diagnose function — real implementation would call the API
-  const handleDiagnose = useCallback(() => {
+  const handleDiagnose = useCallback(async () => {
     if (!diagnoseQuery.trim()) return;
-    const query = diagnoseQuery.trim().toLowerCase();
+    setDiagnoseLoading(true);
+    setDiagnoseError(null);
+    setDiagnosis(null);
 
-    // Check if job is in the included list
-    const found = data?.jobs.find(
-      (j) =>
-        j.normalized_name.toLowerCase().includes(query) ||
-        j.sample?.job_name.toLowerCase().includes(query) ||
-        j.basis?.job_name.toLowerCase().includes(query),
-    );
+    try {
+      // First check if the job is already in the included list
+      const query = diagnoseQuery.trim().toLowerCase();
+      const found = data?.jobs.find(
+        (j) =>
+          j.sample?.job_name.toLowerCase() === query ||
+          j.basis?.job_name.toLowerCase() === query,
+      );
 
-    if (found) {
-      setDiagnosis({
-        job_name: found.sample?.job_name ?? found.basis?.job_name ?? found.normalized_name,
-        included: true,
-        variants: found.variants,
-        exclusion_reasons: [],
-      });
-    } else {
-      // Mock: generate plausible exclusion reasons
-      const reasons: ExclusionReason[] = [];
-      if (query.includes("openstack")) {
-        reasons.push({
-          variant: "Platform",
-          job_value: "openstack",
-          filter_values: ["aws", "gcp", "azure", "vsphere", "metal"],
-        });
-      } else if (query.includes("sdn")) {
-        reasons.push({
-          variant: "Network",
-          job_value: "OpenShiftSDN",
-          filter_values: ["OVNKubernetes"],
-        });
-      } else if (query.includes("techpreview")) {
-        reasons.push({
-          variant: "FeatureSet",
-          job_value: "TechPreviewNoUpgrade",
-          filter_values: ["Default"],
+      if (found) {
+        setDiagnosis({
+          job_name:
+            found.sample?.job_name ??
+            found.basis?.job_name ??
+            found.normalized_name,
+          included: true,
+          variants: found.variants,
+          exclusion_reasons: [],
         });
       } else {
-        reasons.push({
-          variant: "Platform",
-          job_value: "unknown",
-          filter_values: ["aws", "gcp", "azure", "vsphere", "metal", "ovirt"],
-        });
+        // Call the real diagnose API
+        const params = new URLSearchParams(window.location.search);
+        params.set("job", diagnoseQuery.trim());
+        const res = await fetch(
+          `${API_BASE}/api/component_readiness/jobs/diagnose?${params.toString()}`,
+        );
+        if (!res.ok) {
+          throw new Error(`${res.status} ${res.statusText}`);
+        }
+        const result: JobDiagnosis = await res.json();
+        setDiagnosis(result);
       }
-      setDiagnosis({
-        job_name: diagnoseQuery.trim(),
-        included: false,
-        variants: query.includes("openstack")
-          ? { Platform: "openstack", Architecture: "amd64", Network: "OVNKubernetes", Topology: "ha" }
-          : query.includes("sdn")
-            ? { Platform: "aws", Architecture: "amd64", Network: "OpenShiftSDN", Topology: "ha" }
-            : { Platform: "unknown", Architecture: "unknown" },
-        exclusion_reasons: reasons,
-      });
+    } catch (err) {
+      setDiagnoseError(
+        err instanceof Error ? err.message : "Failed to diagnose job",
+      );
+    } finally {
+      setDiagnoseLoading(false);
     }
   }, [diagnoseQuery, data]);
 
@@ -116,6 +116,8 @@ export default function ViewJobsModal({
     return data.jobs.filter(
       (job) =>
         job.normalized_name.toLowerCase().includes(lower) ||
+        job.sample?.job_name.toLowerCase().includes(lower) ||
+        job.basis?.job_name.toLowerCase().includes(lower) ||
         Object.values(job.variants).some((v) =>
           v.toLowerCase().includes(lower),
         ),
@@ -273,7 +275,10 @@ export default function ViewJobsModal({
             startIcon={<DiagnoseIcon sx={{ fontSize: 16 }} />}
             onClick={() => {
               setDiagnoseOpen(!diagnoseOpen);
-              if (!diagnoseOpen) setDiagnosis(null);
+              if (!diagnoseOpen) {
+                setDiagnosis(null);
+                setDiagnoseError(null);
+              }
             }}
             sx={{
               textTransform: "none",
@@ -324,7 +329,7 @@ export default function ViewJobsModal({
                   variant="contained"
                   size="small"
                   onClick={handleDiagnose}
-                  disabled={!diagnoseQuery.trim()}
+                  disabled={!diagnoseQuery.trim() || diagnoseLoading}
                   sx={{
                     textTransform: "none",
                     fontWeight: 600,
@@ -333,10 +338,18 @@ export default function ViewJobsModal({
                     whiteSpace: "nowrap",
                   }}
                 >
-                  Check
+                  {diagnoseLoading ? "Checking..." : "Check"}
                 </Button>
               </Box>
 
+              {diagnoseError && (
+                <Typography
+                  variant="body2"
+                  sx={{ color: "error.main", fontSize: "0.82rem", mb: 1 }}
+                >
+                  Error: {diagnoseError}
+                </Typography>
+              )}
               {diagnosis && <DiagnosisResult diagnosis={diagnosis} />}
             </Box>
           </Collapse>
@@ -357,48 +370,42 @@ export default function ViewJobsModal({
           <table
             style={{
               width: "100%",
+              tableLayout: "fixed",
               borderCollapse: "collapse",
               fontSize: "0.8rem",
             }}
           >
+            <colgroup>
+              <col style={{ width: "40%" }} />
+              <col style={{ width: "25%" }} />
+              <col style={{ width: "25%" }} />
+              <col style={{ width: "10%" }} />
+            </colgroup>
             <thead>
               <tr>
-                <Th sticky>Job Name</Th>
-                <Th>Variants</Th>
-                <Th align="center" colSpan={2}>
+                <Th>Job</Th>
+                <Th align="center">
                   Sample ({data?.sample_release ?? "—"})
                 </Th>
-                <Th align="center" colSpan={2}>
+                <Th align="center">
                   Basis ({data?.basis_release ?? "—"})
                 </Th>
-              </tr>
-              <tr>
-                <Th sticky sub>
-                  &nbsp;
-                </Th>
-                <Th sub>&nbsp;</Th>
-                <Th align="right" sub>
-                  Runs
-                </Th>
-                <Th align="right" sub>
-                  Pass Rate
-                </Th>
-                <Th align="right" sub>
-                  Runs
-                </Th>
-                <Th align="right" sub>
-                  Pass Rate
-                </Th>
+                <Th align="center">Net</Th>
               </tr>
             </thead>
             <tbody>
               {filteredJobs.map((job) => (
-                <JobRow key={job.normalized_name} job={job} />
+                <JobRow
+                  key={job.normalized_name}
+                  job={job}
+                  sampleRelease={data?.sample_release}
+                  basisRelease={data?.basis_release}
+                />
               ))}
               {filteredJobs.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={4}
                     style={{ padding: "32px 16px", textAlign: "center" }}
                   >
                     <Typography color="text.secondary" variant="body2">
@@ -417,39 +424,175 @@ export default function ViewJobsModal({
   );
 }
 
-function JobRow({ job }: { job: NormalizedJob }) {
+/** A single cell showing job stats: job name link, runs, pass rate — stacked vertically. */
+function ReleaseCell({
+  stats,
+  release,
+}: {
+  stats?: { job_name: string; total_runs: number; successful_runs: number; pass_rate: number };
+  release?: string;
+}) {
+  const theme = useTheme();
+
+  if (!stats) {
+    return (
+      <td
+        style={{
+          padding: "6px 10px",
+          textAlign: "center",
+          borderLeft: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+        }}
+      >
+        <Typography
+          variant="caption"
+          sx={{ fontSize: "0.7rem", color: "text.disabled", fontStyle: "italic" }}
+        >
+          no match
+        </Typography>
+      </td>
+    );
+  }
+
+  const color =
+    stats.pass_rate >= 95
+      ? theme.palette.success.main
+      : stats.pass_rate >= 85
+        ? theme.palette.success.light
+        : stats.pass_rate >= 75
+          ? theme.palette.warning.main
+          : theme.palette.error.main;
+
+  return (
+    <td
+      style={{
+        padding: "6px 10px",
+        borderLeft: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+      }}
+    >
+      {/* Pass rate + runs */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+        <LinearProgress
+          variant="determinate"
+          value={stats.pass_rate}
+          sx={{
+            width: 40,
+            height: 5,
+            borderRadius: 3,
+            flexShrink: 0,
+            bgcolor: alpha(color, 0.12),
+            "& .MuiLinearProgress-bar": { bgcolor: color, borderRadius: 3 },
+          }}
+        />
+        <Typography
+          variant="caption"
+          sx={{
+            fontWeight: 700,
+            fontSize: "0.75rem",
+            color,
+            fontVariantNumeric: "tabular-nums",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {stats.pass_rate.toFixed(1)}%
+        </Typography>
+        <Typography
+          variant="caption"
+          sx={{
+            fontSize: "0.7rem",
+            color: "text.secondary",
+            fontVariantNumeric: "tabular-nums",
+            whiteSpace: "nowrap",
+          }}
+        >
+          ({stats.successful_runs}/{stats.total_runs})
+        </Typography>
+      </Box>
+      {/* Job name link */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.25 }}>
+        <Tooltip title={stats.job_name} placement="bottom-start">
+          <Typography
+            variant="caption"
+            sx={{
+              fontSize: "0.62rem",
+              fontFamily: "monospace",
+              color: "text.disabled",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              maxWidth: "calc(100% - 20px)",
+            }}
+          >
+            {stats.job_name}
+          </Typography>
+        </Tooltip>
+        {release && (
+          <Tooltip title="Job analysis in Sippy">
+            <IconButton
+              component="a"
+              href={jobAnalysisLink(release, stats.job_name)}
+              target="_blank"
+              rel="noopener"
+              size="small"
+              sx={{ p: 0, ml: "auto", flexShrink: 0 }}
+            >
+              <OpenInNewIcon sx={{ fontSize: 12, color: "text.disabled" }} />
+            </IconButton>
+          </Tooltip>
+        )}
+      </Box>
+    </td>
+  );
+}
+
+function JobRow({
+  job,
+  sampleRelease,
+  basisRelease,
+}: {
+  job: NormalizedJob;
+  sampleRelease?: string;
+  basisRelease?: string;
+}) {
   const theme = useTheme();
   const isSampleOnly = job.sample && !job.basis;
   const isBasisOnly = !job.sample && job.basis;
+
+  const bgColor = isSampleOnly
+    ? alpha(theme.palette.info.main, 0.03)
+    : isBasisOnly
+      ? alpha(theme.palette.warning.main, 0.03)
+      : undefined;
+
+  const netChange =
+    job.sample && job.basis
+      ? job.sample.pass_rate - job.basis.pass_rate
+      : undefined;
+
+  const netColor =
+    netChange === undefined
+      ? theme.palette.text.disabled
+      : netChange > 1
+        ? theme.palette.success.main
+        : netChange < -1
+          ? theme.palette.error.main
+          : theme.palette.text.secondary;
 
   return (
     <tr
       style={{
         borderBottom: `1px solid ${alpha(theme.palette.divider, 0.06)}`,
-        backgroundColor: isSampleOnly
-          ? alpha(theme.palette.info.main, 0.03)
-          : isBasisOnly
-            ? alpha(theme.palette.warning.main, 0.03)
-            : undefined,
+        backgroundColor: bgColor,
       }}
     >
+      {/* Normalized job name — truncated, variants on hover */}
       <td
         style={{
-          padding: "8px 12px",
-          whiteSpace: "nowrap",
+          padding: "6px 10px",
           fontFamily: "monospace",
           fontSize: "0.72rem",
-          position: "sticky",
-          left: 0,
-          backgroundColor: isSampleOnly
-            ? alpha(theme.palette.info.main, 0.03)
-            : isBasisOnly
-              ? alpha(theme.palette.warning.main, 0.03)
-              : theme.palette.background.paper,
-          zIndex: 1,
-          maxWidth: 420,
           overflow: "hidden",
           textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
           borderLeft: isSampleOnly
             ? `3px solid ${theme.palette.info.main}`
             : isBasisOnly
@@ -457,122 +600,73 @@ function JobRow({ job }: { job: NormalizedJob }) {
               : "3px solid transparent",
         }}
       >
-        <Tooltip title={job.normalized_name} placement="top-start">
+        <Tooltip
+          title={
+            <Box>
+              <Typography
+                sx={{ fontSize: "0.72rem", fontFamily: "monospace", mb: 0.5 }}
+              >
+                {job.normalized_name}
+              </Typography>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                {Object.entries(job.variants).map(([key, value]) => (
+                  <Chip
+                    key={key}
+                    label={`${key}: ${value}`}
+                    size="small"
+                    sx={{
+                      height: 18,
+                      fontSize: "0.6rem",
+                      borderRadius: 1,
+                      bgcolor: alpha("#fff", 0.15),
+                      color: "#fff",
+                      "& .MuiChip-label": { px: 0.5 },
+                    }}
+                  />
+                ))}
+              </Box>
+            </Box>
+          }
+          placement="top-start"
+        >
           <span>{job.normalized_name}</span>
         </Tooltip>
       </td>
-      <td style={{ padding: "6px 8px" }}>
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-          {Object.entries(job.variants).map(([key, value]) => (
-            <Chip
-              key={key}
-              label={`${key}: ${value}`}
-              size="small"
-              sx={{
-                height: 20,
-                fontSize: "0.65rem",
-                borderRadius: 1,
-                bgcolor: alpha(theme.palette.action.hover, 0.08),
-                "& .MuiChip-label": { px: 0.75 },
-              }}
-            />
-          ))}
-        </Box>
+
+      <ReleaseCell stats={job.sample} release={sampleRelease} />
+      <ReleaseCell stats={job.basis} release={basisRelease} />
+
+      {/* Net change */}
+      <td
+        style={{
+          padding: "6px 10px",
+          textAlign: "right",
+          whiteSpace: "nowrap",
+          borderLeft: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+        }}
+      >
+        {netChange !== undefined ? (
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 700,
+              fontSize: "0.78rem",
+              color: netColor,
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            {netChange > 0 ? "+" : ""}
+            {netChange.toFixed(1)}%
+          </Typography>
+        ) : (
+          <Typography
+            variant="caption"
+            sx={{ fontSize: "0.7rem", color: "text.disabled" }}
+          >
+            —
+          </Typography>
+        )}
       </td>
-
-      {/* Sample columns */}
-      {job.sample ? (
-        <>
-          <td
-            style={{
-              padding: "6px 12px",
-              textAlign: "right",
-              whiteSpace: "nowrap",
-            }}
-          >
-            <Typography variant="caption" sx={{ fontSize: "0.75rem" }}>
-              {job.sample.successful_runs}/{job.sample.total_runs}
-            </Typography>
-          </td>
-          <td
-            style={{
-              padding: "6px 12px",
-              textAlign: "right",
-              whiteSpace: "nowrap",
-              minWidth: 110,
-            }}
-          >
-            <PassRateCell rate={job.sample.pass_rate} />
-          </td>
-        </>
-      ) : (
-        <td
-          colSpan={2}
-          style={{
-            padding: "6px 12px",
-            textAlign: "center",
-          }}
-        >
-          <Typography
-            variant="caption"
-            sx={{
-              fontSize: "0.7rem",
-              color: "text.disabled",
-              fontStyle: "italic",
-            }}
-          >
-            not matched
-          </Typography>
-        </td>
-      )}
-
-      {/* Basis columns */}
-      {job.basis ? (
-        <>
-          <td
-            style={{
-              padding: "6px 12px",
-              textAlign: "right",
-              whiteSpace: "nowrap",
-              borderLeft: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
-            }}
-          >
-            <Typography variant="caption" sx={{ fontSize: "0.75rem" }}>
-              {job.basis.successful_runs}/{job.basis.total_runs}
-            </Typography>
-          </td>
-          <td
-            style={{
-              padding: "6px 12px",
-              textAlign: "right",
-              whiteSpace: "nowrap",
-              minWidth: 110,
-            }}
-          >
-            <PassRateCell rate={job.basis.pass_rate} />
-          </td>
-        </>
-      ) : (
-        <td
-          colSpan={2}
-          style={{
-            padding: "6px 12px",
-            textAlign: "center",
-            borderLeft: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
-          }}
-        >
-          <Typography
-            variant="caption"
-            sx={{
-              fontSize: "0.7rem",
-              color: "text.disabled",
-              fontStyle: "italic",
-            }}
-          >
-            not matched
-          </Typography>
-        </td>
-      )}
     </tr>
   );
 }
@@ -658,21 +752,28 @@ function DiagnosisResult({ diagnosis }: { diagnosis: JobDiagnosis }) {
             variant="caption"
             sx={{ fontSize: "0.8rem", color: "text.secondary" }}
           >
-            <strong>{reason.variant}</strong> is{" "}
-            <Chip
-              label={reason.job_value}
-              size="small"
-              sx={{
-                height: 18,
-                fontSize: "0.65rem",
-                borderRadius: 1,
-                bgcolor: alpha(theme.palette.error.main, 0.1),
-                color: "error.main",
-                fontWeight: 600,
-                "& .MuiChip-label": { px: 0.5 },
-              }}
-            />{" "}
-            but the view only includes{" "}
+            <strong>{reason.variant}</strong>
+            {reason.job_value ? (
+              <>
+                {" is "}
+                <Chip
+                  label={reason.job_value}
+                  size="small"
+                  sx={{
+                    height: 18,
+                    fontSize: "0.65rem",
+                    borderRadius: 1,
+                    bgcolor: alpha(theme.palette.error.main, 0.1),
+                    color: "error.main",
+                    fontWeight: 600,
+                    "& .MuiChip-label": { px: 0.5 },
+                  }}
+                />
+              </>
+            ) : (
+              <> is not set on this job</>
+            )}
+            {" but the view only includes "}
             {reason.filter_values.map((v, vi) => (
               <span key={v}>
                 {vi > 0 && ", "}
@@ -724,94 +825,27 @@ function DiagnosisResult({ diagnosis }: { diagnosis: JobDiagnosis }) {
   );
 }
 
-function PassRateCell({ rate }: { rate: number }) {
-  const theme = useTheme();
-  const color =
-    rate >= 95
-      ? theme.palette.success.main
-      : rate >= 85
-        ? theme.palette.success.light
-        : rate >= 75
-          ? theme.palette.warning.main
-          : theme.palette.error.main;
-
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: 1,
-        justifyContent: "flex-end",
-      }}
-    >
-      <LinearProgress
-        variant="determinate"
-        value={rate}
-        sx={{
-          width: 50,
-          height: 5,
-          borderRadius: 3,
-          bgcolor: alpha(color, 0.12),
-          "& .MuiLinearProgress-bar": {
-            bgcolor: color,
-            borderRadius: 3,
-          },
-        }}
-      />
-      <Typography
-        variant="caption"
-        sx={{
-          fontWeight: 600,
-          fontSize: "0.75rem",
-          color,
-          minWidth: 42,
-          textAlign: "right",
-          fontVariantNumeric: "tabular-nums",
-        }}
-      >
-        {rate.toFixed(1)}%
-      </Typography>
-    </Box>
-  );
-}
-
 function Th({
   children,
   align = "left",
-  sticky = false,
-  sub = false,
-  colSpan,
 }: {
   children: React.ReactNode;
   align?: "left" | "right" | "center";
-  sticky?: boolean;
-  sub?: boolean;
-  colSpan?: number;
 }) {
   const theme = useTheme();
   return (
     <th
-      colSpan={colSpan}
       style={{
-        padding: sub ? "2px 12px 6px" : "8px 12px 4px",
+        padding: "8px 10px 6px",
         textAlign: align,
-        fontWeight: sub ? 600 : 700,
-        fontSize: sub ? "0.6rem" : "0.7rem",
+        fontWeight: 700,
+        fontSize: "0.7rem",
         textTransform: "uppercase",
         letterSpacing: "0.5px",
-        color: alpha(
-          theme.palette.text.secondary,
-          sub ? 0.5 : 0.7,
-        ),
-        borderBottom: sub
-          ? `2px solid ${alpha(theme.palette.divider, 0.12)}`
-          : `1px solid ${alpha(theme.palette.divider, 0.06)}`,
+        color: alpha(theme.palette.text.secondary, 0.7),
+        borderBottom: `2px solid ${alpha(theme.palette.divider, 0.12)}`,
         whiteSpace: "nowrap",
-        position: sticky ? "sticky" : undefined,
-        left: sticky ? 0 : undefined,
         backgroundColor: theme.palette.background.paper,
-        zIndex: sticky ? 2 : 1,
-        top: sub ? 28 : 0,
       }}
     >
       {children}
