@@ -449,7 +449,7 @@ function findSharedRegressionVariants(
 ): Set<string> {
   const regressed = results.filter((r) => isRegression(r.status));
   const passing = results.filter((r) => !isRegression(r.status));
-  if (regressed.length === 0) return new Set();
+  if (regressed.length === 0 || passing.length === 0) return new Set();
 
   const shared = new Set<string>();
   for (const dim of innerDimensions) {
