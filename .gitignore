@@ -9,4 +9,4 @@ report.sh
 .vscode/
 .idea/
 /sippy-ng/build/*
-testdata/cr-fixtures/
+

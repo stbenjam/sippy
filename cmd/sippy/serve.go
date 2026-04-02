@@ -43,8 +43,7 @@ type ServerFlags struct {
 	ConfigFlags             *configflags.ConfigFlags
 	APIFlags                *flags.APIFlags
 	JiraFlags               *flags.JiraFlags
-	DataProvider            string
-	MockDataDir             string
+	DataProvider string
 }
 
 func NewServerFlags() *ServerFlags {
@@ -71,12 +70,11 @@ func (f *ServerFlags) BindFlags(flagSet *pflag.FlagSet) {
 	f.ConfigFlags.BindFlags(flagSet)
 	f.APIFlags.BindFlags(flagSet)
 	f.JiraFlags.BindFlags(flagSet)
-	flagSet.StringVar(&f.DataProvider, "data-provider", "bigquery", "Data provider for component readiness: bigquery, mock, synthetic")
-	flagSet.StringVar(&f.MockDataDir, "mock-data-dir", "", "Directory containing mock fixture data (required when --data-provider=mock)")
+	flagSet.StringVar(&f.DataProvider, "data-provider", "bigquery", "Data provider for component readiness: bigquery, synthetic")
 }
 
 func (f *ServerFlags) Validate() error {
-	if f.DataProvider == "mock" || f.DataProvider == "synthetic" {
+	if f.DataProvider == "synthetic" {
 		return nil
 	}
 	return f.GoogleCloudFlags.Validate()
@@ -113,17 +111,6 @@ func NewServeCommand() *cobra.Command {
 			var crDataProvider dataprovider.DataProvider
 
 			switch f.DataProvider {
-			case "mock":
-				if f.MockDataDir == "" {
-					return fmt.Errorf("--mock-data-dir is required when --data-provider=mock")
-				}
-				mockProvider, err := mockprovider.NewMockProviderFromFixtures(f.MockDataDir, cacheClient)
-				if err != nil {
-					return errors.WithMessage(err, "couldn't create mock data provider")
-				}
-				crDataProvider = mockProvider
-				log.Infof("Using mock data provider from %s", f.MockDataDir)
-
 			case "synthetic":
 				syntheticSetup := mockprovider.NewSyntheticProvider()
 				crDataProvider = syntheticSetup.Provider
@@ -164,7 +151,7 @@ func NewServeCommand() *cobra.Command {
 				}
 
 			default:
-				return fmt.Errorf("unknown --data-provider %q, must be bigquery, mock, or synthetic", f.DataProvider)
+				return fmt.Errorf("unknown --data-provider %q, must be bigquery or synthetic", f.DataProvider)
 			}
 
 			// Make sure the db is intialized, otherwise let the user know:

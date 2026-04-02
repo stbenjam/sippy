@@ -2,10 +2,6 @@ package mock
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/openshift/sippy/pkg/api/componentreadiness/dataprovider"
@@ -33,81 +29,6 @@ type MockProvider struct {
 	JobVariantValuesFn       func(ctx context.Context, jobNames []string, variantKeys []string) (map[string]map[string]string, error)
 	LookupJobVariantsFn      func(ctx context.Context, jobName string) (map[string]string, error)
 	CacheFn                  func() cache.Cache
-}
-
-// NewMockProviderFromFixtures creates a MockProvider populated from JSON fixture
-// files in the given directory. If cacheClient is nil, a no-op cache is used.
-func NewMockProviderFromFixtures(dir string, cacheClient cache.Cache) (*MockProvider, error) {
-	if cacheClient == nil {
-		cacheClient = &NoOpCache{}
-	}
-
-	p := &MockProvider{
-		CacheFn: func() cache.Cache { return cacheClient },
-	}
-
-	// Load job variants (global)
-	var jobVariants crtest.JobVariants
-	if err := loadJSON(filepath.Join(dir, "job_variants.json"), &jobVariants); err != nil {
-		return nil, fmt.Errorf("loading job_variants.json: %w", err)
-	}
-	p.JobVariantsFn = func(_ context.Context) (crtest.JobVariants, []error) {
-		return jobVariants, nil
-	}
-
-	// Load releases (global)
-	var releases []v1.Release
-	if err := loadJSON(filepath.Join(dir, "releases.json"), &releases); err != nil {
-		return nil, fmt.Errorf("loading releases.json: %w", err)
-	}
-	p.ReleasesFn = func(_ context.Context) ([]v1.Release, error) {
-		return releases, nil
-	}
-
-	// Load release dates
-	var releaseDates []crtest.ReleaseTimeRange
-	if err := loadJSON(filepath.Join(dir, "release_dates.json"), &releaseDates); err != nil {
-		return nil, fmt.Errorf("loading release_dates.json: %w", err)
-	}
-	p.ReleaseDatesFn = func(_ context.Context, _ reqopts.RequestOptions) ([]crtest.ReleaseTimeRange, []error) {
-		return releaseDates, nil
-	}
-
-	// Load base test status
-	var baseStatus map[string]crstatus.TestStatus
-	if err := loadJSON(filepath.Join(dir, "base_test_status.json"), &baseStatus); err != nil {
-		return nil, fmt.Errorf("loading base_test_status.json: %w", err)
-	}
-	p.BaseTestStatusFn = func(_ context.Context, _ reqopts.RequestOptions, _ crtest.JobVariants) (map[string]crstatus.TestStatus, []error) {
-		return baseStatus, nil
-	}
-
-	// Load sample test status
-	var sampleStatus map[string]crstatus.TestStatus
-	if err := loadJSON(filepath.Join(dir, "sample_test_status.json"), &sampleStatus); err != nil {
-		return nil, fmt.Errorf("loading sample_test_status.json: %w", err)
-	}
-	p.SampleTestStatusFn = func(_ context.Context, _ reqopts.RequestOptions, _ crtest.JobVariants, _ map[string][]string, _, _ time.Time, _ string) (map[string]crstatus.TestStatus, []error) {
-		return sampleStatus, nil
-	}
-
-	// Load base job run test status (optional — needed for test details)
-	var baseJobRunStatus map[string][]crstatus.TestJobRunRows
-	if err := loadJSON(filepath.Join(dir, "base_job_run_test_status.json"), &baseJobRunStatus); err == nil {
-		p.BaseJobRunTestStatusFn = func(_ context.Context, _ reqopts.RequestOptions, _ crtest.JobVariants) (map[string][]crstatus.TestJobRunRows, []error) {
-			return baseJobRunStatus, nil
-		}
-	}
-
-	// Load sample job run test status (optional — needed for test details)
-	var sampleJobRunStatus map[string][]crstatus.TestJobRunRows
-	if err := loadJSON(filepath.Join(dir, "sample_job_run_test_status.json"), &sampleJobRunStatus); err == nil {
-		p.SampleJobRunTestStatusFn = func(_ context.Context, _ reqopts.RequestOptions, _ crtest.JobVariants, _ map[string][]string, _, _ time.Time, _ string) (map[string][]crstatus.TestJobRunRows, []error) {
-			return sampleJobRunStatus, nil
-		}
-	}
-
-	return p, nil
 }
 
 func (m *MockProvider) QueryBaseTestStatus(ctx context.Context, reqOptions reqopts.RequestOptions, allJobVariants crtest.JobVariants) (map[string]crstatus.TestStatus, []error) {
@@ -192,12 +113,4 @@ func (m *MockProvider) Cache() cache.Cache {
 		return m.CacheFn()
 	}
 	return nil
-}
-
-func loadJSON(path string, v interface{}) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(data, v)
 }
