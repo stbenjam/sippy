@@ -3,10 +3,14 @@ package mock
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
+	"github.com/openshift/sippy/pkg/api/componentreadiness/dataprovider"
+	apitype "github.com/openshift/sippy/pkg/apis/api"
 	"github.com/openshift/sippy/pkg/apis/api/componentreport/crtest"
 	"github.com/openshift/sippy/pkg/apis/api/componentreport/crstatus"
+	"github.com/openshift/sippy/pkg/apis/api/componentreport/crview"
 	"github.com/openshift/sippy/pkg/apis/api/componentreport/reqopts"
 	"github.com/openshift/sippy/pkg/apis/cache"
 	v1 "github.com/openshift/sippy/pkg/apis/sippy/v1"
@@ -19,32 +23,44 @@ type SyntheticSetup struct {
 	ReqOptions reqopts.RequestOptions
 	Releases   []v1.Release
 	Variants   crtest.JobVariants
+	Views      *apitype.SippyViews
 }
 
-// testSpec defines a synthetic test scenario with expected behavior.
+// testSpec defines a synthetic test scenario. The variants come from a job — tests
+// run in jobs and inherit the job's full variant map.
 type testSpec struct {
 	testID       string
 	testName     string
 	component    string
 	capabilities []string
-	variants     map[string]string
-	// base counts per release (keyed by release name)
-	baseCounts map[string]crtest.Count
-	// sample counts (nil means test not present in sample)
-	sampleCount *crtest.Count
+	variants     map[string]string       // full 9-key variant map from the job this test runs in
+	baseCounts   map[string]crtest.Count // keyed by release name
+	sampleCount  *crtest.Count           // nil = not present in sample
 }
 
 // NewSyntheticProvider creates a MockProvider with carefully crafted test data
 // that covers all Component Readiness status values and fallback scenarios.
 // The provider returns different base data per release, enabling fallback testing.
+//
+// Data is structured around jobs: each job has a full variant map (all 9 db_group_by keys),
+// and tests running in those jobs inherit the job's variants.
+//
+// Grid layout matches 4.22-main:
+//   - columnGroupBy: Network, Platform, Topology (grid columns)
+//   - dbGroupBy: Architecture, FeatureSet, Installer, Network, Platform, Suite, Topology, Upgrade, LayeredProduct
+//   - innerDimensions (shown on expand): Architecture, FeatureSet, Installer, Suite, Upgrade, LayeredProduct
 func NewSyntheticProvider() *SyntheticSetup {
-	// Release chain: 4.22 (sample) -> 4.19 (base) -> 4.18 -> 4.17
 	now := time.Now().UTC().Truncate(time.Hour)
+
+	ga419 := now.Add(-30 * 24 * time.Hour)
+	ga418 := now.Add(-90 * 24 * time.Hour)
+	ga417 := now.Add(-150 * 24 * time.Hour)
+
 	releases := []v1.Release{
 		{Release: "4.22", PreviousRelease: "4.19"},
-		{Release: "4.19", PreviousRelease: "4.18"},
-		{Release: "4.18", PreviousRelease: "4.17"},
-		{Release: "4.17", PreviousRelease: ""},
+		{Release: "4.19", PreviousRelease: "4.18", GADate: &ga419},
+		{Release: "4.18", PreviousRelease: "4.17", GADate: &ga418},
+		{Release: "4.17", PreviousRelease: "", GADate: &ga417},
 	}
 
 	start422 := now.Add(-3 * 24 * time.Hour)
@@ -63,127 +79,277 @@ func NewSyntheticProvider() *SyntheticSetup {
 		{Release: "4.17", Start: &start417, End: &end417},
 	}
 
+	// --- Job definitions ---
+	// Each job has a name template (%s = release version) and a full 9-key variant map.
+	// These match the db_group_by keys from the 4.22-main view.
+	type jobDef struct {
+		nameTemplate string
+		variants     map[string]string
+		runs         map[string]int // release -> total runs
+		pass         map[string]int // release -> successful runs
+	}
+
+	// Full variant maps for each job — every db_group_by key is populated, just like real jobs.
+	awsAmd64OvnHaIpiDefaultNoneMinor := map[string]string{
+		"Platform": "aws", "Architecture": "amd64", "Network": "ovn",
+		"Topology": "ha", "Installer": "ipi", "FeatureSet": "default",
+		"Suite": "unknown", "Upgrade": "minor", "LayeredProduct": "none",
+	}
+	awsArm64OvnHaIpiDefaultParallelNone := map[string]string{
+		"Platform": "aws", "Architecture": "arm64", "Network": "ovn",
+		"Topology": "ha", "Installer": "ipi", "FeatureSet": "default",
+		"Suite": "parallel", "Upgrade": "none", "LayeredProduct": "none",
+	}
+	awsAmd64OvnHaIpiTechpreviewSerialNone := map[string]string{
+		"Platform": "aws", "Architecture": "amd64", "Network": "ovn",
+		"Topology": "ha", "Installer": "ipi", "FeatureSet": "techpreview",
+		"Suite": "serial", "Upgrade": "none", "LayeredProduct": "none",
+	}
+	gcpAmd64OvnHaIpiDefaultParallelNone := map[string]string{
+		"Platform": "gcp", "Architecture": "amd64", "Network": "ovn",
+		"Topology": "ha", "Installer": "ipi", "FeatureSet": "default",
+		"Suite": "parallel", "Upgrade": "none", "LayeredProduct": "none",
+	}
+	gcpAmd64OvnHaIpiDefaultUnknownMicro := map[string]string{
+		"Platform": "gcp", "Architecture": "amd64", "Network": "ovn",
+		"Topology": "ha", "Installer": "ipi", "FeatureSet": "default",
+		"Suite": "unknown", "Upgrade": "micro", "LayeredProduct": "none",
+	}
+	awsAmd64OvnHaIpiDefaultParallelNone := map[string]string{
+		"Platform": "aws", "Architecture": "amd64", "Network": "ovn",
+		"Topology": "ha", "Installer": "ipi", "FeatureSet": "default",
+		"Suite": "parallel", "Upgrade": "none", "LayeredProduct": "none",
+	}
+
+	jobs := []jobDef{
+		{
+			nameTemplate: "periodic-ci-openshift-release-master-ci-%s-upgrade-from-stable-4.21-e2e-aws-ovn-upgrade",
+			variants:     awsAmd64OvnHaIpiDefaultNoneMinor,
+			runs:         map[string]int{"4.22": 150, "4.19": 200, "4.18": 180, "4.17": 160},
+			pass:         map[string]int{"4.22": 130, "4.19": 190, "4.18": 172, "4.17": 155},
+		},
+		{
+			nameTemplate: "periodic-ci-openshift-release-master-ci-%s-e2e-aws-ovn-amd64",
+			variants:     awsAmd64OvnHaIpiDefaultParallelNone,
+			runs:         map[string]int{"4.22": 160, "4.19": 210, "4.18": 190, "4.17": 170},
+			pass:         map[string]int{"4.22": 148, "4.19": 200, "4.18": 182, "4.17": 162},
+		},
+		{
+			nameTemplate: "periodic-ci-openshift-release-master-ci-%s-e2e-aws-ovn-arm64",
+			variants:     awsArm64OvnHaIpiDefaultParallelNone,
+			runs:         map[string]int{"4.22": 120, "4.19": 180, "4.18": 150, "4.17": 140},
+			pass:         map[string]int{"4.22": 110, "4.19": 170, "4.18": 143, "4.17": 135},
+		},
+		{
+			nameTemplate: "periodic-ci-openshift-release-master-ci-%s-e2e-aws-ovn-techpreview-serial",
+			variants:     awsAmd64OvnHaIpiTechpreviewSerialNone,
+			runs:         map[string]int{"4.22": 80, "4.19": 100, "4.18": 90, "4.17": 85},
+			pass:         map[string]int{"4.22": 72, "4.19": 95, "4.18": 86, "4.17": 80},
+		},
+		{
+			nameTemplate: "periodic-ci-openshift-release-master-ci-%s-e2e-gcp-ovn-amd64",
+			variants:     gcpAmd64OvnHaIpiDefaultParallelNone,
+			runs:         map[string]int{"4.22": 140, "4.19": 190, "4.18": 170, "4.17": 150},
+			pass:         map[string]int{"4.22": 125, "4.19": 185, "4.18": 163, "4.17": 145},
+		},
+		{
+			nameTemplate: "periodic-ci-openshift-release-master-ci-%s-e2e-gcp-ovn-upgrade-micro",
+			variants:     gcpAmd64OvnHaIpiDefaultUnknownMicro,
+			runs:         map[string]int{"4.22": 100, "4.19": 160, "4.18": 140, "4.17": 120},
+			pass:         map[string]int{"4.22": 92, "4.19": 155, "4.18": 133, "4.17": 115},
+		},
+	}
+
+	// All variant values the system knows about (returned by QueryJobVariants)
 	jobVariants := crtest.JobVariants{
 		Variants: map[string][]string{
 			"Platform":     {"aws", "gcp"},
 			"Architecture": {"amd64", "arm64"},
-			"Network":      {"ovn", "sdn"},
+			"Network":      {"ovn"},
+			"Topology":     {"ha"},
+			"Installer":    {"ipi"},
+			"FeatureSet":   {"default", "techpreview"},
+			"Suite":        {"parallel", "serial", "unknown"},
+			"Upgrade":      {"micro", "minor", "none"},
+			"LayeredProduct": {"none"},
 		},
 	}
 
-	// Each test uses a unique component+variant combo to ensure it gets its own cell in the report grid.
-	// The report aggregates by component at the row level and variant combo at the column level,
-	// so tests sharing a (component, variant combo) pair would merge into one cell with the worst status.
+	// --- Test definitions ---
+	// Tests run in jobs, so each test's variants = the job's full variant map.
+	// A test appearing in multiple jobs (different variant combos) for the same
+	// columnGroupBy cell (Network+Platform+Topology) produces multiple sub-results
+	// visible on expand. The inner dimensions (Architecture, FeatureSet, Installer,
+	// Suite, Upgrade, LayeredProduct) differentiate them.
 
 	tests := []testSpec{
+		// --- NotSignificant: appears in 3 jobs across 2 platforms ---
+		// aws/amd64/parallel (from e2e-aws-ovn-amd64 job)
 		{
-			// NotSignificant: small pass rate difference, Fisher not significant
-			testID: "test-not-significant", testName: "not significant test",
+			testID: "test-not-significant", testName: "[sig-arch] Check build pods use all cpu cores",
 			component: "comp-NotSignificant", capabilities: []string{"cap1"},
-			variants:    map[string]string{"Platform": "aws", "Architecture": "amd64", "Network": "ovn"},
+			variants:    awsAmd64OvnHaIpiDefaultParallelNone,
 			baseCounts:  map[string]crtest.Count{"4.19": {TotalCount: 100, SuccessCount: 95, FlakeCount: 0}},
 			sampleCount: &crtest.Count{TotalCount: 100, SuccessCount: 93, FlakeCount: 0},
 		},
+		// aws/arm64/parallel (from e2e-aws-ovn-arm64 job)
 		{
-			// SignificantRegression: 95% -> 85% pass rate, Fisher significant, <=15% drop
-			testID: "test-significant-regression", testName: "significant regression test",
+			testID: "test-not-significant", testName: "[sig-arch] Check build pods use all cpu cores",
+			component: "comp-NotSignificant", capabilities: []string{"cap1"},
+			variants:    awsArm64OvnHaIpiDefaultParallelNone,
+			baseCounts:  map[string]crtest.Count{"4.19": {TotalCount: 80, SuccessCount: 76, FlakeCount: 0}},
+			sampleCount: &crtest.Count{TotalCount: 80, SuccessCount: 75, FlakeCount: 0},
+		},
+		// gcp/amd64/parallel (from e2e-gcp-ovn-amd64 job)
+		{
+			testID: "test-not-significant", testName: "[sig-arch] Check build pods use all cpu cores",
+			component: "comp-NotSignificant", capabilities: []string{"cap1"},
+			variants:    gcpAmd64OvnHaIpiDefaultParallelNone,
+			baseCounts:  map[string]crtest.Count{"4.19": {TotalCount: 100, SuccessCount: 97, FlakeCount: 0}},
+			sampleCount: &crtest.Count{TotalCount: 100, SuccessCount: 95, FlakeCount: 0},
+		},
+
+		// --- SignificantRegression: regressed on aws/amd64/parallel, fine on gcp ---
+		{
+			testID: "test-significant-regression", testName: "[sig-network] Services should serve endpoints on same port and different protocol",
 			component: "comp-SignificantRegression", capabilities: []string{"cap1"},
-			variants:    map[string]string{"Platform": "aws", "Architecture": "amd64", "Network": "ovn"},
+			variants:    awsAmd64OvnHaIpiDefaultParallelNone,
 			baseCounts:  map[string]crtest.Count{"4.19": {TotalCount: 200, SuccessCount: 190, FlakeCount: 0}},
 			sampleCount: &crtest.Count{TotalCount: 200, SuccessCount: 170, FlakeCount: 0},
 		},
+		// Also runs in the aws/arm64 job — not regressed there
 		{
-			// ExtremeRegression: 95% -> 70% pass rate, >15% drop
-			testID: "test-extreme-regression", testName: "extreme regression test",
+			testID: "test-significant-regression", testName: "[sig-network] Services should serve endpoints on same port and different protocol",
+			component: "comp-SignificantRegression", capabilities: []string{"cap1"},
+			variants:    awsArm64OvnHaIpiDefaultParallelNone,
+			baseCounts:  map[string]crtest.Count{"4.19": {TotalCount: 180, SuccessCount: 171, FlakeCount: 0}},
+			sampleCount: &crtest.Count{TotalCount: 180, SuccessCount: 168, FlakeCount: 0},
+		},
+		// gcp/amd64/parallel — not regressed
+		{
+			testID: "test-significant-regression", testName: "[sig-network] Services should serve endpoints on same port and different protocol",
+			component: "comp-SignificantRegression", capabilities: []string{"cap1"},
+			variants:    gcpAmd64OvnHaIpiDefaultParallelNone,
+			baseCounts:  map[string]crtest.Count{"4.19": {TotalCount: 200, SuccessCount: 190, FlakeCount: 0}},
+			sampleCount: &crtest.Count{TotalCount: 200, SuccessCount: 188, FlakeCount: 0},
+		},
+
+		// --- ExtremeRegression: extreme on aws/amd64, significant on aws/arm64 and gcp/amd64 ---
+		// aws/amd64: 95% -> 70% = ExtremeRegression
+		{
+			testID: "test-extreme-regression", testName: "[sig-etcd] etcd leader changes are not excessive",
 			component: "comp-ExtremeRegression", capabilities: []string{"cap1"},
-			variants:    map[string]string{"Platform": "aws", "Architecture": "amd64", "Network": "ovn"},
+			variants:    awsAmd64OvnHaIpiDefaultParallelNone,
 			baseCounts:  map[string]crtest.Count{"4.19": {TotalCount: 200, SuccessCount: 190, FlakeCount: 0}},
 			sampleCount: &crtest.Count{TotalCount: 200, SuccessCount: 140, FlakeCount: 0},
 		},
+		// aws/arm64: 95% -> 85% = SignificantRegression (same column cell, different Architecture)
 		{
-			// MissingSample: test exists in base but has 0 sample runs
-			testID: "test-missing-sample", testName: "missing sample test",
+			testID: "test-extreme-regression", testName: "[sig-etcd] etcd leader changes are not excessive",
+			component: "comp-ExtremeRegression", capabilities: []string{"cap1"},
+			variants:    awsArm64OvnHaIpiDefaultParallelNone,
+			baseCounts:  map[string]crtest.Count{"4.19": {TotalCount: 200, SuccessCount: 190, FlakeCount: 0}},
+			sampleCount: &crtest.Count{TotalCount: 200, SuccessCount: 170, FlakeCount: 0},
+		},
+		// gcp/amd64: 95% -> 85% = SignificantRegression (different column)
+		{
+			testID: "test-extreme-regression", testName: "[sig-etcd] etcd leader changes are not excessive",
+			component: "comp-ExtremeRegression", capabilities: []string{"cap1"},
+			variants:    gcpAmd64OvnHaIpiDefaultParallelNone,
+			baseCounts:  map[string]crtest.Count{"4.19": {TotalCount: 200, SuccessCount: 190, FlakeCount: 0}},
+			sampleCount: &crtest.Count{TotalCount: 200, SuccessCount: 170, FlakeCount: 0},
+		},
+
+		// --- MissingSample: test in base, 0 sample runs ---
+		{
+			testID: "test-missing-sample", testName: "[sig-storage] CSI volumes should be mountable",
 			component: "comp-MissingSample", capabilities: []string{"cap1"},
-			variants:    map[string]string{"Platform": "aws", "Architecture": "amd64", "Network": "ovn"},
+			variants:    awsAmd64OvnHaIpiDefaultParallelNone,
 			baseCounts:  map[string]crtest.Count{"4.19": {TotalCount: 100, SuccessCount: 95, FlakeCount: 0}},
 			sampleCount: &crtest.Count{TotalCount: 0, SuccessCount: 0, FlakeCount: 0},
 		},
+
+		// --- MissingBasis: test only in sample ---
 		{
-			// MissingBasis: test only in sample, no base data
-			testID: "test-missing-basis", testName: "missing basis test",
+			testID: "test-missing-basis", testName: "[sig-node] New pod lifecycle test",
 			component: "comp-MissingBasis", capabilities: []string{"cap1"},
-			variants:    map[string]string{"Platform": "aws", "Architecture": "amd64", "Network": "ovn"},
+			variants:    awsAmd64OvnHaIpiDefaultParallelNone,
 			baseCounts:  map[string]crtest.Count{},
 			sampleCount: &crtest.Count{TotalCount: 100, SuccessCount: 95, FlakeCount: 0},
 		},
+
+		// --- BasisOnly: test in base, absent from sample ---
 		{
-			// MissingSample (basis only): test in base, not in sample at all
-			testID: "test-basis-only", testName: "basis only test",
+			testID: "test-basis-only", testName: "[sig-apps] Removed deployment test",
 			component: "comp-BasisOnly", capabilities: []string{"cap1"},
-			variants:    map[string]string{"Platform": "aws", "Architecture": "amd64", "Network": "ovn"},
+			variants:    awsAmd64OvnHaIpiDefaultParallelNone,
 			baseCounts:  map[string]crtest.Count{"4.19": {TotalCount: 100, SuccessCount: 95, FlakeCount: 0}},
-			sampleCount: nil, // not present in sample
+			sampleCount: nil,
 		},
+
+		// --- SignificantImprovement: 80% -> 95% ---
 		{
-			// SignificantImprovement: 80% -> 95% pass rate, reversed Fisher significant
-			testID: "test-significant-improvement", testName: "significant improvement test",
+			testID: "test-significant-improvement", testName: "[sig-cli] oc adm should handle upgrades gracefully",
 			component: "comp-SignificantImprovement", capabilities: []string{"cap1"},
-			variants:    map[string]string{"Platform": "aws", "Architecture": "amd64", "Network": "ovn"},
+			variants:    awsAmd64OvnHaIpiDefaultParallelNone,
 			baseCounts:  map[string]crtest.Count{"4.19": {TotalCount: 200, SuccessCount: 160, FlakeCount: 0}},
 			sampleCount: &crtest.Count{TotalCount: 200, SuccessCount: 190, FlakeCount: 0},
 		},
+
+		// --- BelowMinFailure: only 2 failures, below MinimumFailure=3 ---
 		{
-			// NotSignificant due to MinimumFailure: only 2 failures, below threshold of 3
-			testID: "test-below-min-failure", testName: "below min failure test",
+			testID: "test-below-min-failure", testName: "[sig-auth] RBAC should allow access with valid token",
 			component: "comp-BelowMinFailure", capabilities: []string{"cap1"},
-			variants:    map[string]string{"Platform": "aws", "Architecture": "amd64", "Network": "ovn"},
+			variants:    awsAmd64OvnHaIpiDefaultParallelNone,
 			baseCounts:  map[string]crtest.Count{"4.19": {TotalCount: 100, SuccessCount: 100, FlakeCount: 0}},
 			sampleCount: &crtest.Count{TotalCount: 100, SuccessCount: 98, FlakeCount: 0},
 		},
+
+		// --- Fallback: 4.19 worse, 4.18 better -> swaps to 4.18 ---
 		{
-			// Fallback: 4.19 has lower pass rate, 4.18 is better -> fallback should swap to 4.18
-			testID: "test-fallback-improves", testName: "fallback improves test",
+			testID: "test-fallback-improves", testName: "[sig-instrumentation] Metrics should report accurate cpu usage",
 			component: "comp-FallbackImproves", capabilities: []string{"cap1"},
-			variants: map[string]string{"Platform": "aws", "Architecture": "amd64", "Network": "ovn"},
+			variants: awsAmd64OvnHaIpiDefaultParallelNone,
 			baseCounts: map[string]crtest.Count{
-				"4.19": {TotalCount: 200, SuccessCount: 180, FlakeCount: 0}, // 90%
-				"4.18": {TotalCount: 200, SuccessCount: 194, FlakeCount: 0}, // 97%
+				"4.19": {TotalCount: 200, SuccessCount: 180, FlakeCount: 0},
+				"4.18": {TotalCount: 200, SuccessCount: 194, FlakeCount: 0},
 			},
-			sampleCount: &crtest.Count{TotalCount: 200, SuccessCount: 160, FlakeCount: 0}, // 80%
+			sampleCount: &crtest.Count{TotalCount: 200, SuccessCount: 160, FlakeCount: 0},
 		},
+
+		// --- Double fallback: 4.19->4.18->4.17 ---
 		{
-			// Double fallback: 4.19: 90%, 4.18: 93%, 4.17: 97% -> fallback to 4.17
-			testID: "test-fallback-double", testName: "fallback double test",
+			testID: "test-fallback-double", testName: "[sig-scheduling] Scheduler should spread pods evenly",
 			component: "comp-FallbackDouble", capabilities: []string{"cap1"},
-			variants: map[string]string{"Platform": "aws", "Architecture": "amd64", "Network": "ovn"},
+			variants: awsAmd64OvnHaIpiDefaultParallelNone,
 			baseCounts: map[string]crtest.Count{
-				"4.19": {TotalCount: 200, SuccessCount: 180, FlakeCount: 0}, // 90%
-				"4.18": {TotalCount: 200, SuccessCount: 186, FlakeCount: 0}, // 93%
-				"4.17": {TotalCount: 200, SuccessCount: 194, FlakeCount: 0}, // 97%
+				"4.19": {TotalCount: 200, SuccessCount: 180, FlakeCount: 0},
+				"4.18": {TotalCount: 200, SuccessCount: 186, FlakeCount: 0},
+				"4.17": {TotalCount: 200, SuccessCount: 194, FlakeCount: 0},
 			},
-			sampleCount: &crtest.Count{TotalCount: 200, SuccessCount: 160, FlakeCount: 0}, // 80%
+			sampleCount: &crtest.Count{TotalCount: 200, SuccessCount: 160, FlakeCount: 0},
 		},
+
+		// --- Fallback insufficient runs: 4.18 has <60% of 4.19 count ---
 		{
-			// Fallback insufficient runs: 4.18 has much fewer runs (<60% of 4.19) -> no fallback
-			testID: "test-fallback-insufficient-runs", testName: "fallback insufficient runs test",
+			testID: "test-fallback-insufficient-runs", testName: "[sig-network] DNS should resolve cluster services",
 			component: "comp-FallbackInsufficient", capabilities: []string{"cap1"},
-			variants: map[string]string{"Platform": "aws", "Architecture": "amd64", "Network": "ovn"},
+			variants: awsAmd64OvnHaIpiDefaultParallelNone,
 			baseCounts: map[string]crtest.Count{
 				"4.19": {TotalCount: 1000, SuccessCount: 940, FlakeCount: 0},
-				"4.18": {TotalCount: 100, SuccessCount: 99, FlakeCount: 0}, // great pass rate but < 60% of 1000
+				"4.18": {TotalCount: 100, SuccessCount: 99, FlakeCount: 0},
 			},
 			sampleCount: &crtest.Count{TotalCount: 1000, SuccessCount: 850, FlakeCount: 0},
 		},
 	}
 
-	// Build per-release base status maps
+	// --- Build test status maps ---
 	baseStatusByRelease := map[string]map[string]crstatus.TestStatus{}
 	sampleStatus := map[string]crstatus.TestStatus{}
 
 	for _, ts := range tests {
 		key := makeTestKey(ts.testID, ts.variants)
 
-		// Populate base status for each release this test has data in
 		for release, counts := range ts.baseCounts {
 			if baseStatusByRelease[release] == nil {
 				baseStatusByRelease[release] = map[string]crstatus.TestStatus{}
@@ -198,7 +364,6 @@ func NewSyntheticProvider() *SyntheticSetup {
 			}
 		}
 
-		// Populate sample status
 		if ts.sampleCount != nil {
 			sampleStatus[key] = crstatus.TestStatus{
 				TestName:     ts.testName,
@@ -211,11 +376,41 @@ func NewSyntheticProvider() *SyntheticSetup {
 		}
 	}
 
+	// --- Build job run data ---
+	jobsByRelease := map[string]map[string]dataprovider.JobRunStats{}
+	allJobVariantValues := map[string]map[string]string{}
+	releaseNames := []string{"4.22", "4.19", "4.18", "4.17"}
+
+	for _, j := range jobs {
+		for _, rel := range releaseNames {
+			runs, hasRuns := j.runs[rel]
+			pass := j.pass[rel]
+			if !hasRuns {
+				continue
+			}
+			name := fmt.Sprintf(j.nameTemplate, rel)
+			if jobsByRelease[rel] == nil {
+				jobsByRelease[rel] = map[string]dataprovider.JobRunStats{}
+			}
+			passRate := 0.0
+			if runs > 0 {
+				passRate = float64(pass) / float64(runs) * 100
+			}
+			jobsByRelease[rel][name] = dataprovider.JobRunStats{
+				JobName:        name,
+				TotalRuns:      runs,
+				SuccessfulRuns: pass,
+				PassRate:       passRate,
+			}
+			allJobVariantValues[name] = j.variants
+		}
+	}
+
+	// --- Wire up the MockProvider ---
 	p := &MockProvider{
 		CacheFn: func() cache.Cache { return &NoOpCache{} },
 	}
 
-	// Release-aware base status: returns different data per release
 	p.BaseTestStatusFn = func(_ context.Context, ro reqopts.RequestOptions, _ crtest.JobVariants) (map[string]crstatus.TestStatus, []error) {
 		if data, ok := baseStatusByRelease[ro.BaseRelease.Name]; ok {
 			return data, nil
@@ -227,7 +422,6 @@ func NewSyntheticProvider() *SyntheticSetup {
 		return sampleStatus, nil
 	}
 
-	// Job run status (empty by default, test details tests don't need them for status verification)
 	p.BaseJobRunTestStatusFn = func(_ context.Context, _ reqopts.RequestOptions, _ crtest.JobVariants) (map[string][]crstatus.TestJobRunRows, []error) {
 		return map[string][]crstatus.TestJobRunRows{}, nil
 	}
@@ -247,6 +441,36 @@ func NewSyntheticProvider() *SyntheticSetup {
 		return releaseDates, nil
 	}
 
+	p.JobRunsFn = func(_ context.Context, _ reqopts.RequestOptions, _ crtest.JobVariants, release string, _, _ time.Time) (map[string]dataprovider.JobRunStats, error) {
+		if j, ok := jobsByRelease[release]; ok {
+			return j, nil
+		}
+		return map[string]dataprovider.JobRunStats{}, nil
+	}
+
+	p.JobVariantValuesFn = func(_ context.Context, jobNames []string, _ []string) (map[string]map[string]string, error) {
+		result := map[string]map[string]string{}
+		for _, name := range jobNames {
+			if v, ok := allJobVariantValues[name]; ok {
+				result[name] = v
+			}
+		}
+		return result, nil
+	}
+
+	p.LookupJobVariantsFn = func(_ context.Context, jobName string) (map[string]string, error) {
+		if v, ok := allJobVariantValues[jobName]; ok {
+			return v, nil
+		}
+		return map[string]string{}, nil
+	}
+
+	// --- Request options and view ---
+	// Matches 4.22-main: columnGroupBy = Network, Platform, Topology
+	// dbGroupBy = all 9 variant keys
+	dbGroupBy := sets.NewString("Architecture", "FeatureSet", "Installer", "Network", "Platform", "Suite", "Topology", "Upgrade", "LayeredProduct")
+	columnGroupBy := sets.NewString("Network", "Platform", "Topology")
+
 	reqOptions := reqopts.RequestOptions{
 		BaseRelease: reqopts.Release{
 			Name:  "4.19",
@@ -259,8 +483,8 @@ func NewSyntheticProvider() *SyntheticSetup {
 			End:   end422,
 		},
 		VariantOption: reqopts.Variants{
-			ColumnGroupBy: sets.NewString("Platform", "Architecture", "Network"),
-			DBGroupBy:     sets.NewString("Platform", "Architecture", "Network"),
+			ColumnGroupBy: columnGroupBy,
+			DBGroupBy:     dbGroupBy,
 		},
 		AdvancedOption: reqopts.Advanced{
 			Confidence:                 95,
@@ -271,11 +495,40 @@ func NewSyntheticProvider() *SyntheticSetup {
 		CacheOption: cache.RequestOptions{},
 	}
 
+	syntheticView := crview.View{
+		Name: "Synthetic 4.22 vs 4.19",
+		BaseRelease: reqopts.RelativeRelease{
+			Release:       reqopts.Release{Name: "4.19"},
+			RelativeStart: "now-60d",
+			RelativeEnd:   "now-30d",
+		},
+		SampleRelease: reqopts.RelativeRelease{
+			Release:       reqopts.Release{Name: "4.22"},
+			RelativeStart: "now-3d",
+			RelativeEnd:   "now",
+		},
+		VariantOptions: reqopts.Variants{
+			ColumnGroupBy: columnGroupBy,
+			DBGroupBy:     dbGroupBy,
+		},
+		AdvancedOptions: reqopts.Advanced{
+			Confidence:                  95,
+			PityFactor:                  5,
+			MinimumFailure:              3,
+			IncludeMultiReleaseAnalysis: true,
+		},
+	}
+
+	views := &apitype.SippyViews{
+		ComponentReadiness: []crview.View{syntheticView},
+	}
+
 	return &SyntheticSetup{
 		Provider:   p,
 		ReqOptions: reqOptions,
 		Releases:   releases,
 		Variants:   jobVariants,
+		Views:      views,
 	}
 }
 

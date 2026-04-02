@@ -59,34 +59,26 @@ function FailedFixedRegressionIcon() {
   );
 }
 
-// ExtremeRegression: double-border square alarm
+// ExtremeRegression: double exclamation
 function ExtremeRegressionIcon() {
   const theme = useTheme();
   const fill = theme.palette.error.main;
   return (
     <SvgIcon>
       <rect x="1.5" y="1.5" width="17" height="17" rx="2" fill={fill} />
-      <rect
-        x="4"
-        y="4"
-        width="12"
-        height="12"
-        rx="1"
-        fill="none"
-        stroke={alpha("#fff", 0.4)}
-        strokeWidth="1"
-      />
-      {/* Exclamation */}
-      <rect x="9" y="5.5" width="2" height="5.5" rx="1" fill="#fff" />
-      <circle cx="10" cy="13.5" r="1.2" fill="#fff" />
+      {/* Double exclamation */}
+      <rect x="6.5" y="5.5" width="2" height="5.5" rx="1" fill="#fff" />
+      <circle cx="7.5" cy="13.5" r="1.2" fill="#fff" />
+      <rect x="11.5" y="5.5" width="2" height="5.5" rx="1" fill="#fff" />
+      <circle cx="12.5" cy="13.5" r="1.2" fill="#fff" />
     </SvgIcon>
   );
 }
 
-// SignificantRegression: single warning square
+// SignificantRegression: single warning square (lighter red, no inner border)
 function SignificantRegressionIcon() {
   const theme = useTheme();
-  const fill = theme.palette.warning.dark;
+  const fill = theme.palette.error.main;
   return (
     <SvgIcon>
       <rect x="1.5" y="1.5" width="17" height="17" rx="2" fill={fill} />
@@ -123,7 +115,7 @@ function ExtremeTriagedRegressionIcon() {
 // SignificantTriagedRegression: like significant but with a checkmark
 function SignificantTriagedRegressionIcon() {
   const theme = useTheme();
-  const fill = theme.palette.warning.dark;
+  const fill = theme.palette.error.main;
   return (
     <SvgIcon>
       <rect x="1.5" y="1.5" width="17" height="17" rx="2" fill={alpha(fill, 0.5)} />

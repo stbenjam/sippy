@@ -18,6 +18,7 @@ import (
 	"github.com/spf13/pflag"
 
 	resources "github.com/openshift/sippy"
+	api "github.com/openshift/sippy/pkg/apis/api"
 	"github.com/openshift/sippy/pkg/api/componentreadiness/dataprovider"
 	bqprovider "github.com/openshift/sippy/pkg/api/componentreadiness/dataprovider/bigquery"
 	mockprovider "github.com/openshift/sippy/pkg/api/componentreadiness/dataprovider/mock"
@@ -110,9 +111,10 @@ func NewServeCommand() *cobra.Command {
 			var gcsClient *storage.Client
 			var crDataProvider dataprovider.DataProvider
 
+			var syntheticSetup *mockprovider.SyntheticSetup
 			switch f.DataProvider {
 			case "synthetic":
-				syntheticSetup := mockprovider.NewSyntheticProvider()
+				syntheticSetup = mockprovider.NewSyntheticProvider()
 				crDataProvider = syntheticSetup.Provider
 				log.Info("Using synthetic data provider with deterministic test data")
 
@@ -172,10 +174,15 @@ func NewServeCommand() *cobra.Command {
 			if bigQueryClient != nil {
 				variantManager = f.ModeFlags.GetVariantManager(context.Background(), bigQueryClient)
 			}
-			views, err := f.ComponentReadinessFlags.ParseViewsFile()
-			if err != nil {
-				log.WithError(err).Fatal("unable to load views")
-
+			var views *api.SippyViews
+			if syntheticSetup != nil {
+				views = syntheticSetup.Views
+				log.Info("Using synthetic views for component readiness")
+			} else {
+				views, err = f.ComponentReadinessFlags.ParseViewsFile()
+				if err != nil {
+					log.WithError(err).Fatal("unable to load views")
+				}
 			}
 
 			jiraClient, err := f.JiraFlags.GetJiraClient()
