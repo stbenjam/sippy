@@ -29,19 +29,6 @@ module.exports = {
     'sort-imports-es6-autofix',
     'unused-imports',
   ],
-  overrides: [
-    {
-      files: ['**/*.ts', '**/*.tsx'],
-      parser: '@typescript-eslint/parser',
-      parserOptions: {
-        ecmaFeatures: { jsx: true },
-        ecmaVersion: 2020,
-        sourceType: 'module',
-      },
-      plugins: ['@typescript-eslint'],
-      extends: ['plugin:@typescript-eslint/recommended'],
-    },
-  ],
   rules: {
     'react/display-name': 'off',
     'react/jsx-uses-react': 'warn',
