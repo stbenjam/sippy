@@ -71,12 +71,12 @@ func (f *ServerFlags) BindFlags(flagSet *pflag.FlagSet) {
 	f.ConfigFlags.BindFlags(flagSet)
 	f.APIFlags.BindFlags(flagSet)
 	f.JiraFlags.BindFlags(flagSet)
-	flagSet.StringVar(&f.DataProvider, "data-provider", "bigquery", "Data provider for component readiness: bigquery, mock")
+	flagSet.StringVar(&f.DataProvider, "data-provider", "bigquery", "Data provider for component readiness: bigquery, mock, synthetic")
 	flagSet.StringVar(&f.MockDataDir, "mock-data-dir", "", "Directory containing mock fixture data (required when --data-provider=mock)")
 }
 
 func (f *ServerFlags) Validate() error {
-	if f.DataProvider == "mock" {
+	if f.DataProvider == "mock" || f.DataProvider == "synthetic" {
 		return nil
 	}
 	return f.GoogleCloudFlags.Validate()
@@ -124,6 +124,11 @@ func NewServeCommand() *cobra.Command {
 				crDataProvider = mockProvider
 				log.Infof("Using mock data provider from %s", f.MockDataDir)
 
+			case "synthetic":
+				syntheticSetup := mockprovider.NewSyntheticProvider()
+				crDataProvider = syntheticSetup.Provider
+				log.Info("Using synthetic data provider with deterministic test data")
+
 			case "bigquery":
 				if f.GoogleCloudFlags.ServiceAccountCredentialFile != "" {
 					opCtx := bqlabel.OperationalContext{
@@ -159,7 +164,7 @@ func NewServeCommand() *cobra.Command {
 				}
 
 			default:
-				return fmt.Errorf("unknown --data-provider %q, must be bigquery or mock", f.DataProvider)
+				return fmt.Errorf("unknown --data-provider %q, must be bigquery, mock, or synthetic", f.DataProvider)
 			}
 
 			// Make sure the db is intialized, otherwise let the user know:
