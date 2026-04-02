@@ -220,7 +220,7 @@ func NewServeCommand() *cobra.Command {
 					dbc,
 					bigQueryClient,
 					util.GetReportEnd(pinnedDateTime),
-					cache.RequestOptions{CRTimeRoundingFactor: f.ComponentReadinessFlags.CRTimeRoundingFactor},
+					cache.NewStandardCROptions(f.ComponentReadinessFlags.CRTimeRoundingFactor),
 					views.ComponentReadiness,
 					config.ComponentReadinessConfig.VariantJunitTableOverrides)
 				if err != nil {
@@ -240,7 +240,7 @@ func NewServeCommand() *cobra.Command {
 								dbc,
 								bigQueryClient,
 								util.GetReportEnd(pinnedDateTime),
-								cache.RequestOptions{CRTimeRoundingFactor: f.ComponentReadinessFlags.CRTimeRoundingFactor},
+								cache.NewStandardCROptions(f.ComponentReadinessFlags.CRTimeRoundingFactor),
 								views.ComponentReadiness,
 								config.ComponentReadinessConfig.VariantJunitTableOverrides)
 							if err != nil {

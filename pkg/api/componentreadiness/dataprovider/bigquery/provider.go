@@ -56,7 +56,7 @@ func (p *BigQueryProvider) QueryBaseTestStatus(ctx context.Context, reqOptions r
 	generator := query.NewBaseQueryGenerator(p.client, reqOptions, allJobVariants)
 	result, errs := apiPkg.GetDataFromCacheOrGenerate[crstatus.ReportTestStatus](
 		ctx, p.client.Cache, reqOptions.CacheOption,
-		apiPkg.GetPrefixedCacheKey("BaseTestStatus~", generator),
+		apiPkg.NewCacheSpec(generator, "BaseTestStatus~", &reqOptions.BaseRelease.End),
 		generator.QueryTestStatus, crstatus.ReportTestStatus{})
 	if len(errs) > 0 {
 		return nil, errs
@@ -73,7 +73,7 @@ func (p *BigQueryProvider) QuerySampleTestStatus(ctx context.Context, reqOptions
 	generator := query.NewSampleQueryGenerator(p.client, reqOptions, allJobVariants, includeVariants, start, end, dataSource)
 	result, errs := apiPkg.GetDataFromCacheOrGenerate[crstatus.ReportTestStatus](
 		ctx, p.client.Cache, reqOptions.CacheOption,
-		apiPkg.GetPrefixedCacheKey("SampleTestStatus~", generator),
+		apiPkg.NewCacheSpec(generator, "SampleTestStatus~", &reqOptions.SampleRelease.End),
 		generator.QueryTestStatus, crstatus.ReportTestStatus{})
 	if len(errs) > 0 {
 		return nil, errs
@@ -94,7 +94,7 @@ func (p *BigQueryProvider) QueryBaseJobRunTestStatus(ctx context.Context, reqOpt
 
 	result, errs := apiPkg.GetDataFromCacheOrGenerate[crstatus.TestJobRunStatuses](
 		ctx, p.client.Cache, reqOptions.CacheOption,
-		apiPkg.GetPrefixedCacheKey("BaseJobRunTestStatus~", generator),
+		apiPkg.NewCacheSpec(generator, "BaseJobRunTestStatus~", &reqOptions.BaseRelease.End),
 		generator.QueryTestStatus, crstatus.TestJobRunStatuses{})
 	if len(errs) > 0 {
 		return nil, errs
@@ -112,7 +112,7 @@ func (p *BigQueryProvider) QuerySampleJobRunTestStatus(ctx context.Context, reqO
 
 	result, errs := apiPkg.GetDataFromCacheOrGenerate[crstatus.TestJobRunStatuses](
 		ctx, p.client.Cache, reqOptions.CacheOption,
-		apiPkg.GetPrefixedCacheKey("SampleJobRunTestStatus~", generator),
+		apiPkg.NewCacheSpec(generator, "SampleJobRunTestStatus~", &end),
 		generator.QueryTestStatus, crstatus.TestJobRunStatuses{})
 	if len(errs) > 0 {
 		return nil, errs

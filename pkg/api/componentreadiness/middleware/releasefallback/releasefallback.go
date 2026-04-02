@@ -176,7 +176,7 @@ func (r *ReleaseFallback) getFallbackBaseQueryStatus(ctx context.Context,
 
 	cachedFallbackTestStatuses, errs := api.GetDataFromCacheOrGenerate[*FallbackReleases](
 		ctx, r.dataProvider.Cache(), generator.cacheOption,
-		api.GetPrefixedCacheKey("FallbackReleases~", generator.getCacheKey()),
+		api.NewCacheSpec(generator.getCacheKey(), "FallbackReleases~", &end),
 		generator.getTestFallbackReleases,
 		&FallbackReleases{})
 
@@ -322,12 +322,6 @@ func newFallbackTestQueryReleasesGenerator(
 	generator := fallbackTestQueryReleasesGenerator{
 		dataProvider:   provider,
 		allJobVariants: allJobVariants,
-		cacheOption: cache.RequestOptions{
-			// never force a refresh, this data should be valid until cache expiry, and it is expensive to refresh it
-			ForceRefresh: false,
-			// increase the time that fallback queries are cached for
-			CRTimeRoundingFactor: fallbackQueryTimeRoundingOverride,
-		},
 		BaseRelease:    release,
 		BaseStart:      start,
 		BaseEnd:        end,

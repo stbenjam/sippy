@@ -73,7 +73,7 @@ func GetComponentTests(
 	result, errs := api.GetDataFromCacheOrGenerate[ComponentTestsResponse](
 		ctx,
 		generator.getCache(), generator.ReqOptions.CacheOption,
-		api.GetPrefixedCacheKey("ComponentTests~", generator.GetCacheKey(ctx)),
+		api.NewCacheSpec(generator.GetCacheKey(ctx), "ComponentTests~", nil),
 		func(ctx context.Context) (ComponentTestsResponse, []error) {
 			resp, err := generator.generateAllTests(ctx)
 			if err != nil {

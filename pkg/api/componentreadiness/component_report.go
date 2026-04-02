@@ -64,7 +64,7 @@ func GetComponentTestVariants(ctx context.Context, provider dataprovider.DataPro
 	}
 
 	return api.GetDataFromCacheOrGenerate[CacheVariants](ctx, provider.Cache(), cache.RequestOptions{},
-		api.GetPrefixedCacheKey("TestVariants~", generator), generator.GenerateCacheVariants, CacheVariants{})
+		api.NewCacheSpec(generator, "TestVariants~", nil), generator.GenerateCacheVariants, CacheVariants{})
 }
 
 func GetJobVariants(ctx context.Context, provider dataprovider.DataProvider) (crtest.JobVariants,
@@ -74,7 +74,7 @@ func GetJobVariants(ctx context.Context, provider dataprovider.DataProvider) (cr
 	}
 
 	return api.GetDataFromCacheOrGenerate[crtest.JobVariants](ctx, provider.Cache(), cache.RequestOptions{},
-		api.GetPrefixedCacheKey("TestAllVariants~", generator), generator.GenerateJobVariants, crtest.JobVariants{})
+		api.NewCacheSpec(generator, "TestAllVariants~", nil), generator.GenerateJobVariants, crtest.JobVariants{})
 }
 
 func GetComponentReport(
@@ -108,7 +108,7 @@ func GetComponentReport(
 	report, errs = api.GetDataFromCacheOrGenerate[crtype.ComponentReport](
 		ctx,
 		generator.getCache(), generator.ReqOptions.CacheOption,
-		api.GetPrefixedCacheKey(ComponentReportCacheKeyPrefix, generator.GetCacheKey(ctx)),
+		api.NewCacheSpec(generator.GetCacheKey(ctx), ComponentReportCacheKeyPrefix, nil),
 		generator.GenerateReport,
 		crtype.ComponentReport{})
 	if len(errs) > 0 {
