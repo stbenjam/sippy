@@ -9,27 +9,23 @@ import (
 	"reflect"
 	"slices"
 	"sort"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
-	"cloud.google.com/go/bigquery"
 	"github.com/apache/thrift/lib/go/thrift"
 	fischer "github.com/glycerine/golang-fisher-exact"
 	"github.com/openshift/sippy/pkg/api/componentreadiness/middleware/linkinjector"
 	regressionallowances2 "github.com/openshift/sippy/pkg/api/componentreadiness/middleware/regressionallowances"
 	"github.com/openshift/sippy/pkg/api/componentreadiness/middleware/regressiontracker"
-	"github.com/openshift/sippy/pkg/apis/api/componentreport/bq"
+	"github.com/openshift/sippy/pkg/apis/api/componentreport/crstatus"
 	"github.com/openshift/sippy/pkg/apis/api/componentreport/crtest"
 	"github.com/openshift/sippy/pkg/apis/api/componentreport/reqopts"
 	"github.com/openshift/sippy/pkg/apis/api/componentreport/testdetails"
-	"github.com/openshift/sippy/pkg/bigquery/bqlabel"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"google.golang.org/api/iterator"
 
 	"github.com/openshift/sippy/pkg/api"
+	"github.com/openshift/sippy/pkg/api/componentreadiness/dataprovider"
 	"github.com/openshift/sippy/pkg/api/componentreadiness/middleware"
 	"github.com/openshift/sippy/pkg/api/componentreadiness/middleware/releasefallback"
 	"github.com/openshift/sippy/pkg/api/componentreadiness/query"
@@ -38,7 +34,6 @@ import (
 	"github.com/openshift/sippy/pkg/apis/cache"
 	configv1 "github.com/openshift/sippy/pkg/apis/config/v1"
 	v1 "github.com/openshift/sippy/pkg/apis/sippy/v1"
-	bqcachedclient "github.com/openshift/sippy/pkg/bigquery"
 	"github.com/openshift/sippy/pkg/db"
 	"github.com/openshift/sippy/pkg/util"
 	"github.com/openshift/sippy/pkg/util/sets"
@@ -59,66 +54,43 @@ var (
 	DefaultDBGroupBy     = "Platform,Architecture,Network,Topology,FeatureSet,Upgrade,Suite,Installer,LayeredProduct"
 )
 
-func getSingleColumnResultToSlice(ctx context.Context, q *bigquery.Query) ([]string, error) {
-	names := []string{}
-	it, err := q.Read(ctx)
-	if err != nil {
-		log.WithError(err).Error("error querying test status from bigquery")
-		return names, err
-	}
-
-	for {
-		row := struct{ Name string }{}
-		err := it.Next(&row)
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			log.WithError(err).Error("error parsing component from bigquery")
-			return names, err
-		}
-		names = append(names, row.Name)
-	}
-	return names, nil
-}
-
 // TODO: in several of the below functions we instantiate an entire ComponentReportGenerator
 // to fetch some small piece of data. These look like they should be broken out. The partial
 // instantiation of a complex object is risky in terms of bugs and maintenance.
 
-func GetComponentTestVariantsFromBigQuery(ctx context.Context, client *bqcachedclient.Client) (CacheVariants, []error) {
+func GetComponentTestVariants(ctx context.Context, provider dataprovider.DataProvider) (CacheVariants, []error) {
 	generator := ComponentReportGenerator{
-		client: client,
+		dataProvider: provider,
 	}
 
-	return api.GetDataFromCacheOrGenerate[CacheVariants](ctx, client.Cache, cache.RequestOptions{},
+	return api.GetDataFromCacheOrGenerate[CacheVariants](ctx, provider.Cache(), cache.RequestOptions{},
 		api.GetPrefixedCacheKey("TestVariants~", generator), generator.GenerateCacheVariants, CacheVariants{})
 }
 
-func GetJobVariantsFromBigQuery(ctx context.Context, client *bqcachedclient.Client) (crtest.JobVariants,
+func GetJobVariants(ctx context.Context, provider dataprovider.DataProvider) (crtest.JobVariants,
 	[]error) {
 	generator := ComponentReportGenerator{
-		client: client,
+		dataProvider: provider,
 	}
 
-	return api.GetDataFromCacheOrGenerate[crtest.JobVariants](ctx, client.Cache, cache.RequestOptions{},
+	return api.GetDataFromCacheOrGenerate[crtest.JobVariants](ctx, provider.Cache(), cache.RequestOptions{},
 		api.GetPrefixedCacheKey("TestAllVariants~", generator), generator.GenerateJobVariants, crtest.JobVariants{})
 }
 
-func GetComponentReportFromBigQuery(
+func GetComponentReport(
 	ctx context.Context,
-	client *bqcachedclient.Client,
+	provider dataprovider.DataProvider,
 	dbc *db.DB,
 	reqOptions reqopts.RequestOptions,
 	variantJunitTableOverrides []configv1.VariantJunitTableOverride,
 	baseURL string,
 ) (report crtype.ComponentReport, errs []error) {
-	releaseConfigs, err := api.GetReleases(ctx, client, false)
+	releaseConfigs, err := provider.QueryReleases(ctx)
 	if err != nil {
 		return report, []error{err}
 	}
 
-	generator := NewComponentReportGenerator(client, reqOptions, dbc, variantJunitTableOverrides, releaseConfigs, baseURL)
+	generator := NewComponentReportGenerator(provider, reqOptions, dbc, variantJunitTableOverrides, releaseConfigs, baseURL)
 
 	if os.Getenv("DEV_MODE") == "1" {
 		report, errs = generator.GenerateReport(ctx)
@@ -135,7 +107,7 @@ func GetComponentReportFromBigQuery(
 
 	report, errs = api.GetDataFromCacheOrGenerate[crtype.ComponentReport](
 		ctx,
-		generator.client.Cache, generator.ReqOptions.CacheOption,
+		generator.getCache(), generator.ReqOptions.CacheOption,
 		api.GetPrefixedCacheKey(ComponentReportCacheKeyPrefix, generator.GetCacheKey(ctx)),
 		generator.GenerateReport,
 		crtype.ComponentReport{})
@@ -183,10 +155,10 @@ func (c *ComponentReportGenerator) PostAnalysis(report *crtype.ComponentReport) 
 	return nil
 }
 
-func NewComponentReportGenerator(client *bqcachedclient.Client, reqOptions reqopts.RequestOptions, dbc *db.DB, variantJunitTableOverrides []configv1.VariantJunitTableOverride, releaseConfigs []v1.Release, baseURL string) ComponentReportGenerator {
+func NewComponentReportGenerator(provider dataprovider.DataProvider, reqOptions reqopts.RequestOptions, dbc *db.DB, variantJunitTableOverrides []configv1.VariantJunitTableOverride, releaseConfigs []v1.Release, baseURL string) ComponentReportGenerator {
 	slices.Sort(reqOptions.Capabilities) // normalize ordering so cache keys match
 	generator := ComponentReportGenerator{
-		client:                     client,
+		dataProvider:               provider,
 		ReqOptions:                 reqOptions,
 		dbc:                        dbc,
 		variantJunitTableOverrides: variantJunitTableOverrides,
@@ -204,7 +176,7 @@ func NewComponentReportGenerator(client *bqcachedclient.Client, reqOptions reqop
 // is marshalled for the cache key and should be changed when the object being
 // cached changes in a way that will no longer be compatible with any prior cached version.
 type ComponentReportGenerator struct {
-	client                     *bqcachedclient.Client
+	dataProvider               dataprovider.DataProvider
 	dbc                        *db.DB
 	ReqOptions                 reqopts.RequestOptions
 	variantJunitTableOverrides []configv1.VariantJunitTableOverride
@@ -282,7 +254,7 @@ func (c *ComponentReportGenerator) GenerateCacheVariants(ctx context.Context) (C
 	columns := make(map[string][]string)
 
 	for _, column := range []string{"platform", "network", "arch", "upgrade", "variants"} {
-		values, err := c.getUniqueJUnitColumnValuesLast60Days(ctx, column, column == "variants")
+		values, err := c.dataProvider.QueryUniqueVariantValues(ctx, column, column == "variants")
 		if err != nil {
 			wrappedErr := errors.Wrapf(err, "couldn't fetch %s", column)
 			log.WithError(wrappedErr).Errorf("error generating variants")
@@ -300,64 +272,19 @@ func (c *ComponentReportGenerator) GenerateCacheVariants(ctx context.Context) (C
 	}, errs
 }
 
+func (c *ComponentReportGenerator) getCache() cache.Cache {
+	return c.dataProvider.Cache()
+}
+
 func (c *ComponentReportGenerator) GenerateJobVariants(ctx context.Context) (crtest.JobVariants, []error) {
-	errs := []error{}
-	variants := crtest.JobVariants{Variants: map[string][]string{}}
-	queryString := fmt.Sprintf(`SELECT variant_name, ARRAY_AGG(DISTINCT variant_value ORDER BY variant_value) AS variant_values
-					FROM
-						%s.job_variants
-					WHERE
-						variant_value!=""
-					GROUP BY
-						variant_name`, c.client.Dataset)
-	q := c.client.Query(ctx, bqlabel.CRJobVariants, queryString)
-	it, err := q.Read(ctx)
-	if err != nil {
-		log.WithError(err).Errorf("error querying variants from bigquery for %s", queryString)
-		return variants, []error{err}
-	}
-
-	floatVariants := sets.NewString("FromRelease", "FromReleaseMajor", "FromReleaseMinor", "Release", "ReleaseMajor", "ReleaseMinor")
-	for {
-		row := bq.JobVariant{}
-		err := it.Next(&row)
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			wrappedErr := errors.Wrapf(err, "error fetching variant row")
-			log.WithError(err).Error("error fetching variants from bigquery")
-			errs = append(errs, wrappedErr)
-			return variants, errs
-		}
-
-		// Sort all releases in proper orders
-		if floatVariants.Has(row.VariantName) {
-			sort.Slice(row.VariantValues, func(i, j int) bool {
-				iStrings := strings.Split(row.VariantValues[i], ".")
-				jStrings := strings.Split(row.VariantValues[j], ".")
-				for idx, iString := range iStrings {
-					if iValue, err := strconv.ParseInt(iString, 10, 32); err == nil {
-						if jValue, err := strconv.ParseInt(jStrings[idx], 10, 32); err == nil {
-							if iValue != jValue {
-								return iValue < jValue
-							}
-						}
-					}
-				}
-				return false
-			})
-		}
-		variants.Variants[row.VariantName] = row.VariantValues
-	}
-	return variants, nil
+	return c.dataProvider.QueryJobVariants(ctx)
 }
 
 func (c *ComponentReportGenerator) initializeMiddleware() {
 	c.middlewares = middleware.List{}
 	// Initialize all our middleware applicable to this request.
 	if c.ReqOptions.AdvancedOption.IncludeMultiReleaseAnalysis {
-		c.middlewares = append(c.middlewares, releasefallback.NewReleaseFallbackMiddleware(c.client, c.ReqOptions, c.releaseConfigs))
+		c.middlewares = append(c.middlewares, releasefallback.NewReleaseFallbackMiddleware(c.dataProvider, c.ReqOptions, c.releaseConfigs))
 	}
 	if c.dbc != nil {
 		c.middlewares = append(c.middlewares, regressiontracker.NewRegressionTrackerMiddleware(c.dbc, c.ReqOptions))
@@ -402,69 +329,33 @@ func (c *ComponentReportGenerator) GenerateReport(ctx context.Context) (crtype.C
 	return report, nil
 }
 
-// getBaseQueryStatus builds the basis query, executes it, and returns the basis test status.
-func (c *ComponentReportGenerator) getBaseQueryStatus(ctx context.Context,
-	allJobVariants crtest.JobVariants) (map[string]bq.TestStatus, []error) {
-
-	generator := query.NewBaseQueryGenerator(c.client, c.ReqOptions, allJobVariants)
-
-	componentReportTestStatus, errs := api.GetDataFromCacheOrGenerate[bq.ReportTestStatus](ctx, c.client.Cache,
-		generator.ReqOptions.CacheOption, api.GetPrefixedCacheKey("BaseTestStatus~", generator), generator.QueryTestStatus, bq.ReportTestStatus{})
-
-	if len(errs) > 0 {
-		return nil, errs
-	}
-
-	return componentReportTestStatus.BaseStatus, nil
-}
-
-// getSampleQueryStatus builds the sample query, executes it, and returns the sample test status.
-func (c *ComponentReportGenerator) getSampleQueryStatus(
-	ctx context.Context,
-	allJobVariants crtest.JobVariants,
-	includeVariants map[string][]string,
-	start, end time.Time,
-	junitTable string) (map[string]bq.TestStatus, []error) {
-
-	generator := query.NewSampleQueryGenerator(c.client, c.ReqOptions, allJobVariants, includeVariants, start, end, junitTable)
-
-	componentReportTestStatus, errs := api.GetDataFromCacheOrGenerate[bq.ReportTestStatus](ctx,
-		c.client.Cache, c.ReqOptions.CacheOption,
-		api.GetPrefixedCacheKey("SampleTestStatus~", generator),
-		generator.QueryTestStatus, bq.ReportTestStatus{})
-
-	if len(errs) > 0 {
-		return nil, errs
-	}
-
-	return componentReportTestStatus.SampleStatus, nil
-}
 
 // getTestStatusFromBigQuery orchestrates the actual fetching of junit test run data for both basis and sample.
 // goroutines are used to concurrently request the data for basis, sample, and various other edge cases.
-func (c *ComponentReportGenerator) getTestStatusFromBigQuery(ctx context.Context) (bq.ReportTestStatus, []error) {
+func (c *ComponentReportGenerator) getTestStatusFromBigQuery(ctx context.Context) (crstatus.ReportTestStatus, []error) {
 	before := time.Now()
 	fLog := log.WithField("func", "getTestStatusFromBigQuery")
-	allJobVariants, errs := GetJobVariantsFromBigQuery(ctx, c.client)
+
+	allJobVariants, errs := c.dataProvider.QueryJobVariants(ctx)
 	if len(errs) > 0 {
 		fLog.Errorf("failed to get variants from bigquery")
-		return bq.ReportTestStatus{}, errs
+		return crstatus.ReportTestStatus{}, errs
 	}
 
-	var baseStatus, sampleStatus map[string]bq.TestStatus
-	baseStatusCh := make(chan map[string]bq.TestStatus) // TODO: not hooked up yet, just in place for the interface for now
+	var baseStatus, sampleStatus map[string]crstatus.TestStatus
+	baseStatusCh := make(chan map[string]crstatus.TestStatus) // TODO: not hooked up yet, just in place for the interface for now
 	var baseErrs, sampleErrs []error
 	wg := &sync.WaitGroup{}
 
 	// channels for status as we may collect status from multiple queries run in separate goroutines
-	sampleStatusCh := make(chan map[string]bq.TestStatus)
+	sampleStatusCh := make(chan map[string]crstatus.TestStatus)
 	errCh := make(chan error)
 	statusDoneCh := make(chan struct{})     // To signal when all processing is done
 	statusErrsDoneCh := make(chan struct{}) // To signal when all processing is done
 
 	// generate inputs to the channels
 	c.middlewares.Query(ctx, wg, allJobVariants, baseStatusCh, sampleStatusCh, errCh)
-	goInterruptible(ctx, wg, func() { baseStatus, baseErrs = c.getBaseQueryStatus(ctx, allJobVariants) })
+	goInterruptible(ctx, wg, func() { baseStatus, baseErrs = c.dataProvider.QueryBaseTestStatus(ctx, c.ReqOptions, allJobVariants) })
 	goInterruptible(ctx, wg, func() {
 		includeVariants, skipQuery := copyIncludeVariantsAndRemoveOverrides(c.variantJunitTableOverrides, -1, c.ReqOptions.VariantOption.IncludeVariants)
 		if skipQuery {
@@ -472,7 +363,7 @@ func (c *ComponentReportGenerator) getTestStatusFromBigQuery(ctx context.Context
 			return
 		}
 		fLog.Infof("running default sample query with includeVariants: %+v", includeVariants)
-		status, errs := c.getSampleQueryStatus(ctx, allJobVariants, includeVariants, c.ReqOptions.SampleRelease.Start, c.ReqOptions.SampleRelease.End, query.DefaultJunitTable)
+		status, errs := c.dataProvider.QuerySampleTestStatus(ctx, c.ReqOptions, allJobVariants, includeVariants, c.ReqOptions.SampleRelease.Start, c.ReqOptions.SampleRelease.End, query.DefaultJunitTable)
 		fLog.Infof("received %d test statuses and %d errors from default query", len(status), len(errs))
 		sampleStatusCh <- status
 		for _, err := range errs {
@@ -497,7 +388,7 @@ func (c *ComponentReportGenerator) getTestStatusFromBigQuery(ctx context.Context
 			for k, v := range status {
 				if sampleStatus == nil {
 					fLog.Warnf("initializing sampleStatus map")
-					sampleStatus = make(map[string]bq.TestStatus)
+					sampleStatus = make(map[string]crstatus.TestStatus)
 				}
 				if v2, ok := sampleStatus[k]; ok {
 					fLog.Warnf("sampleStatus already had key: %+v", k)
@@ -528,14 +419,14 @@ func (c *ComponentReportGenerator) getTestStatusFromBigQuery(ctx context.Context
 	log.Infof("getTestStatusFromBigQuery completed in %s with %d sample results and %d base results from db",
 		time.Since(before), len(sampleStatus), len(baseStatus))
 	now := time.Now()
-	return bq.ReportTestStatus{BaseStatus: baseStatus, SampleStatus: sampleStatus, GeneratedAt: &now}, errs
+	return crstatus.ReportTestStatus{BaseStatus: baseStatus, SampleStatus: sampleStatus, GeneratedAt: &now}, errs
 }
 
 // fork additional sample queries for the overrides
 func (c *ComponentReportGenerator) goRunOverrideSampleQueries(
 	ctx context.Context, wg *sync.WaitGroup, fLog *log.Entry,
 	allJobVariants crtest.JobVariants,
-	sampleStatusCh chan map[string]bq.TestStatus,
+	sampleStatusCh chan map[string]crstatus.TestStatus,
 	errCh chan error,
 ) {
 	for i, or := range c.variantJunitTableOverrides {
@@ -560,7 +451,7 @@ func (c *ComponentReportGenerator) goRunOverrideSampleQueries(
 				errCh <- err
 				return
 			}
-			status, errs := c.getSampleQueryStatus(ctx, allJobVariants, includeVariants, start, end, override.TableName)
+			status, errs := c.dataProvider.QuerySampleTestStatus(ctx, c.ReqOptions, allJobVariants, includeVariants, start, end, override.TableName)
 			fLog.Infof("received %d test statuses and %d errors from override query", len(status), len(errs))
 			sampleStatusCh <- status
 			for _, err := range errs {
@@ -639,15 +530,15 @@ func shouldSkipVariant(overrides []configv1.VariantJunitTableOverride, currOverr
 	return false
 }
 
-var componentAndCapabilityGetter func(test crtest.KeyWithVariants, stats bq.TestStatus) (string, []string)
+var componentAndCapabilityGetter func(test crtest.KeyWithVariants, stats crstatus.TestStatus) (string, []string)
 
-func testToComponentAndCapability(_ crtest.KeyWithVariants, stats bq.TestStatus) (string, []string) {
+func testToComponentAndCapability(_ crtest.KeyWithVariants, stats crstatus.TestStatus) (string, []string) {
 	return stats.Component, stats.Capabilities
 }
 
 // getRowColumnIdentifications defines the rows and columns since they are variable. For rows, different pages have different row titles (component, capability etc)
 // Columns titles depends on the columnGroupBy parameter user requests. A particular test can belong to multiple rows of different capabilities.
-func (c *ComponentReportGenerator) getRowColumnIdentifications(testIDStr string, stats bq.TestStatus) ([]crtest.RowIdentification, []crtest.ColumnID, error) {
+func (c *ComponentReportGenerator) getRowColumnIdentifications(testIDStr string, stats crstatus.TestStatus) ([]crtest.RowIdentification, []crtest.ColumnID, error) {
 	var test crtest.KeyWithVariants
 	columnGroupByVariants := c.ReqOptions.VariantOption.ColumnGroupBy
 	// We show column groups by DBGroupBy only for the last page before test details
@@ -799,8 +690,8 @@ func updateCellStatus(
 func initTestAnalysisStruct(
 	testStats *testdetails.TestComparison,
 	reqOptions reqopts.RequestOptions,
-	sampleStatus bq.TestStatus,
-	baseStatus *bq.TestStatus) {
+	sampleStatus crstatus.TestStatus,
+	baseStatus *crstatus.TestStatus) {
 
 	// Default to required confidence from request, middleware may adjust later.
 	testStats.RequiredConfidence = reqOptions.AdvancedOption.Confidence
@@ -821,7 +712,7 @@ func initTestAnalysisStruct(
 	}
 }
 
-func (c *ComponentReportGenerator) generateComponentTestReport(basisStatusMap, sampleStatusMap map[string]bq.TestStatus) (crtype.ComponentReport, error) {
+func (c *ComponentReportGenerator) generateComponentTestReport(basisStatusMap, sampleStatusMap map[string]crstatus.TestStatus) (crtype.ComponentReport, error) {
 	// aggregatedStatus is the aggregated status based on the requested rows and columns
 	aggregatedStatus := map[crtest.RowIdentification]map[crtest.ColumnID]cellStatus{}
 	// allRows and allColumns are used to make sure rows are ordered and all rows have the same columns in the same order
@@ -1133,29 +1024,6 @@ func (c *ComponentReportGenerator) fischerExactTest(confidenceRequired, sampleFa
 		baseFailure,
 		baseSuccess)
 	return r < 1-float64(confidenceRequired)/100, r
-}
-
-func (c *ComponentReportGenerator) getUniqueJUnitColumnValuesLast60Days(ctx context.Context, field string,
-	nested bool) ([]string,
-	error) {
-	unnest := ""
-	if nested {
-		unnest = fmt.Sprintf(", UNNEST(%s) nested", field)
-		field = "nested"
-	}
-
-	queryString := fmt.Sprintf(`SELECT
-						DISTINCT %s as name
-					FROM
-						%s.junit %s
-					WHERE
-						modified_time > DATETIME_SUB(CURRENT_DATETIME(), INTERVAL 60 DAY)
-					ORDER BY
-						name`, field, c.client.Dataset, unnest)
-
-	q := c.client.Query(ctx, bqlabel.CRJunitColumnCount, queryString)
-
-	return getSingleColumnResultToSlice(ctx, q)
 }
 
 func init() {

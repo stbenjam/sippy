@@ -12,6 +12,7 @@ import (
 
 	"github.com/andygrunwald/go-jira"
 	"github.com/openshift/sippy/pkg/api/componentreadiness"
+	"github.com/openshift/sippy/pkg/api/componentreadiness/dataprovider"
 	"github.com/openshift/sippy/pkg/api/componentreadiness/utils"
 	crtype "github.com/openshift/sippy/pkg/apis/api/componentreport"
 	"github.com/openshift/sippy/pkg/apis/api/componentreport/crtest"
@@ -51,7 +52,7 @@ type JiraComponent struct {
 
 type JiraAutomator struct {
 	jiraClient   *jira.Client
-	bqClient     *bqclient.Client
+	dataProvider dataprovider.DataProvider
 	dbc          *db.DB
 	cacheOptions cache.RequestOptions
 	views        []crview.View
@@ -70,7 +71,7 @@ type JiraAutomator struct {
 
 func NewJiraAutomator(
 	jiraClient *jira.Client,
-	bqClient *bqclient.Client,
+	provider dataprovider.DataProvider,
 	dbc *db.DB,
 	cacheOptions cache.RequestOptions,
 	views []crview.View,
@@ -85,7 +86,7 @@ func NewJiraAutomator(
 
 	j := JiraAutomator{
 		jiraClient:                 jiraClient,
-		bqClient:                   bqClient,
+		dataProvider:               provider,
 		dbc:                        dbc,
 		cacheOptions:               cacheOptions,
 		releases:                   releases,
@@ -97,11 +98,11 @@ func NewJiraAutomator(
 		variantToJiraComponents:    variantToJiraComponents,
 		variantJunitTableOverrides: variantJunitTableOverrides,
 	}
-	if bqClient == nil || bqClient.BQ == nil {
-		return j, fmt.Errorf("we don't have a bigquery client for jira integrator")
+	if provider == nil {
+		return j, fmt.Errorf("we don't have a data provider for jira integrator")
 	}
 
-	if bqClient.Cache == nil {
+	if provider.Cache() == nil {
 		return j, fmt.Errorf("we don't have a cache configured for jira integrator")
 	}
 
@@ -148,7 +149,7 @@ func (j JiraAutomator) getComponentReportForView(view crview.View) (crtype.Compo
 	}
 
 	// Passing empty gcs bucket and prow URL, they are not needed outside test details reports
-	report, errs := componentreadiness.GetComponentReportFromBigQuery(context.Background(), j.bqClient, j.dbc, reportOpts, j.variantJunitTableOverrides, "")
+	report, errs := componentreadiness.GetComponentReport(context.Background(), j.dataProvider, j.dbc, reportOpts, j.variantJunitTableOverrides, "")
 	if len(errs) > 0 {
 		var strErrors []string
 		for _, err := range errs {

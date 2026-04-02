@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"os"
@@ -17,6 +18,9 @@ import (
 	"github.com/spf13/pflag"
 
 	resources "github.com/openshift/sippy"
+	"github.com/openshift/sippy/pkg/api/componentreadiness/dataprovider"
+	bqprovider "github.com/openshift/sippy/pkg/api/componentreadiness/dataprovider/bigquery"
+	mockprovider "github.com/openshift/sippy/pkg/api/componentreadiness/dataprovider/mock"
 	"github.com/openshift/sippy/pkg/apis/cache"
 	"github.com/openshift/sippy/pkg/bigquery"
 	"github.com/openshift/sippy/pkg/dataloader/prowloader/gcs"
@@ -25,6 +29,7 @@ import (
 	"github.com/openshift/sippy/pkg/flags/configflags"
 	"github.com/openshift/sippy/pkg/sippyserver"
 	"github.com/openshift/sippy/pkg/sippyserver/metrics"
+	"github.com/openshift/sippy/pkg/testidentification"
 	"github.com/openshift/sippy/pkg/util"
 )
 
@@ -38,6 +43,8 @@ type ServerFlags struct {
 	ConfigFlags             *configflags.ConfigFlags
 	APIFlags                *flags.APIFlags
 	JiraFlags               *flags.JiraFlags
+	DataProvider            string
+	MockDataDir             string
 }
 
 func NewServerFlags() *ServerFlags {
@@ -64,9 +71,14 @@ func (f *ServerFlags) BindFlags(flagSet *pflag.FlagSet) {
 	f.ConfigFlags.BindFlags(flagSet)
 	f.APIFlags.BindFlags(flagSet)
 	f.JiraFlags.BindFlags(flagSet)
+	flagSet.StringVar(&f.DataProvider, "data-provider", "bigquery", "Data provider for component readiness: bigquery, mock")
+	flagSet.StringVar(&f.MockDataDir, "mock-data-dir", "", "Directory containing mock fixture data (required when --data-provider=mock)")
 }
 
 func (f *ServerFlags) Validate() error {
+	if f.DataProvider == "mock" {
+		return nil
+	}
 	return f.GoogleCloudFlags.Validate()
 }
 
@@ -98,35 +110,56 @@ func NewServeCommand() *cobra.Command {
 
 			var bigQueryClient *bigquery.Client
 			var gcsClient *storage.Client
-			if f.GoogleCloudFlags.ServiceAccountCredentialFile != "" {
-				opCtx := bqlabel.OperationalContext{
-					App:     bqlabel.AppSippy,
-					Command: "serve",
-					// outside prod, defaults to CLI as env and USER env var as operator
-					Environment: bqlabel.EnvCli,
-					Operator:    os.Getenv("USER"),
+			var crDataProvider dataprovider.DataProvider
+
+			switch f.DataProvider {
+			case "mock":
+				if f.MockDataDir == "" {
+					return fmt.Errorf("--mock-data-dir is required when --data-provider=mock")
 				}
-				env := bqlabel.EnvValue(os.Getenv("SIPPY_WEB_ENV")) // set in prod
-				if slices.Contains([]bqlabel.EnvValue{bqlabel.EnvWeb, bqlabel.EnvWebAuth, bqlabel.EnvWebQE}, env) {
-					opCtx.Environment = env
-					opCtx.Operator = string(env)
-				}
-				bigQueryClient, err = f.BigQueryFlags.GetBigQueryClient(context.Background(), opCtx, cacheClient, f.GoogleCloudFlags.ServiceAccountCredentialFile)
+				mockProvider, err := mockprovider.NewMockProviderFromFixtures(f.MockDataDir, cacheClient)
 				if err != nil {
-					return errors.WithMessage(err, "couldn't get bigquery client")
+					return errors.WithMessage(err, "couldn't create mock data provider")
+				}
+				crDataProvider = mockProvider
+				log.Infof("Using mock data provider from %s", f.MockDataDir)
+
+			case "bigquery":
+				if f.GoogleCloudFlags.ServiceAccountCredentialFile != "" {
+					opCtx := bqlabel.OperationalContext{
+						App:     bqlabel.AppSippy,
+						Command: "serve",
+						// outside prod, defaults to CLI as env and USER env var as operator
+						Environment: bqlabel.EnvCli,
+						Operator:    os.Getenv("USER"),
+					}
+					env := bqlabel.EnvValue(os.Getenv("SIPPY_WEB_ENV")) // set in prod
+					if slices.Contains([]bqlabel.EnvValue{bqlabel.EnvWeb, bqlabel.EnvWebAuth, bqlabel.EnvWebQE}, env) {
+						opCtx.Environment = env
+						opCtx.Operator = string(env)
+					}
+					bigQueryClient, err = f.BigQueryFlags.GetBigQueryClient(context.Background(), opCtx, cacheClient, f.GoogleCloudFlags.ServiceAccountCredentialFile)
+					if err != nil {
+						return errors.WithMessage(err, "couldn't get bigquery client")
+					}
+
+					if bigQueryClient != nil && f.CacheFlags.EnablePersistentCaching {
+						bigQueryClient = f.CacheFlags.DecorateBiqQueryClientWithPersistentCache(bigQueryClient)
+					}
+
+					crDataProvider = bqprovider.NewBigQueryProvider(bigQueryClient)
+
+					gcsClient, err = gcs.NewGCSClient(context.TODO(),
+						f.GoogleCloudFlags.ServiceAccountCredentialFile,
+						f.GoogleCloudFlags.OAuthClientCredentialFile,
+					)
+					if err != nil {
+						log.WithError(err).Warn("unable to create GCS client, some APIs may not work")
+					}
 				}
 
-				if bigQueryClient != nil && f.CacheFlags.EnablePersistentCaching {
-					bigQueryClient = f.CacheFlags.DecorateBiqQueryClientWithPersistentCache(bigQueryClient)
-				}
-
-				gcsClient, err = gcs.NewGCSClient(context.TODO(),
-					f.GoogleCloudFlags.ServiceAccountCredentialFile,
-					f.GoogleCloudFlags.OAuthClientCredentialFile,
-				)
-				if err != nil {
-					log.WithError(err).Warn("unable to create GCS client, some APIs may not work")
-				}
+			default:
+				return fmt.Errorf("unknown --data-provider %q, must be bigquery or mock", f.DataProvider)
 			}
 
 			// Make sure the db is intialized, otherwise let the user know:
@@ -143,7 +176,10 @@ func NewServeCommand() *cobra.Command {
 
 			pinnedDateTime := f.DBFlags.GetPinnedTime()
 
-			variantManager := f.ModeFlags.GetVariantManager(context.Background(), bigQueryClient)
+			var variantManager testidentification.VariantManager
+			if bigQueryClient != nil {
+				variantManager = f.ModeFlags.GetVariantManager(context.Background(), bigQueryClient)
+			}
 			views, err := f.ComponentReadinessFlags.ParseViewsFile()
 			if err != nil {
 				log.WithError(err).Fatal("unable to load views")
@@ -167,6 +203,7 @@ func NewServeCommand() *cobra.Command {
 				gcsClient,
 				f.GoogleCloudFlags.StorageBucket,
 				bigQueryClient,
+				crDataProvider,
 				pinnedDateTime,
 				cacheClient,
 				f.ComponentReadinessFlags.CRTimeRoundingFactor,

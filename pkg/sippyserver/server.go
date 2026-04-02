@@ -39,11 +39,13 @@ import (
 	"github.com/openshift/sippy/pkg/mcp"
 
 	v1 "github.com/openshift/sippy/pkg/apis/config/v1"
+	sippyv1 "github.com/openshift/sippy/pkg/apis/sippy/v1"
 
 	"github.com/andygrunwald/go-jira"
 
 	"github.com/openshift/sippy/pkg/api"
 	"github.com/openshift/sippy/pkg/api/componentreadiness"
+	"github.com/openshift/sippy/pkg/api/componentreadiness/dataprovider"
 	"github.com/openshift/sippy/pkg/api/jobrunevents"
 	"github.com/openshift/sippy/pkg/api/jobrunintervals"
 	apitype "github.com/openshift/sippy/pkg/apis/api"
@@ -79,6 +81,7 @@ func NewServer(
 	gcsClient *storage.Client,
 	gcsBucket string,
 	bigQueryClient *sippybq.Client,
+	crDataProvider dataprovider.DataProvider,
 	pinnedDateTime *time.Time,
 	cacheClient cache.Cache,
 	crTimeRoundingFactor time.Duration,
@@ -100,6 +103,7 @@ func NewServer(
 		static:               static,
 		db:                   dbClient,
 		bigQueryClient:       bigQueryClient,
+		crDataProvider:       crDataProvider,
 		pinnedDateTime:       pinnedDateTime,
 		gcsClient:            gcsClient,
 		gcsBucket:            gcsBucket,
@@ -112,11 +116,23 @@ func NewServer(
 		jiraClient:           jiraClient,
 	}
 
-	if bigQueryClient != nil {
-		go componentreadiness.GetComponentTestVariantsFromBigQuery(context.Background(), bigQueryClient)
+	if crDataProvider != nil {
+		go componentreadiness.GetComponentTestVariants(context.Background(), server.crDataProvider)
 	}
 
 	return server
+}
+
+// getReleases returns release data, preferring the BigQuery client with caching
+// when available, falling back to the data provider for mock mode.
+func (s *Server) getReleases(ctx context.Context) ([]sippyv1.Release, error) {
+	if s.bigQueryClient != nil {
+		return api.GetReleases(ctx, s.bigQueryClient, false)
+	}
+	if s.crDataProvider != nil {
+		return s.crDataProvider.QueryReleases(ctx)
+	}
+	return nil, fmt.Errorf("no data source available for releases")
 }
 
 var matViewRefreshMetric = promauto.NewHistogramVec(prometheus.HistogramOpts{
@@ -153,6 +169,7 @@ type Server struct {
 	httpServer           *http.Server
 	db                   *db.DB
 	bigQueryClient       *sippybq.Client
+	crDataProvider       dataprovider.DataProvider
 	pinnedDateTime       *time.Time
 	gcsClient            *storage.Client
 	gcsBucket            string
@@ -386,7 +403,7 @@ func (s *Server) determineCapabilities() {
 		capabilities = append(capabilities, OpenshiftCapability)
 	}
 
-	if s.bigQueryClient != nil {
+	if s.bigQueryClient != nil || s.crDataProvider != nil {
 		capabilities = append(capabilities, ComponentReadinessCapability)
 	}
 	if s.db != nil {
@@ -881,11 +898,11 @@ func (s *Server) jsonTestRunsAndOutputsFromBigQuery(w http.ResponseWriter, req *
 }
 
 func (s *Server) jsonComponentTestVariantsFromBigQuery(w http.ResponseWriter, req *http.Request) {
-	if s.bigQueryClient == nil {
-		failureResponse(w, http.StatusBadRequest, "component report API is only available when google-service-account-credential-file is configured")
+	if s.crDataProvider == nil {
+		failureResponse(w, http.StatusBadRequest, "component report API is only available when a data provider is configured")
 		return
 	}
-	outputs, errs := componentreadiness.GetComponentTestVariantsFromBigQuery(req.Context(), s.bigQueryClient)
+	outputs, errs := componentreadiness.GetComponentTestVariants(req.Context(), s.crDataProvider)
 	if len(errs) > 0 {
 		log.Warningf("%d errors were encountered while querying test variants from big query:", len(errs))
 		for _, err := range errs {
@@ -898,11 +915,11 @@ func (s *Server) jsonComponentTestVariantsFromBigQuery(w http.ResponseWriter, re
 }
 
 func (s *Server) jsonJobVariantsFromBigQuery(w http.ResponseWriter, req *http.Request) {
-	if s.bigQueryClient == nil {
-		failureResponse(w, http.StatusBadRequest, "job variants API is only available when google-service-account-credential-file is configured")
+	if s.crDataProvider == nil {
+		failureResponse(w, http.StatusBadRequest, "job variants API is only available when a data provider is configured")
 		return
 	}
-	outputs, errs := componentreadiness.GetJobVariantsFromBigQuery(req.Context(), s.bigQueryClient)
+	outputs, errs := componentreadiness.GetJobVariants(req.Context(), s.crDataProvider)
 	if len(errs) > 0 {
 		log.Warningf("%d errors were encountered while querying job variants from big query:", len(errs))
 		for _, err := range errs {
@@ -915,7 +932,7 @@ func (s *Server) jsonJobVariantsFromBigQuery(w http.ResponseWriter, req *http.Re
 }
 
 func (s *Server) jsonComponentReadinessViews(w http.ResponseWriter, req *http.Request) {
-	allReleases, err := api.GetReleases(req.Context(), s.bigQueryClient, false)
+	allReleases, err := s.getReleases(req.Context())
 	if err != nil {
 		failureResponse(w, http.StatusBadRequest, err.Error())
 		return
@@ -978,16 +995,16 @@ func (s *Server) getRegressedTestsForRegressions(req *http.Request, regressions 
 
 // getComponentReportFromRequest creates a component report based on the HTTP request parameters
 func (s *Server) getComponentReportFromRequest(req *http.Request) (componentreport.ComponentReport, error) {
-	if s.bigQueryClient == nil {
-		return componentreport.ComponentReport{}, fmt.Errorf("component report API is only available when google-service-account-credential-file is configured")
+	if s.crDataProvider == nil {
+		return componentreport.ComponentReport{}, fmt.Errorf("component report API is only available when a data provider is configured")
 	}
 
-	allJobVariants, errs := componentreadiness.GetJobVariantsFromBigQuery(req.Context(), s.bigQueryClient)
+	allJobVariants, errs := componentreadiness.GetJobVariants(req.Context(), s.crDataProvider)
 	if len(errs) > 0 {
 		return componentreport.ComponentReport{}, fmt.Errorf("failed to get variants from bigquery")
 	}
 
-	allReleases, err := api.GetReleases(req.Context(), s.bigQueryClient, false)
+	allReleases, err := s.getReleases(req.Context())
 	if err != nil {
 		return componentreport.ComponentReport{}, err
 	}
@@ -1002,9 +1019,9 @@ func (s *Server) getComponentReportFromRequest(req *http.Request) (componentrepo
 	// This baseURL is used to generate links to test_details reports, which are frontend links
 	baseURL := api.GetBaseFrontendURL(req)
 
-	outputs, errs := componentreadiness.GetComponentReportFromBigQuery(
+	outputs, errs := componentreadiness.GetComponentReport(
 		req.Context(),
-		s.bigQueryClient,
+		s.crDataProvider,
 		s.db,
 		options,
 		s.config.ComponentReadinessConfig.VariantJunitTableOverrides,
@@ -1031,18 +1048,18 @@ func (s *Server) jsonComponentReportFromBigQuery(w http.ResponseWriter, req *htt
 }
 
 func (s *Server) jsonComponentReportJobsFromBigQuery(w http.ResponseWriter, req *http.Request) {
-	if s.bigQueryClient == nil {
-		failureResponse(w, http.StatusBadRequest, "component report API is only available when google-service-account-credential-file is configured")
+	if s.crDataProvider == nil {
+		failureResponse(w, http.StatusBadRequest, "component report API is only available when a data provider is configured")
 		return
 	}
 
-	allJobVariants, errs := componentreadiness.GetJobVariantsFromBigQuery(req.Context(), s.bigQueryClient)
+	allJobVariants, errs := componentreadiness.GetJobVariants(req.Context(), s.crDataProvider)
 	if len(errs) > 0 {
 		failureResponse(w, http.StatusInternalServerError, "failed to get variants from BigQuery")
 		return
 	}
 
-	allReleases, err := api.GetReleases(req.Context(), s.bigQueryClient, false)
+	allReleases, err := s.getReleases(req.Context())
 	if err != nil {
 		failureResponse(w, http.StatusBadRequest, err.Error())
 		return
@@ -1055,7 +1072,7 @@ func (s *Server) jsonComponentReportJobsFromBigQuery(w http.ResponseWriter, req 
 		return
 	}
 
-	resp, err := componentreadiness.GetViewJobsFromBigQuery(req.Context(), s.bigQueryClient, reqOptions, allJobVariants)
+	resp, err := componentreadiness.GetViewJobs(req.Context(), s.crDataProvider, reqOptions, allJobVariants)
 	if err != nil {
 		log.WithError(err).Error("error querying view jobs")
 		failureResponse(w, http.StatusInternalServerError, "error querying view jobs")
@@ -1066,8 +1083,8 @@ func (s *Server) jsonComponentReportJobsFromBigQuery(w http.ResponseWriter, req 
 }
 
 func (s *Server) jsonDiagnoseJobFromBigQuery(w http.ResponseWriter, req *http.Request) {
-	if s.bigQueryClient == nil {
-		failureResponse(w, http.StatusBadRequest, "component report API is only available when google-service-account-credential-file is configured")
+	if s.crDataProvider == nil {
+		failureResponse(w, http.StatusBadRequest, "component report API is only available when a data provider is configured")
 		return
 	}
 
@@ -1077,13 +1094,13 @@ func (s *Server) jsonDiagnoseJobFromBigQuery(w http.ResponseWriter, req *http.Re
 		return
 	}
 
-	allJobVariants, errs := componentreadiness.GetJobVariantsFromBigQuery(req.Context(), s.bigQueryClient)
+	allJobVariants, errs := componentreadiness.GetJobVariants(req.Context(), s.crDataProvider)
 	if len(errs) > 0 {
 		failureResponse(w, http.StatusInternalServerError, "failed to get variants from BigQuery")
 		return
 	}
 
-	allReleases, err := api.GetReleases(req.Context(), s.bigQueryClient, false)
+	allReleases, err := s.getReleases(req.Context())
 	if err != nil {
 		failureResponse(w, http.StatusBadRequest, err.Error())
 		return
@@ -1096,7 +1113,7 @@ func (s *Server) jsonDiagnoseJobFromBigQuery(w http.ResponseWriter, req *http.Re
 		return
 	}
 
-	diagnosis, err := componentreadiness.DiagnoseJob(req.Context(), s.bigQueryClient, reqOptions, jobName)
+	diagnosis, err := componentreadiness.DiagnoseJob(req.Context(), s.crDataProvider, reqOptions, jobName)
 	if err != nil {
 		log.WithError(err).Error("error diagnosing job")
 		failureResponse(w, http.StatusInternalServerError, "error diagnosing job")
@@ -1107,18 +1124,18 @@ func (s *Server) jsonDiagnoseJobFromBigQuery(w http.ResponseWriter, req *http.Re
 }
 
 func (s *Server) jsonComponentTestsFromBigQuery(w http.ResponseWriter, req *http.Request) {
-	if s.bigQueryClient == nil {
-		failureResponse(w, http.StatusBadRequest, "component report API is only available when google-service-account-credential-file is configured")
+	if s.crDataProvider == nil {
+		failureResponse(w, http.StatusBadRequest, "component report API is only available when a data provider is configured")
 		return
 	}
 
-	allJobVariants, errs := componentreadiness.GetJobVariantsFromBigQuery(req.Context(), s.bigQueryClient)
+	allJobVariants, errs := componentreadiness.GetJobVariants(req.Context(), s.crDataProvider)
 	if len(errs) > 0 {
 		failureResponse(w, http.StatusInternalServerError, "failed to get variants from BigQuery")
 		return
 	}
 
-	allReleases, err := api.GetReleases(req.Context(), s.bigQueryClient, false)
+	allReleases, err := s.getReleases(req.Context())
 	if err != nil {
 		failureResponse(w, http.StatusBadRequest, err.Error())
 		return
@@ -1132,8 +1149,8 @@ func (s *Server) jsonComponentTestsFromBigQuery(w http.ResponseWriter, req *http
 	}
 
 	baseURL := api.GetBaseFrontendURL(req)
-	resp, err := componentreadiness.GetComponentTestsFromBigQuery(
-		req.Context(), s.bigQueryClient, s.db, reqOptions,
+	resp, err := componentreadiness.GetComponentTests(
+		req.Context(), s.crDataProvider, s.db, reqOptions,
 		s.config.ComponentReadinessConfig.VariantJunitTableOverrides,
 		allReleases, baseURL,
 	)
@@ -1147,18 +1164,18 @@ func (s *Server) jsonComponentTestsFromBigQuery(w http.ResponseWriter, req *http
 }
 
 func (s *Server) jsonComponentReportTestDetailsFromBigQuery(w http.ResponseWriter, req *http.Request) {
-	if s.bigQueryClient == nil {
-		err := fmt.Errorf("component report API is only available when google-service-account-credential-file is configured")
+	if s.crDataProvider == nil {
+		err := fmt.Errorf("component report API is only available when a data provider is configured")
 		failureResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	allJobVariants, errs := componentreadiness.GetJobVariantsFromBigQuery(req.Context(), s.bigQueryClient)
+	allJobVariants, errs := componentreadiness.GetJobVariants(req.Context(), s.crDataProvider)
 	if len(errs) > 0 {
 		err := fmt.Errorf("failed to get variants from bigquery")
 		failureResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	allReleases, err := api.GetReleases(req.Context(), s.bigQueryClient, false)
+	allReleases, err := s.getReleases(req.Context())
 	if err != nil {
 		failureResponse(w, http.StatusBadRequest, err.Error())
 		return
@@ -1172,7 +1189,7 @@ func (s *Server) jsonComponentReportTestDetailsFromBigQuery(w http.ResponseWrite
 		return
 	}
 	baseURL := api.GetBaseURL(req)
-	outputs, errs := componentreadiness.GetTestDetails(req.Context(), s.bigQueryClient, s.db, reqOptions, allReleases, baseURL)
+	outputs, errs := componentreadiness.GetTestDetails(req.Context(), s.crDataProvider, s.db, reqOptions, allReleases, baseURL)
 	if len(errs) > 0 {
 		log.Warningf("%d errors were encountered while querying component test details from big query:", len(errs))
 		for _, err := range errs {

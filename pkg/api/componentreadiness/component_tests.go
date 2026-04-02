@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/openshift/sippy/pkg/api"
+	"github.com/openshift/sippy/pkg/api/componentreadiness/dataprovider"
 	"github.com/openshift/sippy/pkg/api/componentreadiness/utils"
 	"github.com/openshift/sippy/pkg/apis/api/componentreport/crtest"
 	"github.com/openshift/sippy/pkg/apis/api/componentreport/reqopts"
 	"github.com/openshift/sippy/pkg/apis/api/componentreport/testdetails"
-	bqcachedclient "github.com/openshift/sippy/pkg/bigquery"
 	"github.com/openshift/sippy/pkg/db"
 
 	configv1 "github.com/openshift/sippy/pkg/apis/config/v1"
@@ -55,9 +55,9 @@ type TestVariantResult struct {
 // GetComponentTestsFromBigQuery returns all tests across all variant combinations.
 // The component and variant params in reqOptions are intentionally ignored so
 // the result can be cached once per view and filtered client-side.
-func GetComponentTestsFromBigQuery(
+func GetComponentTests(
 	ctx context.Context,
-	client *bqcachedclient.Client,
+	provider dataprovider.DataProvider,
 	dbc *db.DB,
 	reqOptions reqopts.RequestOptions,
 	variantJunitTableOverrides []configv1.VariantJunitTableOverride,
@@ -68,11 +68,11 @@ func GetComponentTestsFromBigQuery(
 	// not per-component. The full dataset is returned and filtered client-side.
 	reqOptions.TestIDOptions = nil
 
-	generator := NewComponentReportGenerator(client, reqOptions, dbc, variantJunitTableOverrides, releaseConfigs, baseURL)
+	generator := NewComponentReportGenerator(provider, reqOptions, dbc, variantJunitTableOverrides, releaseConfigs, baseURL)
 
 	result, errs := api.GetDataFromCacheOrGenerate[ComponentTestsResponse](
 		ctx,
-		generator.client.Cache, generator.ReqOptions.CacheOption,
+		generator.getCache(), generator.ReqOptions.CacheOption,
 		api.GetPrefixedCacheKey("ComponentTests~", generator.GetCacheKey(ctx)),
 		func(ctx context.Context) (ComponentTestsResponse, []error) {
 			resp, err := generator.generateAllTests(ctx)

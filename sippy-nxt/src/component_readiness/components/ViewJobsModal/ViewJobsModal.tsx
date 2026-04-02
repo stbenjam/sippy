@@ -79,7 +79,7 @@ export default function ViewJobsModal({
     try {
       // First check if the job is already in the included list
       const query = diagnoseQuery.trim().toLowerCase();
-      const found = data?.jobs.find(
+      const found = data?.jobs?.find(
         (j) =>
           j.sample?.job_name.toLowerCase() === query ||
           j.basis?.job_name.toLowerCase() === query,
@@ -133,7 +133,7 @@ export default function ViewJobsModal({
   }, [data, search]);
 
   const stats = useMemo(() => {
-    if (!data?.jobs.length)
+    if (!data?.jobs?.length)
       return {
         total: 0,
         sampleOnly: 0,

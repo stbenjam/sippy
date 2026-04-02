@@ -6,31 +6,18 @@ import (
 	"sort"
 	"strings"
 
-	"cloud.google.com/go/bigquery"
-	"google.golang.org/api/iterator"
-
+	"github.com/openshift/sippy/pkg/api/componentreadiness/dataprovider"
 	"github.com/openshift/sippy/pkg/api/componentreadiness/utils"
 	"github.com/openshift/sippy/pkg/apis/api/componentreport/crtest"
 	"github.com/openshift/sippy/pkg/apis/api/componentreport/reqopts"
-	bqcachedclient "github.com/openshift/sippy/pkg/bigquery"
-	"github.com/openshift/sippy/pkg/bigquery/bqlabel"
-	"github.com/openshift/sippy/pkg/util/param"
 )
-
-// JobRunStats contains pass/fail statistics for a single concrete job name.
-type JobRunStats struct {
-	JobName        string  `json:"job_name"`
-	TotalRuns      int     `json:"total_runs"`
-	SuccessfulRuns int     `json:"successful_runs"`
-	PassRate       float64 `json:"pass_rate"`
-}
 
 // NormalizedJob groups a sample and basis job by their normalized (release-agnostic) name.
 type NormalizedJob struct {
-	NormalizedName string            `json:"normalized_name"`
-	Variants       map[string]string `json:"variants"`
-	Sample         *JobRunStats      `json:"sample,omitempty"`
-	Basis          *JobRunStats      `json:"basis,omitempty"`
+	NormalizedName string                   `json:"normalized_name"`
+	Variants       map[string]string        `json:"variants"`
+	Sample         *dataprovider.JobRunStats `json:"sample,omitempty"`
+	Basis          *dataprovider.JobRunStats `json:"basis,omitempty"`
 }
 
 // TimePeriod represents a start/end time range.
@@ -63,13 +50,6 @@ type JobDiagnosis struct {
 	ExclusionReasons []ExclusionReason `json:"exclusion_reasons"`
 }
 
-// jobRunRow is the BigQuery result row for the view jobs query.
-type jobRunRow struct {
-	JobName    string `bigquery:"job_name"`
-	TotalRuns  int    `bigquery:"total_runs"`
-	Successful int    `bigquery:"successful_runs"`
-}
-
 // releaseVariants are variant keys that differ between releases and should be
 // excluded when matching jobs across sample and basis.
 var releaseVariants = map[string]bool{
@@ -81,27 +61,27 @@ var releaseVariants = map[string]bool{
 	"FromReleaseMinor": true,
 }
 
-// GetViewJobsFromBigQuery returns CI jobs contributing to a component readiness report.
-func GetViewJobsFromBigQuery(
+// GetViewJobs returns CI jobs contributing to a component readiness report.
+func GetViewJobs(
 	ctx context.Context,
-	client *bqcachedclient.Client,
+	provider dataprovider.DataProvider,
 	reqOptions reqopts.RequestOptions,
 	allJobVariants crtest.JobVariants,
 ) (*ViewJobsResponse, error) {
-	sampleJobs, err := queryJobRuns(ctx, client, reqOptions, allJobVariants,
+	sampleJobs, err := provider.QueryJobRuns(ctx, reqOptions, allJobVariants,
 		reqOptions.SampleRelease.Name, reqOptions.SampleRelease.Start, reqOptions.SampleRelease.End)
 	if err != nil {
 		return nil, fmt.Errorf("error querying sample jobs: %w", err)
 	}
 
-	basisJobs, err := queryJobRuns(ctx, client, reqOptions, allJobVariants,
+	basisJobs, err := provider.QueryJobRuns(ctx, reqOptions, allJobVariants,
 		reqOptions.BaseRelease.Name, reqOptions.BaseRelease.Start, reqOptions.BaseRelease.End)
 	if err != nil {
 		return nil, fmt.Errorf("error querying basis jobs: %w", err)
 	}
 
 	allJobNames := collectJobNames(sampleJobs, basisJobs)
-	jobVariantMap, err := queryJobVariantValues(ctx, client, allJobNames, reqOptions.VariantOption.DBGroupBy.List())
+	jobVariantMap, err := provider.QueryJobVariantValues(ctx, allJobNames, reqOptions.VariantOption.DBGroupBy.List())
 	if err != nil {
 		return nil, fmt.Errorf("error querying job variants: %w", err)
 	}
@@ -127,11 +107,11 @@ func GetViewJobsFromBigQuery(
 // and explains which variant filters caused exclusion.
 func DiagnoseJob(
 	ctx context.Context,
-	client *bqcachedclient.Client,
+	provider dataprovider.DataProvider,
 	reqOptions reqopts.RequestOptions,
 	jobName string,
 ) (*JobDiagnosis, error) {
-	variants, err := lookupJobVariants(ctx, client, jobName)
+	variants, err := provider.LookupJobVariants(ctx, jobName)
 	if err != nil {
 		return nil, fmt.Errorf("error looking up job variants: %w", err)
 	}
@@ -191,185 +171,6 @@ func DiagnoseJob(
 	}, nil
 }
 
-// queryJobRuns queries BigQuery for job run statistics filtered by variant options.
-func queryJobRuns(
-	ctx context.Context,
-	client *bqcachedclient.Client,
-	reqOptions reqopts.RequestOptions,
-	allJobVariants crtest.JobVariants,
-	release string,
-	start, end any,
-) (map[string]JobRunStats, error) {
-	joinVariants := ""
-	for _, v := range sortedViewJobVariantKeys(allJobVariants.Variants) {
-		cleanV := param.Cleanse(v)
-		joinVariants += fmt.Sprintf(
-			"LEFT JOIN %s.job_variants jv_%s ON jobs.prowjob_job_name = jv_%s.job_name AND jv_%s.variant_name = '%s'\n",
-			client.Dataset, cleanV, cleanV, cleanV, v)
-	}
-
-	variantFilters := ""
-	var params []bigquery.QueryParameter
-
-	includeVariants := reqOptions.VariantOption.IncludeVariants
-	if includeVariants == nil {
-		includeVariants = map[string][]string{}
-	}
-	for _, group := range sortedViewJobVariantKeys(includeVariants) {
-		cleanGroup := param.Cleanse(group)
-		paramName := fmt.Sprintf("variantGroup_%s", cleanGroup)
-		variantFilters += fmt.Sprintf(" AND (jv_%s.variant_value IN UNNEST(@%s))", cleanGroup, paramName)
-		params = append(params, bigquery.QueryParameter{
-			Name:  paramName,
-			Value: includeVariants[group],
-		})
-	}
-
-	queryString := fmt.Sprintf(`
-		SELECT
-			jobs.prowjob_job_name AS job_name,
-			COUNT(DISTINCT jobs.prowjob_build_id) AS total_runs,
-			COUNTIF(jobs.prowjob_state = 'success') AS successful_runs
-		FROM %s.jobs jobs
-		%s
-		WHERE jobs.prowjob_start >= DATETIME(@From)
-			AND jobs.prowjob_start < DATETIME(@To)
-			AND jv_Release.variant_value = @Release
-			AND (jobs.prowjob_job_name LIKE 'periodic-%%' OR jobs.prowjob_job_name LIKE 'release-%%' OR jobs.prowjob_job_name LIKE 'aggregator-%%')
-			%s
-		GROUP BY jobs.prowjob_job_name
-		ORDER BY jobs.prowjob_job_name
-	`, client.Dataset, joinVariants, variantFilters)
-
-	params = append(params,
-		bigquery.QueryParameter{Name: "From", Value: start},
-		bigquery.QueryParameter{Name: "To", Value: end},
-		bigquery.QueryParameter{Name: "Release", Value: release},
-	)
-
-	q := client.Query(ctx, bqlabel.CRViewJobs, queryString)
-	q.Parameters = params
-
-	it, err := q.Read(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error executing view jobs query: %w", err)
-	}
-
-	results := map[string]JobRunStats{}
-	for {
-		var row jobRunRow
-		err := it.Next(&row)
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("error reading view jobs row: %w", err)
-		}
-		passRate := 0.0
-		if row.TotalRuns > 0 {
-			passRate = float64(row.Successful) / float64(row.TotalRuns) * 100
-		}
-		results[row.JobName] = JobRunStats{
-			JobName:        row.JobName,
-			TotalRuns:      row.TotalRuns,
-			SuccessfulRuns: row.Successful,
-			PassRate:       passRate,
-		}
-	}
-	return results, nil
-}
-
-// queryJobVariantValues fetches variant key/value pairs for the given job names.
-func queryJobVariantValues(
-	ctx context.Context,
-	client *bqcachedclient.Client,
-	jobNames []string,
-	variantKeys []string,
-) (map[string]map[string]string, error) {
-	if len(jobNames) == 0 {
-		return map[string]map[string]string{}, nil
-	}
-
-	queryString := fmt.Sprintf(`
-		SELECT job_name, variant_name, variant_value
-		FROM %s.job_variants
-		WHERE job_name IN UNNEST(@JobNames)
-			AND variant_name IN UNNEST(@VariantNames)
-	`, client.Dataset)
-
-	q := client.Query(ctx, bqlabel.CRViewJobs, queryString)
-	q.Parameters = []bigquery.QueryParameter{
-		{Name: "JobNames", Value: jobNames},
-		{Name: "VariantNames", Value: variantKeys},
-	}
-
-	it, err := q.Read(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error querying job variant values: %w", err)
-	}
-
-	type variantRow struct {
-		JobName      string `bigquery:"job_name"`
-		VariantName  string `bigquery:"variant_name"`
-		VariantValue string `bigquery:"variant_value"`
-	}
-
-	results := map[string]map[string]string{}
-	for {
-		var row variantRow
-		err := it.Next(&row)
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("error reading job variant row: %w", err)
-		}
-		if results[row.JobName] == nil {
-			results[row.JobName] = map[string]string{}
-		}
-		results[row.JobName][row.VariantName] = row.VariantValue
-	}
-	return results, nil
-}
-
-// lookupJobVariants fetches all variant key/value pairs for a single job from BigQuery.
-func lookupJobVariants(ctx context.Context, client *bqcachedclient.Client, jobName string) (map[string]string, error) {
-	queryString := fmt.Sprintf(`
-		SELECT variant_name, variant_value
-		FROM %s.job_variants
-		WHERE job_name = @JobName
-	`, client.Dataset)
-
-	q := client.Query(ctx, bqlabel.CRViewJobs, queryString)
-	q.Parameters = []bigquery.QueryParameter{
-		{Name: "JobName", Value: jobName},
-	}
-
-	it, err := q.Read(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error querying job variants: %w", err)
-	}
-
-	type row struct {
-		VariantName  string `bigquery:"variant_name"`
-		VariantValue string `bigquery:"variant_value"`
-	}
-
-	variants := map[string]string{}
-	for {
-		var r row
-		err := it.Next(&r)
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("error reading variant row: %w", err)
-		}
-		variants[r.VariantName] = r.VariantValue
-	}
-	return variants, nil
-}
-
 // variantKey builds a stable string key from a job's variants, excluding release-specific ones.
 func variantKey(variants map[string]string, keys []string) string {
 	var parts []string
@@ -386,14 +187,14 @@ func variantKey(variants map[string]string, keys []string) string {
 
 // buildNormalizedJobs matches sample and basis jobs by their variant values.
 func buildNormalizedJobs(
-	sampleJobs, basisJobs map[string]JobRunStats,
+	sampleJobs, basisJobs map[string]dataprovider.JobRunStats,
 	jobVariantMap map[string]map[string]string,
 	variantKeys []string,
 ) []NormalizedJob {
 	sort.Strings(variantKeys)
 
 	type jobEntry struct {
-		stats    JobRunStats
+		stats    dataprovider.JobRunStats
 		variants map[string]string
 		normName string
 	}
@@ -471,7 +272,7 @@ func buildNormalizedJobs(
 }
 
 // collectJobNames returns a deduplicated list of all job names from both maps.
-func collectJobNames(maps ...map[string]JobRunStats) []string {
+func collectJobNames(maps ...map[string]dataprovider.JobRunStats) []string {
 	seen := map[string]bool{}
 	for _, m := range maps {
 		for name := range m {
@@ -486,12 +287,4 @@ func collectJobNames(maps ...map[string]JobRunStats) []string {
 	return names
 }
 
-// sortedViewJobVariantKeys returns sorted keys from a map with string slice values.
-func sortedViewJobVariantKeys[V any](m map[string]V) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
-}
+

@@ -11,6 +11,7 @@ import (
 	"cloud.google.com/go/bigquery"
 	"github.com/openshift/sippy/pkg/api"
 	"github.com/openshift/sippy/pkg/api/componentreadiness"
+	bqprovider "github.com/openshift/sippy/pkg/api/componentreadiness/dataprovider/bigquery"
 	"github.com/openshift/sippy/pkg/apis/cache"
 	sippyv1 "github.com/openshift/sippy/pkg/apis/sippy/v1"
 	"github.com/openshift/sippy/pkg/dataloader/crcacheloader"
@@ -199,7 +200,8 @@ func NewLoadCommand() *cobra.Command {
 					if len(views.ComponentReadiness) == 0 {
 						return fmt.Errorf("no component readiness views provided")
 					}
-					loaders = append(loaders, crcacheloader.New(dbc, cacheClient, bqc, config, views, releaseConfigs,
+					crProvider := bqprovider.NewBigQueryProvider(bqc)
+					loaders = append(loaders, crcacheloader.New(dbc, cacheClient, crProvider, config, views, releaseConfigs,
 						f.ComponentReadinessFlags.CRTimeRoundingFactor))
 
 				}
@@ -317,8 +319,9 @@ func NewLoadCommand() *cobra.Command {
 						return errors.Wrap(err, "CRITICAL error getting jira client which prevents regression tracking")
 					}
 
+					rtProvider := bqprovider.NewBigQueryProvider(bqc)
 					regressionTracker := componentreadiness.NewRegressionTracker(
-						bqc, dbc, cacheOpts, releases,
+						rtProvider, dbc, cacheOpts, releases,
 						componentreadiness.NewPostgresRegressionStore(dbc, jiraClient),
 						views.ComponentReadiness,
 						config.ComponentReadinessConfig.VariantJunitTableOverrides,
