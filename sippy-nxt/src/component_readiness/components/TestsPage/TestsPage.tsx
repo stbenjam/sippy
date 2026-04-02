@@ -526,14 +526,19 @@ function TestRowItem({
   const bgColor = statusBgColor(test.worst_status, theme);
 
   // Use worst result's stats for summary
-  const worstResult = test.results.reduce((worst, r) =>
-    r.status < worst.status ? r : worst,
-  );
+  const worstResult =
+    test.results.length > 0
+      ? test.results.reduce((worst, r) =>
+          r.status < worst.status ? r : worst,
+        )
+      : null;
 
   const sharedRegressionVariants = useMemo(
     () => findSharedRegressionVariants(test.results, innerDimensions),
     [test.results, innerDimensions],
   );
+
+  if (!worstResult) return null;
 
   return (
     <Box>

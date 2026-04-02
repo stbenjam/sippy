@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"os"
@@ -187,6 +188,9 @@ func (f *ComponentReadinessFlags) runServerMode() error {
 		log.WithError(err).Warn("unable to initialize Jira client, bug filing will be disabled")
 	}
 
+	if bigQueryClient == nil {
+		return fmt.Errorf("BigQuery client is required for component-readiness command; set --google-service-account-credential-file")
+	}
 	var crDataProvider = bqprovider.NewBigQueryProvider(bigQueryClient)
 
 	server := sippyserver.NewServer(

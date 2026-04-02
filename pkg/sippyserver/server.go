@@ -117,7 +117,12 @@ func NewServer(
 	}
 
 	if crDataProvider != nil {
-		go componentreadiness.GetComponentTestVariants(context.Background(), server.crDataProvider)
+		go func() {
+			_, errs := componentreadiness.GetComponentTestVariants(context.Background(), server.crDataProvider)
+			if len(errs) > 0 {
+				log.WithField("errors", errs).Warn("errors during component test variants prefetch")
+			}
+		}()
 	}
 
 	return server

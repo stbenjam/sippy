@@ -296,6 +296,10 @@ let unsubscribe: (() => void) | null = null;
 
 /** Start pushing store changes to the URL. Call once at app mount. */
 export function initURLSync(): () => void {
+  if (unsubscribe) {
+    unsubscribe();
+  }
+
   unsubscribe = useComponentReadinessStore.subscribe(() => {
     syncToURL(useComponentReadinessStore.getState());
   });

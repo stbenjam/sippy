@@ -211,29 +211,35 @@ export const useComponentReadinessStore = create<ComponentReadinessState>()(
 
     // Release actions
     setSampleRelease: (release) =>
-      set((s) => ({
-        sampleRelease: { ...s.sampleRelease, release } as RelativeRelease,
-      })),
+      set((s) => {
+        if (!s.sampleRelease) return {}
+        return { sampleRelease: { ...s.sampleRelease, release } }
+      }),
     setBaseRelease: (release) =>
-      set((s) => ({
-        baseRelease: { ...s.baseRelease, release } as RelativeRelease,
-      })),
+      set((s) => {
+        if (!s.baseRelease) return {}
+        return { baseRelease: { ...s.baseRelease, release } }
+      }),
     setSampleStartTime: (start) =>
-      set((s) => ({
-        sampleRelease: { ...s.sampleRelease, start } as RelativeRelease,
-      })),
+      set((s) => {
+        if (!s.sampleRelease) return {}
+        return { sampleRelease: { ...s.sampleRelease, start } }
+      }),
     setSampleEndTime: (end) =>
-      set((s) => ({
-        sampleRelease: { ...s.sampleRelease, end } as RelativeRelease,
-      })),
+      set((s) => {
+        if (!s.sampleRelease) return {}
+        return { sampleRelease: { ...s.sampleRelease, end } }
+      }),
     setBaseStartTime: (start) =>
-      set((s) => ({
-        baseRelease: { ...s.baseRelease, start } as RelativeRelease,
-      })),
+      set((s) => {
+        if (!s.baseRelease) return {}
+        return { baseRelease: { ...s.baseRelease, start } }
+      }),
     setBaseEndTime: (end) =>
-      set((s) => ({
-        baseRelease: { ...s.baseRelease, end } as RelativeRelease,
-      })),
+      set((s) => {
+        if (!s.baseRelease) return {}
+        return { baseRelease: { ...s.baseRelease, end } }
+      }),
 
     // Variant actions
     setColumnGroupBy: (groups) => set({ columnGroupBy: groups }),

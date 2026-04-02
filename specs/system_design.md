@@ -15,7 +15,7 @@ combinations (e.g., Platform:aws + Network:ovn + Topology:ha).
 
 This spec describes a **full-stack rewrite** of CR — both a clean Go backend API
 under `/api/v2/component_readiness/` and a new TypeScript frontend under
-`sippy-ng/src/component_readiness_v2/`. Both live alongside the existing code
+`sippy-nxt/src/component_readiness/`. Both live alongside the existing code
 for incremental validation.
 
 ### Goals
@@ -492,7 +492,7 @@ useQuery(['v2', 'variants'], fetchVariants, { staleTime: 300_000 });
 ### 3.4 Frontend File Structure
 
 ```
-sippy-ng/src/component_readiness_v2/
+sippy-nxt/src/component_readiness/
   index.ts
   routes.tsx
 

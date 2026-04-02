@@ -155,6 +155,9 @@ func (p *BigQueryProvider) QueryJobVariants(ctx context.Context) (crtest.JobVari
 				iStrings := strings.Split(row.VariantValues[i], ".")
 				jStrings := strings.Split(row.VariantValues[j], ".")
 				for idx, iString := range iStrings {
+					if idx >= len(jStrings) {
+						return false
+					}
 					if iValue, err := strconv.ParseInt(iString, 10, 32); err == nil {
 						if jValue, err := strconv.ParseInt(jStrings[idx], 10, 32); err == nil {
 							if iValue != jValue {
@@ -163,7 +166,7 @@ func (p *BigQueryProvider) QueryJobVariants(ctx context.Context) (crtest.JobVari
 						}
 					}
 				}
-				return false
+				return len(iStrings) < len(jStrings)
 			})
 		}
 		variants.Variants[row.VariantName] = row.VariantValues

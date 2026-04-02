@@ -296,8 +296,7 @@ function CollapsibleSection({
             sx={{
               fontSize: 16,
               color: alpha(theme.palette.text.secondary, 0.5),
-              // Use a right-pointing arrow when collapsed
-              transform: "rotate(0deg)",
+              transform: "rotate(-90deg)",
             }}
           />
         )}
