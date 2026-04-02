@@ -13,9 +13,8 @@ import type {
   ComponentReport,
   ReportRow,
 } from "../../types";
-import { isRegression, isTriaged } from "../../types";
+import { isRegression } from "../../types";
 import { useComponentReadinessStore } from "../../store/store";
-import { useAllTests } from "../../hooks/useComponentTests";
 import ColumnHeaders from "./ColumnHeaders";
 import GridCell from "./GridCell";
 import GridToolbar from "./GridToolbar";
@@ -64,22 +63,25 @@ export default function GridView({
   const search = externalSearch ?? storeSearch;
   const redOnly = externalRedOnly ?? storeRedOnly;
 
-  // Use the /tests API for regression count so it matches the tests page exactly
-  const { data: allTestsData, isLoading: allTestsLoading } = useAllTests();
+  // Count unresolved regressions from the report data (same source as the grid cells).
+  // "Unresolved" = status <= -200, i.e. still actively regressing whether or not
+  // someone has triaged it. Only FixedRegression (-150) is excluded.
   const regressionCount = useMemo(() => {
-    if (!allTestsData?.tests) return undefined;
+    if (!report?.rows) return undefined;
     let count = 0;
-    for (const test of allTestsData.tests) {
-      if (
-        test.results.some(
-          (r) => isRegression(r.status) && !isTriaged(r.status),
-        )
-      ) {
-        count++;
+    for (const row of report.rows) {
+      for (const col of row.columns) {
+        if (col.regressed_tests) {
+          for (const test of col.regressed_tests) {
+            if (test.status <= -200) {
+              count++;
+            }
+          }
+        }
       }
     }
     return count;
-  }, [allTestsData]);
+  }, [report]);
 
   const columns = useMemo(() => {
     if (!report) return [];
