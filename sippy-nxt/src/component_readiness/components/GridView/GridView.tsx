@@ -1,5 +1,6 @@
 import {
   Box,
+  Paper,
   Table,
   TableBody,
   TableCell,
@@ -13,11 +14,12 @@ import type {
   ComponentReport,
   ReportRow,
 } from "../../types";
-import { isRegression } from "../../types";
+import { isRegression, Status, statusLabel } from "../../types";
 import { useComponentReadinessStore } from "../../store/store";
 import ColumnHeaders from "./ColumnHeaders";
 import GridCell from "./GridCell";
 import GridToolbar from "./GridToolbar";
+import StatusIcon from "../shared/StatusIcon";
 import { useCallback, useMemo, useRef } from "react";
 
 const COMPONENT_COL_WIDTH = 260;
@@ -160,24 +162,46 @@ export default function GridView({
     );
   }
 
+  const legendStatuses: Status[] = [
+    Status.ExtremeRegression,
+    Status.SignificantRegression,
+    Status.FailedFixedRegression,
+    Status.ExtremeTriagedRegression,
+    Status.SignificantTriagedRegression,
+    Status.FixedRegression,
+    Status.NotSignificant,
+    Status.SignificantImprovement,
+    Status.MissingSample,
+    Status.MissingBasis,
+    Status.MissingBasisAndSample,
+  ];
+
   return (
     <Box
       sx={{
         display: "flex",
-        flexDirection: "column",
         height: "100%",
-        borderRadius: 1,
+        gap: 2,
         overflow: "hidden",
-        border: 1,
-        borderColor: "divider",
       }}
     >
+      <Box
+        sx={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
+          borderRadius: 1,
+          overflow: "hidden",
+          border: 1,
+          borderColor: "divider",
+        }}
+      >
       <GridToolbar
         searchRowRegex={search}
         onSearchRowChange={setSearchFilter}
         redOnlyChecked={redOnly}
         onRedOnlyChange={setRedOnlyFilter}
-        generatedAt={report.generated_at}
         totalRows={report.rows?.length}
         visibleRows={filteredRows.length}
         regressionCount={regressionCount}
@@ -212,6 +236,7 @@ export default function GridView({
           stickyHeader
           sx={{
             width: "auto",
+            mx: "auto",
             borderCollapse: "separate",
             borderSpacing: 0,
             // Row hover via pure CSS for performance
@@ -290,6 +315,7 @@ export default function GridView({
                     key={ci}
                     column={col}
                     colIndex={ci}
+                    dimmed={redOnly && !isRegression(col.status)}
                     onMouseEnter={handleCellEnter}
                     onMouseLeave={handleCellLeave}
                     onClick={
@@ -321,6 +347,82 @@ export default function GridView({
           </TableBody>
         </Table>
       </TableContainer>
+      </Box>
+
+      <Paper
+        elevation={0}
+        sx={{
+          width: 160,
+          flexShrink: 0,
+          alignSelf: "flex-start",
+          p: 2,
+          mt: 0,
+          borderRadius: 1,
+          border: 1,
+          borderColor: "divider",
+          display: "flex",
+          flexDirection: "column",
+          gap: 0.75,
+        }}
+      >
+        <Typography
+          variant="caption"
+          sx={{
+            fontWeight: 700,
+            fontSize: "0.7rem",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            color: "text.secondary",
+            mb: 0.5,
+          }}
+        >
+          Legend
+        </Typography>
+        {legendStatuses.map((status) => (
+          <Box
+            key={status}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+            }}
+          >
+            <StatusIcon status={status} />
+            <Typography
+              variant="body2"
+              sx={{
+                fontSize: "0.7rem",
+                color: "text.secondary",
+                lineHeight: 1.3,
+              }}
+            >
+              {statusLabel(status)}
+            </Typography>
+          </Box>
+        ))}
+        {report.generated_at && (
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.disabled",
+              fontSize: "0.65rem",
+              mt: 1.5,
+              pt: 1.5,
+              borderTop: 1,
+              borderColor: "divider",
+              lineHeight: 1.4,
+            }}
+          >
+            Generated{" "}
+            {new Date(report.generated_at).toLocaleString(undefined, {
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </Typography>
+        )}
+      </Paper>
     </Box>
   );
 }

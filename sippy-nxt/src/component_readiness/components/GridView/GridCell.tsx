@@ -1,4 +1,5 @@
 import type { ReportColumn } from "../../types";
+import { isRegression } from "../../types";
 import { TableCell } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { useCallback } from "react";
@@ -7,6 +8,7 @@ import StatusIcon from "../shared/StatusIcon";
 interface GridCellProps {
   column: ReportColumn;
   colIndex: number;
+  dimmed?: boolean;
   onClick?: () => void;
   onMouseEnter?: (colIndex: number) => void;
   onMouseLeave?: () => void;
@@ -15,6 +17,7 @@ interface GridCellProps {
 export default function GridCell({
   column,
   colIndex,
+  dimmed,
   onClick,
   onMouseEnter,
   onMouseLeave,
@@ -65,10 +68,17 @@ export default function GridCell({
         },
       }}
     >
-      <StatusIcon
-        status={column.status}
-        regressedCount={column.regressed_tests?.length}
-      />
+      <span
+        style={{
+          opacity: dimmed ? 0.15 : 1,
+          transition: "opacity 0.2s ease",
+        }}
+      >
+        <StatusIcon
+          status={column.status}
+          regressedCount={column.regressed_tests?.length}
+        />
+      </span>
     </TableCell>
   );
 }

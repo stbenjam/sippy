@@ -40,14 +40,14 @@ function TriageCheck({ color }: { color: string }) {
   );
 }
 
-// FailedFixedRegression: skull-like danger — a broken circle with an X
+// FailedFixedRegression: danger square with an X
 function FailedFixedRegressionIcon() {
   const theme = useTheme();
   const fill = theme.palette.error.dark;
   return (
     <SvgIcon>
-      <circle cx="10" cy="10" r="8.5" fill={fill} />
-      <circle cx="10" cy="10" r="6.5" fill={alpha(fill, 0.3)} />
+      <rect x="1.5" y="1.5" width="17" height="17" rx="2" fill={fill} />
+      <rect x="3.5" y="3.5" width="13" height="13" rx="1" fill={alpha(fill, 0.3)} />
       {/* X mark */}
       <path
         d="M7.5 7.5L12.5 12.5M12.5 7.5L7.5 12.5"
@@ -55,29 +55,23 @@ function FailedFixedRegressionIcon() {
         strokeWidth="1.8"
         strokeLinecap="round"
       />
-      {/* Broken ring effect */}
-      <path
-        d="M10 1.5A8.5 8.5 0 0 1 18.5 10"
-        stroke={alpha("#000", 0.2)}
-        strokeWidth="1"
-        strokeLinecap="round"
-        fill="none"
-      />
     </SvgIcon>
   );
 }
 
-// ExtremeRegression: pulsing double-ring alarm
+// ExtremeRegression: double-border square alarm
 function ExtremeRegressionIcon() {
   const theme = useTheme();
   const fill = theme.palette.error.main;
   return (
     <SvgIcon>
-      <circle cx="10" cy="10" r="8.5" fill={fill} />
-      <circle
-        cx="10"
-        cy="10"
-        r="6"
+      <rect x="1.5" y="1.5" width="17" height="17" rx="2" fill={fill} />
+      <rect
+        x="4"
+        y="4"
+        width="12"
+        height="12"
+        rx="1"
         fill="none"
         stroke={alpha("#fff", 0.4)}
         strokeWidth="1"
@@ -89,13 +83,13 @@ function ExtremeRegressionIcon() {
   );
 }
 
-// SignificantRegression: single warning circle
+// SignificantRegression: single warning square
 function SignificantRegressionIcon() {
   const theme = useTheme();
   const fill = theme.palette.warning.dark;
   return (
     <SvgIcon>
-      <circle cx="10" cy="10" r="8.5" fill={fill} />
+      <rect x="1.5" y="1.5" width="17" height="17" rx="2" fill={fill} />
       {/* Exclamation */}
       <rect x="9" y="5.5" width="2" height="5.5" rx="1" fill="#fff" />
       <circle cx="10" cy="13.5" r="1.2" fill="#fff" />
@@ -109,11 +103,13 @@ function ExtremeTriagedRegressionIcon() {
   const fill = theme.palette.error.main;
   return (
     <SvgIcon>
-      <circle cx="10" cy="10" r="8.5" fill={alpha(fill, 0.55)} />
-      <circle
-        cx="10"
-        cy="10"
-        r="8.5"
+      <rect x="1.5" y="1.5" width="17" height="17" rx="2" fill={alpha(fill, 0.55)} />
+      <rect
+        x="1.5"
+        y="1.5"
+        width="17"
+        height="17"
+        rx="2"
         fill="none"
         stroke={fill}
         strokeWidth="1.5"
@@ -130,11 +126,13 @@ function SignificantTriagedRegressionIcon() {
   const fill = theme.palette.warning.dark;
   return (
     <SvgIcon>
-      <circle cx="10" cy="10" r="8.5" fill={alpha(fill, 0.5)} />
-      <circle
-        cx="10"
-        cy="10"
-        r="8.5"
+      <rect x="1.5" y="1.5" width="17" height="17" rx="2" fill={alpha(fill, 0.5)} />
+      <rect
+        x="1.5"
+        y="1.5"
+        width="17"
+        height="17"
+        rx="2"
         fill="none"
         stroke={fill}
         strokeWidth="1.5"
@@ -145,16 +143,18 @@ function SignificantTriagedRegressionIcon() {
   );
 }
 
-// FixedRegression: wrench/tool — resolved, pending verification
+// FixedRegression: resolved, pending verification
 function FixedRegressionIcon() {
   const theme = useTheme();
   const stroke = theme.palette.info.main;
   return (
     <SvgIcon>
-      <circle
-        cx="10"
-        cy="10"
-        r="8.5"
+      <rect
+        x="1.5"
+        y="1.5"
+        width="17"
+        height="17"
+        rx="2"
         fill={alpha(stroke, 0.12)}
         stroke={stroke}
         strokeWidth="1.2"
@@ -173,21 +173,23 @@ function FixedRegressionIcon() {
   );
 }
 
-// MissingSample: half circle — right side empty
+// MissingSample: half square — right side empty
 function MissingSampleIcon() {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  const baseColor = isDark ? theme.palette.grey[500] : theme.palette.grey[400];
-  const emptyColor = isDark ? theme.palette.grey[700] : theme.palette.grey[200];
+  const baseColor = isDark ? "#66bb6a" : "#43a047";
+  const emptyColor = isDark ? alpha("#66bb6a", 0.2) : alpha("#43a047", 0.15);
   return (
     <SvgIcon>
-      <circle cx="10" cy="10" r="8.5" fill={emptyColor} />
+      <rect x="1.5" y="1.5" width="17" height="17" rx="2" fill={emptyColor} />
       {/* Left half filled */}
-      <path d="M10 1.5A8.5 8.5 0 0 0 10 18.5Z" fill={baseColor} />
-      <circle
-        cx="10"
-        cy="10"
-        r="8.5"
+      <rect x="1.5" y="1.5" width="8.5" height="17" rx="2" fill={baseColor} />
+      <rect
+        x="1.5"
+        y="1.5"
+        width="17"
+        height="17"
+        rx="2"
         fill="none"
         stroke={baseColor}
         strokeWidth="0.8"
@@ -207,13 +209,13 @@ function MissingSampleIcon() {
   );
 }
 
-// NotSignificant: healthy green circle with subtle check
+// NotSignificant: healthy green square with subtle check
 function NotSignificantIcon() {
   const theme = useTheme();
   const fill = theme.palette.success.main;
   return (
     <SvgIcon>
-      <circle cx="10" cy="10" r="8.5" fill={fill} />
+      <rect x="1.5" y="1.5" width="17" height="17" rx="2" fill={fill} />
       {/* Checkmark */}
       <path
         d="M6.5 10.5L9 13L13.5 7.5"
@@ -226,21 +228,23 @@ function NotSignificantIcon() {
   );
 }
 
-// MissingBasis: half circle — left side empty
+// MissingBasis: half square — left side empty
 function MissingBasisIcon() {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  const baseColor = isDark ? theme.palette.grey[500] : theme.palette.grey[400];
-  const emptyColor = isDark ? theme.palette.grey[700] : theme.palette.grey[200];
+  const baseColor = isDark ? "#66bb6a" : "#43a047";
+  const emptyColor = isDark ? alpha("#66bb6a", 0.2) : alpha("#43a047", 0.15);
   return (
     <SvgIcon>
-      <circle cx="10" cy="10" r="8.5" fill={emptyColor} />
+      <rect x="1.5" y="1.5" width="17" height="17" rx="2" fill={emptyColor} />
       {/* Right half filled */}
-      <path d="M10 1.5A8.5 8.5 0 0 1 10 18.5Z" fill={baseColor} />
-      <circle
-        cx="10"
-        cy="10"
-        r="8.5"
+      <rect x="10" y="1.5" width="8.5" height="17" rx="2" fill={baseColor} />
+      <rect
+        x="1.5"
+        y="1.5"
+        width="17"
+        height="17"
+        rx="2"
         fill="none"
         stroke={baseColor}
         strokeWidth="0.8"
@@ -259,19 +263,20 @@ function MissingBasisIcon() {
   );
 }
 
-// MissingBasisAndSample: empty dashed circle
+// MissingBasisAndSample: empty dashed square
 function MissingBasisAndSampleIcon() {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === "dark";
-  const color = isDark ? theme.palette.grey[600] : theme.palette.grey[400];
+  const isDark = useTheme().palette.mode === "dark";
+  const color = isDark ? "#66bb6a" : "#43a047";
   return (
     <SvgIcon>
-      <circle
-        cx="10"
-        cy="10"
-        r="8"
+      <rect
+        x="2"
+        y="2"
+        width="16"
+        height="16"
+        rx="2"
         fill="none"
-        stroke={color ?? theme.palette.grey[400]}
+        stroke={color}
         strokeWidth="1.2"
         strokeDasharray="4 3"
       />
@@ -281,7 +286,7 @@ function MissingBasisAndSampleIcon() {
         y1="10"
         x2="13"
         y2="10"
-        stroke={color ?? theme.palette.grey[400]}
+        stroke={color}
         strokeWidth="1.5"
         strokeLinecap="round"
       />
@@ -289,13 +294,13 @@ function MissingBasisAndSampleIcon() {
   );
 }
 
-// SignificantImprovement: upward arrow in a circle — celebration
+// SignificantImprovement: upward arrow in a square
 function SignificantImprovementIcon() {
   const theme = useTheme();
   const fill = theme.palette.primary.main;
   return (
     <SvgIcon>
-      <circle cx="10" cy="10" r="8.5" fill={fill} />
+      <rect x="1.5" y="1.5" width="17" height="17" rx="2" fill={fill} />
       {/* Up arrow */}
       <path
         d="M10 14V7M10 7L7 10M10 7L13 10"

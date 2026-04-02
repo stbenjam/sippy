@@ -25,7 +25,6 @@ interface GridToolbarProps {
   onSearchRowChange: (value: string) => void;
   redOnlyChecked: boolean;
   onRedOnlyChange: (checked: boolean) => void;
-  generatedAt?: string;
   totalRows?: number;
   visibleRows?: number;
   regressionCount?: number;
@@ -38,7 +37,6 @@ export default function GridToolbar({
   onSearchRowChange,
   redOnlyChecked,
   onRedOnlyChange,
-  generatedAt,
   totalRows,
   visibleRows,
   regressionCount,
@@ -293,25 +291,6 @@ export default function GridToolbar({
       )}
 
       <Box sx={{ flexGrow: 1 }} />
-
-      {generatedAt && (
-        <Typography
-          variant="caption"
-          sx={{
-            color: "text.disabled",
-            fontSize: "0.7rem",
-            letterSpacing: "0.02em",
-          }}
-        >
-          Generated{" "}
-          {new Date(generatedAt).toLocaleString(undefined, {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </Typography>
-      )}
 
       <Popover
         open={Boolean(copyAnchor)}
