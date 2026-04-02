@@ -86,7 +86,54 @@ func GetComponentTestsFromBigQuery(
 	if len(errs) > 0 {
 		return nil, fmt.Errorf("errors generating component tests: %v", errs)
 	}
+
+	// PostAnalysis runs outside the cache so triage data from the DB is always fresh.
+	if err := generator.postAnalysisTests(&result); err != nil {
+		return nil, err
+	}
+
 	return &result, nil
+}
+
+// postAnalysisTests runs PostAnalysis middleware on every test result outside the cache,
+// so triage data from the DB is always fresh. It also recomputes WorstStatus per test.
+func (c *ComponentReportGenerator) postAnalysisTests(resp *ComponentTestsResponse) error {
+	for ti := range resp.Tests {
+		for ri := range resp.Tests[ti].Results {
+			testKey := crtest.Identification{
+				RowIdentification: crtest.RowIdentification{
+					Component:  resp.Tests[ti].Component,
+					Capability: resp.Tests[ti].Capability,
+					TestName:   resp.Tests[ti].TestName,
+					TestSuite:  resp.Tests[ti].TestSuite,
+					TestID:     resp.Tests[ti].TestID,
+				},
+				ColumnIdentification: crtest.ColumnIdentification{
+					Variants: resp.Tests[ti].Results[ri].Variants,
+				},
+			}
+			tc := &testdetails.TestComparison{
+				ReportStatus: resp.Tests[ti].Results[ri].Status,
+				SampleStats:  resp.Tests[ti].Results[ri].SampleStats,
+				BaseStats:    resp.Tests[ti].Results[ri].BaseStats,
+				FisherExact:  resp.Tests[ti].Results[ri].FisherExact,
+			}
+			if err := c.middlewares.PostAnalysis(testKey, tc); err != nil {
+				return err
+			}
+			resp.Tests[ti].Results[ri].Status = tc.ReportStatus
+		}
+
+		// Recompute worst status after PostAnalysis
+		worstStatus := crtest.SignificantImprovement
+		for _, r := range resp.Tests[ti].Results {
+			if r.Status < worstStatus {
+				worstStatus = r.Status
+			}
+		}
+		resp.Tests[ti].WorstStatus = worstStatus
+	}
+	return nil
 }
 
 // generateAllTests iterates every test in the view, runs the full analysis

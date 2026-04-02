@@ -4,7 +4,6 @@ import {
   Breadcrumbs,
   Chip,
   CircularProgress,
-  Collapse,
   IconButton,
   LinearProgress,
   Link,
@@ -20,7 +19,8 @@ import {
   Search as SearchIcon,
   FilterList as FilterIcon,
 } from "@mui/icons-material";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSearchParams, Link as RouterLink } from "react-router-dom";
 import {
   Status,
@@ -30,7 +30,9 @@ import {
 } from "../../types/status";
 import {
   useComponentTests,
+  useAllTests,
   type ComponentTestRow,
+  type ComponentTestsResponse,
   type TestVariantResult,
 } from "../../hooks/useComponentTests";
 
@@ -76,16 +78,18 @@ const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: "improved", label: "Improved" },
 ];
 
-function matchesFilter(status: Status, filter: StatusFilter): boolean {
+function testMatchesFilter(test: ComponentTestRow, filter: StatusFilter): boolean {
   switch (filter) {
     case "regressions":
-      return isRegression(status) && !isTriaged(status);
+      return test.results.some(
+        (r) => isRegression(r.status) && !isTriaged(r.status),
+      );
     case "triaged":
-      return isTriaged(status);
+      return test.results.some((r) => isTriaged(r.status));
     case "passing":
-      return status === Status.NotSignificant;
+      return test.worst_status === Status.NotSignificant;
     case "improved":
-      return status === Status.SignificantImprovement;
+      return test.worst_status === Status.SignificantImprovement;
     default:
       return true;
   }
@@ -97,10 +101,15 @@ export default function TestsPage() {
   const theme = useTheme();
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [expandedTests, setExpandedTests] = useState<Set<string>>(new Set());
 
   const component = searchParams.get("component");
+  const regressionsOnlyParam = searchParams.get("regressionsOnly") === "true";
+
+  // Pre-select regressions filter when navigating with redOnly=true
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(
+    regressionsOnlyParam ? "regressions" : "all",
+  );
 
   // Build column variants from URL params
   const columnVariants = useMemo(() => {
@@ -135,6 +144,7 @@ export default function TestsPage() {
       "forceRefresh",
       "capability",
       "testId",
+      "regressionsOnly",
     ]);
     for (const [key, value] of searchParams.entries()) {
       if (!knownParams.has(key)) {
@@ -144,11 +154,15 @@ export default function TestsPage() {
     return Object.keys(variants).length > 0 ? variants : undefined;
   }, [searchParams]);
 
-  const {
-    data,
-    isLoading,
-    error,
-  } = useComponentTests(component, columnVariants);
+  // When component is specified, use filtered hook; otherwise fetch all tests
+  const componentResult = useComponentTests(component, columnVariants);
+  const allResult = useAllTests();
+
+  const data: ComponentTestsResponse | undefined = component
+    ? componentResult.data
+    : allResult.data;
+  const isLoading = component ? componentResult.isLoading : allResult.isLoading;
+  const error = component ? componentResult.error : allResult.error;
 
   // The dbGroupBy dimensions NOT shown in the grid columns — these vary within a cell
   const innerDimensions = useMemo(() => {
@@ -161,7 +175,7 @@ export default function TestsPage() {
     let tests = data.tests;
 
     if (statusFilter !== "all") {
-      tests = tests.filter((t) => matchesFilter(t.worst_status, statusFilter));
+      tests = tests.filter((t) => testMatchesFilter(t, statusFilter));
     }
 
     if (search.trim()) {
@@ -183,19 +197,35 @@ export default function TestsPage() {
       triaged: 0,
       passing: 0,
       improved: 0,
-      other: 0,
     };
     if (!data?.tests) return c;
     for (const t of data.tests) {
-      if (isRegression(t.worst_status) && !isTriaged(t.worst_status))
-        c.regressions++;
-      else if (isTriaged(t.worst_status)) c.triaged++;
-      else if (t.worst_status === Status.NotSignificant) c.passing++;
-      else if (t.worst_status === Status.SignificantImprovement) c.improved++;
-      else c.other++;
+      if (testMatchesFilter(t, "regressions")) c.regressions++;
+      if (testMatchesFilter(t, "triaged")) c.triaged++;
+      if (testMatchesFilter(t, "passing")) c.passing++;
+      if (testMatchesFilter(t, "improved")) c.improved++;
     }
     return c;
   }, [data]);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: filteredTests.length,
+    getScrollElement: () => scrollRef.current,
+    // Estimate: collapsed row ~36px
+    estimateSize: useCallback(
+      (index: number) => {
+        const test = filteredTests[index];
+        if (!test) return 36;
+        const isExpanded = expandedTests.has(test.test_id);
+        // ~36px header + ~32px per sub-row when expanded
+        return isExpanded ? 36 + test.results.length * 32 : 36;
+      },
+      [filteredTests, expandedTests],
+    ),
+    overscan: 20,
+  });
 
   const toggleExpanded = (testId: string) => {
     setExpandedTests((prev) => {
@@ -205,16 +235,6 @@ export default function TestsPage() {
       return next;
     });
   };
-
-  if (!component) {
-    return (
-      <Box sx={{ p: 4, textAlign: "center" }}>
-        <Typography color="text.secondary">
-          No component specified.
-        </Typography>
-      </Box>
-    );
-  }
 
   if (isLoading) {
     return (
@@ -230,7 +250,7 @@ export default function TestsPage() {
       >
         <CircularProgress size={32} />
         <Typography color="text.secondary" variant="body2">
-          Loading tests for {component}...
+          {component ? `Loading tests for ${component}...` : "Loading all tests..."}
         </Typography>
       </Box>
     );
@@ -278,7 +298,7 @@ export default function TestsPage() {
             Component Readiness
           </Link>
           <Typography sx={{ fontSize: "0.8rem", fontWeight: 600 }}>
-            {component}
+            {component ?? "All Tests"}
           </Typography>
         </Breadcrumbs>
 
@@ -289,7 +309,7 @@ export default function TestsPage() {
             variant="h6"
             sx={{ fontWeight: 700, fontSize: "1.1rem" }}
           >
-            {component}
+            {component ?? "All Tests"}
           </Typography>
           {columnVariants && (
               <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
@@ -403,8 +423,9 @@ export default function TestsPage() {
         </Typography>
       </Box>
 
-      {/* Test list */}
+      {/* Test list (virtualized) */}
       <Box
+        ref={scrollRef}
         sx={{
           flex: 1,
           overflow: "auto",
@@ -415,20 +436,44 @@ export default function TestsPage() {
           },
         }}
       >
-        {filteredTests.map((test) => (
-          <TestRowItem
-            key={test.test_id}
-            test={test}
-            expanded={expandedTests.has(test.test_id)}
-            onToggle={() => toggleExpanded(test.test_id)}
-            innerDimensions={innerDimensions}
-          />
-        ))}
-        {filteredTests.length === 0 && (
+        {filteredTests.length === 0 ? (
           <Box sx={{ p: 4, textAlign: "center" }}>
             <Typography color="text.secondary" variant="body2">
               No tests match the current filters.
             </Typography>
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              height: virtualizer.getTotalSize(),
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {virtualizer.getVirtualItems().map((virtualRow) => {
+              const test = filteredTests[virtualRow.index];
+              return (
+                <Box
+                  key={test.test_id}
+                  ref={virtualizer.measureElement}
+                  data-index={virtualRow.index}
+                  sx={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                >
+                  <TestRowItem
+                    test={test}
+                    expanded={expandedTests.has(test.test_id)}
+                    onToggle={() => toggleExpanded(test.test_id)}
+                    innerDimensions={innerDimensions}
+                  />
+                </Box>
+              );
+            })}
           </Box>
         )}
       </Box>
@@ -630,8 +675,8 @@ function TestRowItem({
       </Box>
 
       {/* Expanded: individual dbGroupBy results */}
-      <Collapse in={expanded}>
-        {test.results
+      {expanded &&
+        test.results
           .slice()
           .sort((a, b) => a.status - b.status)
           .map((result, i) => (
@@ -642,7 +687,6 @@ function TestRowItem({
               sharedRegressionVariants={sharedRegressionVariants}
             />
           ))}
-      </Collapse>
     </Box>
   );
 }

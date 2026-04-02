@@ -13,8 +13,9 @@ import type {
   ComponentReport,
   ReportRow,
 } from "../../types";
-import { isRegression } from "../../types";
+import { isRegression, isTriaged } from "../../types";
 import { useComponentReadinessStore } from "../../store/store";
+import { useAllTests } from "../../hooks/useComponentTests";
 import ColumnHeaders from "./ColumnHeaders";
 import GridCell from "./GridCell";
 import GridToolbar from "./GridToolbar";
@@ -29,6 +30,7 @@ interface GridViewProps {
   searchFilter?: string;
   redOnlyFilter?: boolean;
   onViewJobs?: () => void;
+  onViewRegressions?: () => void;
 }
 
 function getColumns(report: ComponentReport): ColumnIdentification[] {
@@ -47,6 +49,7 @@ export default function GridView({
   searchFilter: externalSearch,
   redOnlyFilter: externalRedOnly,
   onViewJobs,
+  onViewRegressions,
 }: GridViewProps) {
   const setRedOnlyFilter = useComponentReadinessStore(
     (s) => s.setRedOnlyFilter,
@@ -60,6 +63,23 @@ export default function GridView({
 
   const search = externalSearch ?? storeSearch;
   const redOnly = externalRedOnly ?? storeRedOnly;
+
+  // Use the /tests API for regression count so it matches the tests page exactly
+  const { data: allTestsData, isLoading: allTestsLoading } = useAllTests();
+  const regressionCount = useMemo(() => {
+    if (!allTestsData?.tests) return undefined;
+    let count = 0;
+    for (const test of allTestsData.tests) {
+      if (
+        test.results.some(
+          (r) => isRegression(r.status) && !isTriaged(r.status),
+        )
+      ) {
+        count++;
+      }
+    }
+    return count;
+  }, [allTestsData]);
 
   const columns = useMemo(() => {
     if (!report) return [];
@@ -158,7 +178,9 @@ export default function GridView({
         generatedAt={report.generated_at}
         totalRows={report.rows?.length}
         visibleRows={filteredRows.length}
+        regressionCount={regressionCount}
         onViewJobs={onViewJobs}
+        onViewRegressions={onViewRegressions}
       />
 
       <TableContainer

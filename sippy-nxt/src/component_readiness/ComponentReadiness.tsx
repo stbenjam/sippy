@@ -147,6 +147,12 @@ export default function ComponentReadiness() {
     [navigate],
   );
 
+  const handleViewRegressions = useCallback(() => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("regressionsOnly", "true");
+    navigate(`/component_readiness/tests?${params.toString()}`);
+  }, [navigate]);
+
   const handleComponentClick = useCallback(
     (component: string) => {
       const params = new URLSearchParams(window.location.search);
@@ -215,6 +221,7 @@ export default function ComponentReadiness() {
                   onViewJobs={() => setJobsModalOpen(true)}
                   onCellClick={handleCellClick}
                   onComponentClick={handleComponentClick}
+                  onViewRegressions={handleViewRegressions}
                 />
               )
             }

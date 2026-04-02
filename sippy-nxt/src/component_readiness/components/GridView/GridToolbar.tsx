@@ -28,7 +28,9 @@ interface GridToolbarProps {
   generatedAt?: string;
   totalRows?: number;
   visibleRows?: number;
+  regressionCount?: number;
   onViewJobs?: () => void;
+  onViewRegressions?: () => void;
 }
 
 export default function GridToolbar({
@@ -39,7 +41,9 @@ export default function GridToolbar({
   generatedAt,
   totalRows,
   visibleRows,
+  regressionCount,
   onViewJobs,
+  onViewRegressions,
 }: GridToolbarProps) {
   const [copyAnchor, setCopyAnchor] = useState<HTMLElement | null>(null);
 
@@ -196,6 +200,39 @@ export default function GridToolbar({
           tabIndex={-1}
         />
       </Box>
+
+      {(regressionCount === undefined || regressionCount > 0) && (
+        <Chip
+          icon={<ErrorIcon sx={{ fontSize: 16 }} />}
+          label={
+            regressionCount === undefined
+              ? "..."
+              : `${regressionCount} regression${regressionCount === 1 ? "" : "s"}`
+          }
+          size="small"
+          color="error"
+          variant="outlined"
+          onClick={regressionCount !== undefined ? onViewRegressions : undefined}
+          sx={{
+            cursor:
+              onViewRegressions && regressionCount !== undefined
+                ? "pointer"
+                : "default",
+            fontWeight: 600,
+            fontSize: "0.8125rem",
+            height: 30,
+            borderRadius: 2,
+            transition: "all 0.2s ease",
+            "&:hover":
+              onViewRegressions && regressionCount !== undefined
+                ? {
+                    bgcolor: (t) => alpha(t.palette.error.main, 0.08),
+                    borderColor: "error.main",
+                  }
+                : undefined,
+          }}
+        />
+      )}
 
       {onViewJobs && (
         <Tooltip title="View CI jobs in this report" arrow>

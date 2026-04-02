@@ -740,7 +740,7 @@ function DiagnosisResult({ diagnosis }: { diagnosis: JobDiagnosis }) {
             This job is included in the view
           </Typography>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.5 }}>
-            {Object.entries(diagnosis.variants).map(([k, v]) => (
+            {Object.entries(diagnosis.variants ?? {}).map(([k, v]) => (
               <Chip
                 key={k}
                 label={`${k}: ${v}`}
@@ -780,7 +780,7 @@ function DiagnosisResult({ diagnosis }: { diagnosis: JobDiagnosis }) {
         </Typography>
       </Box>
 
-      {diagnosis.exclusion_reasons.map((reason, i) => (
+      {(diagnosis.exclusion_reasons ?? []).map((reason, i) => (
         <Box
           key={i}
           sx={{
@@ -817,7 +817,7 @@ function DiagnosisResult({ diagnosis }: { diagnosis: JobDiagnosis }) {
               <> is not set on this job</>
             )}
             {" but the view only includes "}
-            {reason.filter_values.map((v, vi) => (
+            {(reason.filter_values ?? []).map((v, vi) => (
               <span key={v}>
                 {vi > 0 && ", "}
                 <Chip
@@ -838,7 +838,7 @@ function DiagnosisResult({ diagnosis }: { diagnosis: JobDiagnosis }) {
         </Box>
       ))}
 
-      {Object.keys(diagnosis.variants).length > 0 && (
+      {Object.keys(diagnosis.variants ?? {}).length > 0 && (
         <Box
           sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 1, ml: 3.5 }}
         >
@@ -848,7 +848,7 @@ function DiagnosisResult({ diagnosis }: { diagnosis: JobDiagnosis }) {
           >
             Job variants:
           </Typography>
-          {Object.entries(diagnosis.variants).map(([k, v]) => (
+          {Object.entries(diagnosis.variants ?? {}).map(([k, v]) => (
             <Chip
               key={k}
               label={`${k}: ${v}`}
